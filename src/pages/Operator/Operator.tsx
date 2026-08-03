@@ -11,7 +11,8 @@ import {
   Alert,
   Dialog,
   DialogTitle,
-  DialogContent
+  DialogContent,
+  DialogActions
 } from "@mui/material";
 
 import LabelPreview from "../../components/print/LabelPreview";
@@ -28,23 +29,38 @@ import {
   printLabel
 } from "../../services/PrintService";
 
-import type { DesignerElement } from "../../components/designer/DesignerTypes";
+import type {
+  DesignerElement
+} from "../../components/designer/DesignerTypes";
 
 export default function Operator() {
 
-  const [orderNumber, setOrderNumber] = useState("");
+  const [orderNumber, setOrderNumber] =
+    useState("");
 
-  const [order, setOrder] = useState<ProductionOrder | null>(null);
+  const [order, setOrder] =
+    useState<ProductionOrder | null>(null);
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] =
+    useState(false);
 
-  const [label, setLabel] = useState<DesignerElement[]>([]);
+  const [finishedOpen, setFinishedOpen] =
+    useState(false);
+
+  const [label, setLabel] =
+    useState<DesignerElement[]>([]);
+
+  //--------------------------------------------------
+  // CARGAR ORDEN
+  //--------------------------------------------------
 
   function loadOrder() {
 
-    const productionOrder = findOrder(orderNumber);
+    const productionOrder =
+      findOrder(orderNumber);
 
     if (!productionOrder) {
 
@@ -62,11 +78,16 @@ export default function Operator() {
 
   }
 
+  //--------------------------------------------------
+  // IMPRIMIR
+  //--------------------------------------------------
+
   function printCurrentLabel() {
 
     if (!order) return;
 
-    const result = printLabel(order);
+    const result =
+      printLabel(order);
 
     if (!result.success) {
 
@@ -80,7 +101,8 @@ export default function Operator() {
 
     setPreviewOpen(true);
 
-    const updated = findOrder(order.order);
+    const updated =
+      findOrder(order.order);
 
     if (updated) {
 
@@ -88,7 +110,19 @@ export default function Operator() {
 
     }
 
-  }
+    //--------------------------------------------------
+    // ÚLTIMA ETIQUETA
+    //--------------------------------------------------
+
+    if (result.finished) {
+
+      setFinishedOpen(true);
+
+    }
+
+  }  //--------------------------------------------------
+  // REIMPRIMIR
+  //--------------------------------------------------
 
   function repeatLabel() {
 
@@ -106,6 +140,22 @@ export default function Operator() {
     );
 
   }
+
+  //--------------------------------------------------
+  // PENDIENTES
+  //--------------------------------------------------
+
+  const pending =
+    order
+      ? order.rolls - order.printed
+      : 0;
+
+  const finished =
+    order?.status === "FINALIZADA";
+
+  //--------------------------------------------------
+  // PANTALLA
+  //--------------------------------------------------
 
   return (
 
@@ -133,7 +183,11 @@ export default function Operator() {
                 fullWidth
                 label="Orden de Producción"
                 value={orderNumber}
-                onChange={(e) => setOrderNumber(e.target.value)}
+                onChange={(e) =>
+                  setOrderNumber(
+                    e.target.value
+                  )
+                }
               />
 
             </Grid>
@@ -143,7 +197,9 @@ export default function Operator() {
               <Button
                 variant="contained"
                 fullWidth
-                sx={{ height: "56px" }}
+                sx={{
+                  height: "56px"
+                }}
                 onClick={loadOrder}
               >
 
@@ -170,9 +226,7 @@ export default function Operator() {
 
         </CardContent>
 
-      </Card>
-
-      {order && (
+      </Card>      {order && (
 
         <Box mt={3}>
 
@@ -184,15 +238,25 @@ export default function Operator() {
 
                 <Grid size={{ xs: 12, md: 8 }}>
 
-                  <Typography><b>SKU:</b> {order.sku}</Typography>
+                  <Typography>
+                    <b>SKU:</b> {order.sku}
+                  </Typography>
 
-                  <Typography><b>Producto:</b> {order.product}</Typography>
+                  <Typography>
+                    <b>Producto:</b> {order.product}
+                  </Typography>
 
-                  <Typography><b>Plantilla:</b> {order.template}</Typography>
+                  <Typography>
+                    <b>Plantilla:</b> {order.template}
+                  </Typography>
 
-                  <Typography><b>Impresora:</b> {order.printer}</Typography>
+                  <Typography>
+                    <b>Impresora:</b> {order.printer}
+                  </Typography>
 
-                  <Typography><b>Estado:</b> {order.status}</Typography>
+                  <Typography>
+                    <b>Estado:</b> {order.status}
+                  </Typography>
 
                 </Grid>
 
@@ -203,47 +267,77 @@ export default function Operator() {
                       background: "#0B7A3B",
                       color: "white",
                       textAlign: "center",
-                      p: 2
+                      p: 2,
+                      borderRadius: 2
                     }}
                   >
 
-                    <Typography variant="h6">
-
+                    <Typography
+                      variant="h5"
+                      fontWeight="bold"
+                    >
                       TOTAL
-
                     </Typography>
 
-                    <Typography variant="h2">
-
+                    <Typography
+                      sx={{
+                        fontSize: 82,
+                        fontWeight: 700,
+                        lineHeight: 1
+                      }}
+                    >
                       {order.rolls}
-
                     </Typography>
 
-                    <Typography>
-
+                    <Typography
+                      sx={{
+                        mt: 1,
+                        fontSize: 22
+                      }}
+                    >
                       Impresos: {order.printed}
-
                     </Typography>
 
-                    <Typography>
-
-                      Pendientes: {order.rolls - order.printed}
-
+                    <Typography
+                      sx={{
+                        mt: 2,
+                        fontSize: 18,
+                        fontWeight: 400
+                      }}
+                    >
+                      Pendientes
                     </Typography>
 
-                    <Typography>
+                    <Typography
+                      sx={{
+                        fontSize: 58,
+                        fontWeight: 400,
+                        lineHeight: 1,
+                        mb: 2,
+                        color:
+                          pending === 0
+                            ? "#4CAF50"
+                            : "#FF2B2B"
+                      }}
+                    >
+                      {pending}
+                    </Typography>
 
-                      Próxima bobina: {order.firstCoil + order.printed}
-
+                    <Typography
+                      sx={{
+                        fontSize: 22
+                      }}
+                    >
+                      Próxima bobina:
+                      {" "}
+                      {order.firstCoil + order.printed}
                     </Typography>
 
                   </Card>
 
                 </Grid>
 
-              </Grid>
-
-              <Box
+              </Grid>              <Box
                 display="flex"
                 gap={2}
                 mt={4}
@@ -253,6 +347,7 @@ export default function Operator() {
                   variant="contained"
                   color="success"
                   size="large"
+                  disabled={finished}
                   onClick={printCurrentLabel}
                 >
 
@@ -308,7 +403,72 @@ export default function Operator() {
 
       </Dialog>
 
-    </Box>
+      <Dialog
+
+        open={finishedOpen}
+
+        onClose={() => setFinishedOpen(false)}
+
+      >
+
+        <DialogTitle>
+
+          ✅ Pedido finalizado
+
+        </DialogTitle>
+
+        <DialogContent>
+
+          <Typography>
+
+            Se ha impreso la última etiqueta de esta orden de producción.
+
+          </Typography>
+
+          <Typography
+            mt={2}
+            fontWeight="bold"
+          >
+
+            Total de bobinas impresas:
+
+            {" "}
+
+            {order?.printed}
+
+          </Typography>
+
+          <Typography
+            mt={2}
+          >
+
+            Ya no es posible imprimir más etiquetas para esta orden.
+
+          </Typography>
+
+        </DialogContent>
+
+        <DialogActions>
+
+          <Button
+
+            variant="contained"
+
+            onClick={() =>
+
+              setFinishedOpen(false)
+
+            }
+
+          >
+
+            Aceptar
+
+          </Button>
+
+        </DialogActions>
+
+      </Dialog>    </Box>
 
   );
 

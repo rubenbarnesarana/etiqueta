@@ -7,111 +7,145 @@ import { buildLabel } from "./TemplateEngine";
 
 export interface PrintResult {
 
-  success:boolean;
+  success: boolean;
 
-  message:string;
+  message: string;
 
-  coilNumber:number;
+  coilNumber: number;
 
-  label?:any[];
+  label?: any[];
+
+  finished?: boolean;
 
 }
 
-export function printLabel(order:ProductionOrder):PrintResult{
+export function printLabel(order: ProductionOrder): PrintResult {
 
-  if(order.printed>=order.rolls){
+  //--------------------------------------------------
+  // La orden ya terminó
+  //--------------------------------------------------
 
-    return{
+  if (order.printed >= order.rolls) {
 
-      success:false,
+    return {
 
-      message:"La orden ya está completamente impresa.",
+      success: false,
 
-      coilNumber:order.firstCoil+order.printed
+      message: "La orden ya está completamente impresa.",
 
-    };
+      coilNumber: order.firstCoil + order.printed,
 
-  }
-
-  const product=findProduct(order.sku);
-
-  if(!product){
-
-    return{
-
-      success:false,
-
-      message:"Producto no encontrado.",
-
-      coilNumber:0
+      finished: true
 
     };
 
   }
 
-  const template=findTemplate(product.templateId);
+  //--------------------------------------------------
+  // Buscar producto
+  //--------------------------------------------------
 
-  if(!template){
+  const product = findProduct(order.sku);
 
-    return{
+  if (!product) {
 
-      success:false,
+    return {
 
-      message:"La plantilla asignada no existe.",
+      success: false,
 
-      coilNumber:0
+      message: "Producto no encontrado.",
+
+      coilNumber: 0
 
     };
 
   }
 
-  const label=buildLabel(template.elements,{
+  //--------------------------------------------------
+  // Buscar plantilla
+  //--------------------------------------------------
 
-    SKU:order.sku,
+  const template = findTemplate(product.templateId);
 
-    DESCRIPTION:order.product,
+  if (!template) {
 
-    BARCODE:order.sku,
+    return {
 
-    QR:order.sku,
+      success: false,
 
-    DATE:new Date().toLocaleDateString(),
+      message: "La plantilla asignada no existe.",
 
-    LOT:"",
+      coilNumber: 0
 
-    COIL:String(order.firstCoil+order.printed),
+    };
 
-    ROLLS:String(order.rolls)
+  }
+
+  //--------------------------------------------------
+  // Construir etiqueta
+  //--------------------------------------------------
+
+  const currentCoil = order.firstCoil + order.printed;
+
+  const label = buildLabel(template.elements, {
+
+    SKU: order.sku,
+
+    DESCRIPTION: order.product,
+
+    BARCODE: order.sku,
+
+    QR: order.sku,
+
+    DATE: new Date().toLocaleDateString(),
+
+    LOT: "",
+
+    COIL: String(currentCoil),
+
+    ROLLS: String(order.rolls)
 
   });
 
-  const updated={
+  //--------------------------------------------------
+  // Actualizar orden
+  //--------------------------------------------------
+
+  const printed = order.printed + 1;
+
+  const finished = printed >= order.rolls;
+
+  const updated: ProductionOrder = {
 
     ...order,
 
-    printed:order.printed+1,
+    printed,
 
-    status:
-
-      order.printed+1>=order.rolls
-
-      ?"FINALIZADA"
-
-      :"ABIERTA"
+    status: finished
+      ? "FINALIZADA"
+      : "ABIERTA"
 
   };
 
   updateOrder(updated);
 
-  return{
+  //--------------------------------------------------
+  // Respuesta
+  //--------------------------------------------------
 
-    success:true,
+  return {
 
-    message:"OK",
+    success: true,
 
-    coilNumber:order.firstCoil+order.printed,
+    message: finished
+      ? "ÚLTIMA_ETIQUETA"
+      : "OK",
 
-    label
+    coilNumber: currentCoil,
+
+    label,
+
+    finished
 
   };
 
