@@ -1,45 +1,163 @@
 import {
   createContext,
   useContext,
-  useState,
-  ReactNode
+  useState
 } from "react";
 
+import type { ReactNode } from "react";
 import type { DesignerElement } from "./DesignerTypes";
 
-interface DesignerContextType {
+export interface LabelData {
 
-  elements: DesignerElement[];
+  SKU: string;
 
-  setElements: React.Dispatch<React.SetStateAction<DesignerElement[]>>;
+  DESCRIPTION: string;
 
-  selected: number | null;
+  BARCODE: string;
 
-  setSelected: React.Dispatch<React.SetStateAction<number | null>>;
+  QR: string;
+
+  DATE: string;
+
+  LOT: string;
+
+  COIL: string;
+
+  ROLLS: string;
 
 }
 
-const DesignerContext = createContext<DesignerContextType | undefined>(undefined);
+interface Context {
+
+  elements: DesignerElement[];
+
+  setElements: React.Dispatch<
+    React.SetStateAction<DesignerElement[]>
+  >;
+
+  selected: number | null;
+
+  setSelected: React.Dispatch<
+    React.SetStateAction<number | null>
+  >;
+
+  clipboard: DesignerElement | null;
+
+  setClipboard: React.Dispatch<
+    React.SetStateAction<DesignerElement | null>
+  >;
+
+  undo: DesignerElement[][];
+
+  setUndo: React.Dispatch<
+    React.SetStateAction<DesignerElement[][]>
+  >;
+
+  redo: DesignerElement[][];
+
+  setRedo: React.Dispatch<
+    React.SetStateAction<DesignerElement[][]>
+  >;
+
+  labelData: LabelData;
+
+  setLabelData: React.Dispatch<
+    React.SetStateAction<LabelData>
+  >;
+
+}
+
+const DesignerContext =
+  createContext({} as Context);
 
 export function DesignerProvider({
+
   children
+
 }: {
+
   children: ReactNode;
+
 }) {
 
-  const [elements, setElements] = useState<DesignerElement[]>([]);
+  const [elements, setElements] =
+    useState<DesignerElement[]>([]);
 
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] =
+    useState<number | null>(null);
+
+  const [clipboard, setClipboard] =
+    useState<DesignerElement | null>(null);
+
+  const [undo, setUndo] =
+    useState<DesignerElement[][]>([]);
+
+  const [redo, setRedo] =
+    useState<DesignerElement[][]>([]);
+
+  /*
+   * DATOS DE PRUEBA
+   *
+   * Estos datos sirven para comprobar
+   * que los campos dinámicos funcionan.
+   *
+   * El SKU será utilizado también
+   * por el código de barras y el QR.
+   */
+
+  const [labelData, setLabelData] =
+    useState<LabelData>({
+
+      SKU: "123456789",
+
+      DESCRIPTION: "Producto de prueba",
+
+      BARCODE: "123456789",
+
+      QR: "123456789",
+
+      DATE: "300726",
+
+      LOT: "260730",
+
+      COIL: "001",
+
+      ROLLS: "10"
+
+    });
 
   return (
 
     <DesignerContext.Provider
+
       value={{
+
         elements,
+
         setElements,
+
         selected,
-        setSelected
+
+        setSelected,
+
+        clipboard,
+
+        setClipboard,
+
+        undo,
+
+        setUndo,
+
+        redo,
+
+        setRedo,
+
+        labelData,
+
+        setLabelData
+
       }}
+
     >
 
       {children}
@@ -52,16 +170,8 @@ export function DesignerProvider({
 
 export function useDesigner() {
 
-  const context = useContext(DesignerContext);
-
-  if (!context) {
-
-    throw new Error(
-      "useDesigner debe utilizarse dentro de DesignerProvider"
-    );
-
-  }
-
-  return context;
+  return useContext(
+    DesignerContext
+  );
 
 }

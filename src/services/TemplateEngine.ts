@@ -14,31 +14,115 @@ export interface TemplateData {
 
 }
 
+function replaceValue(
+
+  text: string,
+
+  data: TemplateData
+
+): string {
+
+  return text
+
+    .replaceAll("{SKU}", data.SKU)
+
+    .replaceAll("{DESCRIPTION}", data.DESCRIPTION)
+
+    .replaceAll("{BARCODE}", data.BARCODE)
+
+    .replaceAll("{QR}", data.QR)
+
+    .replaceAll("{DATE}", data.DATE)
+
+    .replaceAll("{LOT}", data.LOT)
+
+    .replaceAll("{COIL}", data.COIL)
+
+    .replaceAll("{ROLLS}", data.ROLLS);
+
+}
+
 export function buildLabel(
 
   elements: DesignerElement[],
+
   data: TemplateData
 
 ): DesignerElement[] {
 
   return elements.map(el => {
 
-    if (el.type !== "field") {
+    const copy = {
 
-      return el;
+      ...el
+
+    };
+
+    //----------------------------------
+    // CAMPOS
+    //----------------------------------
+
+    if (
+
+      copy.type === "field" ||
+
+      copy.type === "text"
+
+    ) {
+
+      copy.text = replaceValue(
+
+        copy.text,
+
+        data
+
+      );
 
     }
 
-    const value =
-      data[el.field as keyof TemplateData] ?? "";
+    //----------------------------------
+    // CODIGO DE BARRAS
+    //----------------------------------
 
-    return {
+    if (copy.type === "barcode") {
 
-      ...el,
+      if (
 
-      text: value
+        copy.field === "SKU" ||
 
-    };
+        copy.text === "{SKU}"
+
+      ) {
+
+        copy.text = data.SKU;
+
+      }
+
+      else {
+
+        copy.text = replaceValue(
+
+          copy.text,
+
+          data
+
+        );
+
+      }
+
+    }
+
+    //----------------------------------
+    // QR
+    //----------------------------------
+
+    if (copy.type === "qr") {
+
+      copy.text = data.QR;
+
+    }
+
+    return copy;
 
   });
 

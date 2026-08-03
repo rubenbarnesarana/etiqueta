@@ -8,7 +8,7 @@ export interface ProductionOrder {
 
   product: string;
 
-  template: string;
+  templateId: number;
 
   rolls: number;
 
@@ -45,8 +45,11 @@ export function getOrders(): ProductionOrder[] {
 export function saveOrders(orders: ProductionOrder[]) {
 
   localStorage.setItem(
+
     STORAGE_KEY,
+
     JSON.stringify(orders)
+
   );
 
 }
@@ -64,7 +67,9 @@ export function addOrder(order: ProductionOrder) {
 export function findOrder(orderNumber: string) {
 
   return getOrders().find(
+
     o => o.order === orderNumber
+
   );
 
 }

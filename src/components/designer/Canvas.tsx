@@ -1,4 +1,11 @@
-import { Card, CardContent, Box, Slider, Typography } from "@mui/material";
+import {
+  Card,
+  CardContent,
+  Box,
+  Slider,
+  Typography
+} from "@mui/material";
+
 import { useEffect, useState } from "react";
 
 import { useDesigner } from "./DesignerContext";
@@ -25,8 +32,15 @@ export default function Canvas({
 
   const [zoom, setZoom] = useState(100);
 
-  const [verticalGuide] = useState<number | null>(260);
-  const [horizontalGuide] = useState<number | null>(170);
+  const [verticalGuide] =
+    useState<number | null>(260);
+
+  const [horizontalGuide] =
+    useState<number | null>(170);
+
+  //-------------------------------------------------
+  // NUEVO TEXTO
+  //-------------------------------------------------
 
   useEffect(() => {
 
@@ -40,13 +54,13 @@ export default function Canvas({
 
       text: "Nuevo texto",
 
-      x: 50,
+      x: 60,
 
-      y: 50,
+      y: 60,
 
-      width: 120,
+      width: 140,
 
-      height: 30,
+      height: 35,
 
       rotation: 0,
 
@@ -66,47 +80,181 @@ export default function Canvas({
 
   }, [addText, setElements]);
 
+  //-------------------------------------------------
+  // INSERTAR CAMPOS
+  //-------------------------------------------------
+
   useEffect(() => {
 
     if (insertField === "") return;
 
-    const nombres: Record<string, string> = {
+    const labels: Record<string, string> = {
 
-      SKU: "SKU",
+      SKU: "{SKU}",
 
-      DESCRIPTION: "Descripción",
+      DESCRIPTION: "{DESCRIPTION}",
 
-      BARCODE: "Código Barras",
+      BARCODE: "",
 
-      QR: "Código QR",
+      QR: "",
 
-      DATE: "Fecha",
+      DATE: "{DATE}",
 
-      LOT: "Lote",
+      LOT: "{LOT}",
 
-      COIL: "Bobina",
+      COIL: "{COIL}",
 
-      ROLLS: "Total Rollos",
+      ROLLS: "{ROLLS}",
 
-      LOGO: "Logo"
+      LOGO: "LOGO"
 
     };
 
-    const type: DesignerElement["type"] =
+    //-------------------------------------------------
+    // SI INSERTAMOS SKU
+    // CREAMOS SKU + CÓDIGO DE BARRAS
+    //-------------------------------------------------
 
-      insertField === "LOGO"
+    if (insertField === "SKU") {
 
-        ? "logo"
+      const timestamp = Date.now();
 
-        : insertField === "BARCODE"
+      const skuItem: DesignerElement = {
 
-        ? "barcode"
+        id: timestamp,
 
-        : insertField === "QR"
+        type: "field",
 
-        ? "qr"
+        field: "SKU",
 
-        : "field";
+        binding: "SKU",
+
+        text: "{SKU}",
+
+        x: 60,
+
+        y: 60,
+
+        width: 140,
+
+        height: 35,
+
+        rotation: 0,
+
+        fontSize: 16,
+
+        fontWeight: 400,
+
+        color: "#000000",
+
+        locked: false,
+
+        visible: true
+
+      };
+
+      const barcodeItem: DesignerElement = {
+
+        id: timestamp + 1,
+
+        type: "barcode",
+
+        field: "BARCODE",
+
+        binding: "SKU",
+
+        text: "",
+
+        barcodeFormat: "CODE128",
+
+        barcodeHeight: 45,
+
+        barcodeWidth: 1.5,
+
+        barcodeDisplayValue: true,
+
+        x: 60,
+
+        y: 100,
+
+        width: 220,
+
+        height: 70,
+
+        rotation: 0,
+
+        fontSize: 12,
+
+        fontWeight: 400,
+
+        color: "#000000",
+
+        locked: false,
+
+        visible: true
+
+      };
+
+      setElements(prev => [
+
+        ...prev,
+
+        skuItem,
+
+        barcodeItem
+
+      ]);
+
+      return;
+
+    }
+
+    //-------------------------------------------------
+    // TIPO DE ELEMENTO
+    //-------------------------------------------------
+
+    let type: DesignerElement["type"] = "field";
+
+    if (insertField === "BARCODE") {
+
+      type = "barcode";
+
+    }
+
+    if (insertField === "QR") {
+
+      type = "qr";
+
+    }
+
+    if (insertField === "LOGO") {
+
+      type = "logo";
+
+    }
+
+    //-------------------------------------------------
+    // BINDING
+    //-------------------------------------------------
+
+    let binding: string | undefined =
+      insertField;
+
+    if (insertField === "BARCODE") {
+
+      binding = "SKU";
+
+    }
+
+    if (insertField === "QR") {
+
+      binding = "SKU";
+
+    }
+
+    //-------------------------------------------------
+    // NUEVO ELEMENTO
+    //-------------------------------------------------
 
     const item: DesignerElement = {
 
@@ -116,35 +264,27 @@ export default function Canvas({
 
       field: insertField,
 
-      text: nombres[insertField] ?? insertField,
+      binding,
 
-      x: 50,
+      text: labels[insertField] ?? "",
 
-      y: 50,
+      x: 60,
+
+      y: 60,
 
       width:
-
         type === "barcode"
-
           ? 220
-
           : type === "qr"
-
           ? 90
-
           : 140,
 
       height:
-
         type === "barcode"
-
           ? 70
-
           : type === "qr"
-
           ? 90
-
-          : 30,
+          : 35,
 
       rotation: 0,
 
@@ -160,15 +300,36 @@ export default function Canvas({
 
     };
 
-    setElements(prev => [...prev, item]);
+    if (type === "barcode") {
+
+      item.barcodeFormat = "CODE128";
+      item.barcodeHeight = 45;
+      item.barcodeWidth = 1.5;
+      item.barcodeDisplayValue = true;
+
+    }
+
+    setElements(prev => [
+
+      ...prev,
+
+      item
+
+    ]);
 
   }, [insertField, setElements]);
+
+  //-------------------------------------------------
+  // CANVAS
+  //-------------------------------------------------
 
   return (
 
     <Card>
 
       <CardContent>
+
+        {/* ZOOM */}
 
         <Box mb={2}>
 
@@ -188,15 +349,29 @@ export default function Canvas({
 
             value={zoom}
 
-            onChange={(_, v) => setZoom(v as number)}
+            onChange={(_, value) =>
+
+              setZoom(value as number)
+
+            }
 
           />
 
         </Box>
 
-        <Box display="flex" justifyContent="center">
+        {/* CANVAS */}
 
-          <Box sx={{ display: "flex" }}>
+        <Box
+
+          display="flex"
+
+          justifyContent="center"
+
+        >
+
+          <Box display="flex">
+
+            {/* REGLA VERTICAL */}
 
             <Box
 
@@ -208,7 +383,7 @@ export default function Canvas({
 
                 background: "#f2f2f2",
 
-                borderRight: "1px solid #cccccc",
+                borderRight: "1px solid #ccc",
 
                 position: "relative"
 
@@ -216,7 +391,11 @@ export default function Canvas({
 
             >
 
-              {Array.from({ length: 17 }).map((_, i) => (
+              {Array.from({
+
+                length: 17
+
+              }).map((_, i) => (
 
                 <Box
 
@@ -234,7 +413,7 @@ export default function Canvas({
 
                     height: 1,
 
-                    background: "#777"
+                    background: "#666"
 
                   }}
 
@@ -246,6 +425,8 @@ export default function Canvas({
 
             <Box>
 
+              {/* REGLA HORIZONTAL */}
+
               <Box
 
                 sx={{
@@ -256,7 +437,7 @@ export default function Canvas({
 
                   background: "#f2f2f2",
 
-                  borderBottom: "1px solid #cccccc",
+                  borderBottom: "1px solid #ccc",
 
                   position: "relative"
 
@@ -264,7 +445,11 @@ export default function Canvas({
 
               >
 
-                {Array.from({ length: 27 }).map((_, i) => (
+                {Array.from({
+
+                  length: 27
+
+                }).map((_, i) => (
 
                   <Box
 
@@ -282,7 +467,7 @@ export default function Canvas({
 
                       height: 8,
 
-                      background: "#777"
+                      background: "#666"
 
                     }}
 
@@ -291,6 +476,8 @@ export default function Canvas({
                 ))}
 
               </Box>
+
+              {/* ÁREA DE DISEÑO */}
 
               <Box
 
@@ -304,26 +491,51 @@ export default function Canvas({
 
                   height: 340,
 
-                  background: "#fff",
-
                   overflow: "hidden",
+
+                  background: "#fff",
 
                   border: "2px solid #0B7A3B",
 
-                  transform: `scale(${zoom / 100})`,
+                  transform:
 
-                  transformOrigin: "top left",
+                    `scale(${zoom / 100})`,
+
+                  transformOrigin:
+
+                    "top left",
 
                   backgroundImage: `
-linear-gradient(#eeeeee 1px,transparent 1px),
-linear-gradient(90deg,#eeeeee 1px,transparent 1px)
-`,
 
-                  backgroundSize: "10px 10px"
+                    linear-gradient(
+
+                      #ececec 1px,
+
+                      transparent 1px
+
+                    ),
+
+                    linear-gradient(
+
+                      90deg,
+
+                      #ececec 1px,
+
+                      transparent 1px
+
+                    )
+
+                  `,
+
+                  backgroundSize:
+
+                    "10px 10px"
 
                 }}
 
               >
+
+                {/* GUÍAS */}
 
                 <Guides
 
@@ -333,17 +545,19 @@ linear-gradient(90deg,#eeeeee 1px,transparent 1px)
 
                 />
 
+                {/* ELEMENTOS */}
+
                 {elements
 
                   .filter(e => e.visible)
 
-                  .map(e => (
+                  .map(element => (
 
                     <DesignerItem
 
-                      key={e.id}
+                      key={element.id}
 
-                      element={e}
+                      element={element}
 
                     />
 
