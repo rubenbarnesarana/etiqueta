@@ -18,10 +18,14 @@ import {
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import SettingsIcon from "@mui/icons-material/Settings";
 
 import ProductionDialog from "../../components/production/ProductionDialog";
+import ProductionManageDialog from "../../components/production/ProductionManageDialog";
 
-import type { ProductionOrder } from "../../services/OrderStorage";
+import type {
+  ProductionOrder
+} from "../../services/OrderStorage";
 
 import {
   getOrders,
@@ -31,11 +35,17 @@ import {
 
 export default function Production() {
 
-  const [orders, setOrders] = useState<ProductionOrder[]>([]);
+  const [orders, setOrders] =
+    useState<ProductionOrder[]>([]);
 
-  const [openDialog, setOpenDialog] = useState(false);
+  const [openDialog, setOpenDialog] =
+    useState(false);
 
-  const [editing, setEditing] = useState<ProductionOrder | undefined>();
+  const [editing, setEditing] =
+    useState<ProductionOrder | undefined>();
+
+  const [managing, setManaging] =
+    useState<ProductionOrder | undefined>();
 
   useEffect(() => {
 
@@ -53,7 +63,8 @@ export default function Production() {
 
     const all = getOrders();
 
-    const index = all.findIndex(x => x.id === order.id);
+    const index =
+      all.findIndex(x => x.id === order.id);
 
     if (index >= 0) {
 
@@ -73,6 +84,8 @@ export default function Production() {
 
     setEditing(undefined);
 
+    setManaging(undefined);
+
   }
 
   function newOrder() {
@@ -91,9 +104,16 @@ export default function Production() {
 
   }
 
+  function manageOrder(order: ProductionOrder) {
+
+    setManaging(order);
+
+  }
+
   function removeOrder(id: number) {
 
-    if (!window.confirm("¿Eliminar esta orden?")) return;
+    if (!window.confirm("¿Eliminar esta orden?"))
+      return;
 
     deleteOrder(id);
 
@@ -101,9 +121,7 @@ export default function Production() {
 
   }
 
-  return (
-
-    <Box>
+  return (    <Box>
 
       <Stack
         direction="row"
@@ -144,8 +162,11 @@ export default function Production() {
               <TableRow>
 
                 <TableCell>Orden SAP</TableCell>
+
                 <TableCell>SKU</TableCell>
+
                 <TableCell>Producto</TableCell>
+
                 <TableCell>Plantilla</TableCell>
 
                 <TableCell align="center">
@@ -196,11 +217,12 @@ export default function Production() {
                 <TableRow
                   key={order.id}
                   hover
-                >
+                >                 <TableCell>{order.order}</TableCell>
 
-                  <TableCell>{order.order}</TableCell>
                   <TableCell>{order.sku}</TableCell>
+
                   <TableCell>{order.product}</TableCell>
+
                   <TableCell>{order.template}</TableCell>
 
                   <TableCell align="center">
@@ -240,6 +262,15 @@ export default function Production() {
                     </IconButton>
 
                     <IconButton
+                      color="secondary"
+                      onClick={() => manageOrder(order)}
+                    >
+
+                      <SettingsIcon />
+
+                    </IconButton>
+
+                    <IconButton
                       color="error"
                       onClick={() => removeOrder(order.id)}
                     >
@@ -260,19 +291,26 @@ export default function Production() {
 
         </CardContent>
 
-      </Card>
-
+      </Card>      
       <ProductionDialog
         open={openDialog}
         editing={editing}
         onClose={() => {
+
           setOpenDialog(false);
+
           setEditing(undefined);
+
         }}
         onSave={saveOrder}
       />
 
-    </Box>
+      <ProductionManageDialog
+        open={Boolean(managing)}
+        order={managing}
+        onClose={() => setManaging(undefined)}
+        onSave={saveOrder}
+      />    </Box>
 
   );
 
