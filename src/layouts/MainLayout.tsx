@@ -23,6 +23,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import PersonIcon from "@mui/icons-material/Person";
 
 import AppRoutes from "../routes/AppRoutes";
+import Operator from "../pages/Operator/Operator";
 import { useAuth } from "../auth/AuthContext";
 
 const drawerWidth = 250;
@@ -31,47 +32,47 @@ export default function MainLayout() {
 
   const { user, logout } = useAuth();
 
-  const menu =
-    user?.role === "operator"
-      ? [
-          {
-            text: "Operario",
-            path: "/operator",
-            icon: <PrintIcon />
-          }
-        ]
-      : [
-          {
-            text: "Dashboard",
-            path: "/",
-            icon: <DashboardIcon />
-          },
-          {
-            text: "Productos",
-            path: "/products",
-            icon: <Inventory2Icon />
-          },
-          {
-            text: "Producción",
-            path: "/production",
-            icon: <PrecisionManufacturingIcon />
-          },
-          {
-            text: "Plantillas",
-            path: "/templates",
-            icon: <LabelIcon />
-          },
-          {
-            text: "Impresoras",
-            path: "/printers",
-            icon: <PrintIcon />
-          },
-          {
-            text: "Configuración",
-            path: "/settings",
-            icon: <SettingsIcon />
-          }
-        ];
+  const isOperator = user?.role === "operator";
+
+  const menu = [
+
+    {
+      text: "Dashboard",
+      path: "/",
+      icon: <DashboardIcon />
+    },
+    {
+      text: "Productos",
+      path: "/products",
+      icon: <Inventory2Icon />
+    },
+    {
+      text: "Producción",
+      path: "/production",
+      icon: <PrecisionManufacturingIcon />
+    },
+    {
+      text: "Imprimir Orden",
+      path: "/operator",
+      icon: <PrintIcon />
+    },
+    {
+      text: "Plantillas",
+      path: "/templates",
+      icon: <LabelIcon />
+    },
+    {
+      text: "Impresoras",
+      path: "/printers",
+      icon: <PrintIcon />
+    },
+    {
+      text: "Configuración",
+      path: "/settings",
+      icon: <SettingsIcon />
+    }
+
+  ];
 
   return (
 
@@ -111,7 +112,7 @@ export default function MainLayout() {
             onClick={logout}
           >
 
-            Salir
+            SALIR
 
           </Button>
 
@@ -119,69 +120,66 @@ export default function MainLayout() {
 
       </AppBar>
 
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          "& .MuiDrawer-paper": {
+      {!isOperator && (
+
+        <Drawer
+          variant="permanent"
+          sx={{
             width: drawerWidth,
-            boxSizing: "border-box",
-            borderRight: "1px solid #E0E0E0",
-            backgroundColor: "#FFFFFF"
-          }
-        }}
-      >
+            flexShrink: 0,
+            "& .MuiDrawer-paper": {
+              width: drawerWidth,
+              boxSizing: "border-box",
+              borderRight: "1px solid #E0E0E0",
+              backgroundColor: "#FFFFFF"
+            }
+          }}
+        >
 
-        <Toolbar />
+          <Toolbar />
 
-        <Divider />
+          <Divider />
 
-        <List sx={{ mt: 1 }}>
+          <List sx={{ mt: 1 }}>
 
-          {menu.map((item) => (
+            {menu.map((item) => (
 
-            <ListItemButton
-              key={item.text}
-              component={Link}
-              to={item.path}
-              sx={{
-                mx: 1,
-                my: 0.5,
-                borderRadius: 2,
-                transition: "0.2s",
-                "&:hover": {
-                  backgroundColor: "#E8F5E9"
-                }
-              }}
-            >
-
-              <ListItemIcon
+              <ListItemButton
+                key={item.text}
+                component={Link}
+                to={item.path}
                 sx={{
-                  color: "#0B7A3B",
-                  minWidth: 42
+                  mx: 1,
+                  my: 0.5,
+                  borderRadius: 2,
+                  "&:hover": {
+                    backgroundColor: "#E8F5E9"
+                  }
                 }}
               >
 
-                {item.icon}
+                <ListItemIcon
+                  sx={{
+                    color: "#0B7A3B",
+                    minWidth: 42
+                  }}
+                >
 
-              </ListItemIcon>
+                  {item.icon}
 
-              <ListItemText
-                primary={item.text}
-                primaryTypographyProps={{
-                  fontWeight: 600,
-                  fontSize: 15
-                }}
-              />
+                </ListItemIcon>
 
-            </ListItemButton>
+                <ListItemText primary={item.text} />
 
-          ))}
+              </ListItemButton>
 
-        </List>
+            ))}
 
-      </Drawer>
+          </List>
+
+        </Drawer>
+
+      )}
 
       <Box
         component="main"
@@ -195,7 +193,7 @@ export default function MainLayout() {
 
         <Toolbar />
 
-        <AppRoutes />
+        {isOperator ? <Operator /> : <AppRoutes />}
 
       </Box>
 

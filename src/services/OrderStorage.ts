@@ -24,6 +24,8 @@ export interface ProductionOrder {
 
 const STORAGE_KEY = "productionOrders";
 
+const HISTORY_KEY = "orderHistory";
+
 export function getOrders(): ProductionOrder[] {
 
   const data = localStorage.getItem(STORAGE_KEY);
@@ -66,11 +68,19 @@ export function addOrder(order: ProductionOrder) {
 
 export function findOrder(orderNumber: string) {
 
-  return getOrders().find(
+  const order = getOrders().find(
 
     o => o.order === orderNumber
 
   );
+
+  if (order) {
+
+    saveOrderHistory(order.order);
+
+  }
+
+  return order;
 
 }
 
@@ -99,5 +109,59 @@ export function deleteOrder(id: number) {
   );
 
   saveOrders(orders);
+
+}
+
+/*----------------------------------------------------*/
+/* HISTORIAL */
+/*----------------------------------------------------*/
+
+export function getOrderHistory(): string[] {
+
+  const data = localStorage.getItem(HISTORY_KEY);
+
+  if (!data) return [];
+
+  try {
+
+    return JSON.parse(data);
+
+  } catch {
+
+    return [];
+
+  }
+
+}
+
+export function saveOrderHistory(order: string) {
+
+  let history = getOrderHistory();
+
+  history = history.filter(x => x !== order);
+
+  history.unshift(order);
+
+  if (history.length > 20) {
+
+    history = history.slice(0, 20);
+
+  }
+
+  localStorage.setItem(
+
+    HISTORY_KEY,
+
+    JSON.stringify(history)
+
+  );
+
+}
+
+export function getLastOrder(): string {
+
+  const history = getOrderHistory();
+
+  return history.length > 0 ? history[0] : "";
 
 }
