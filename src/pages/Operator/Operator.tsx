@@ -35,6 +35,7 @@ import type {
   DesignerElement
 } from "../../components/designer/DesignerTypes";
 
+
 export default function Operator() {
 
   const [orderNumber, setOrderNumber] =
@@ -55,11 +56,24 @@ export default function Operator() {
   const [label, setLabel] =
     useState<DesignerElement[]>([]);
 
+  const [backgroundImage, setBackgroundImage] =
+    useState<string | undefined>();
+
+  const [labelFormat, setLabelFormat] =
+    useState<
+      "FORMATO_1" |
+      "FORMATO_2"
+    >("FORMATO_1");
+
+  const [labelData, setLabelData] =
+    useState<any>();
+
   const [autocompleteOpen, setAutocompleteOpen] =
     useState(false);
 
   const orderInputRef =
     useRef<HTMLInputElement | null>(null);
+
 
   //--------------------------------------------------
   // ULTIMAS ORDENES
@@ -70,8 +84,15 @@ export default function Operator() {
 
   const orderHistory =
     [...orders]
-      .sort((a, b) => b.id - a.id)
-      .map(order => order.order);
+      .sort(
+        (a, b) =>
+          b.id - a.id
+      )
+      .map(
+        order =>
+          order.order
+      );
+
 
   //--------------------------------------------------
   // ENFOCAR CAMPO ORDEN
@@ -89,6 +110,7 @@ export default function Operator() {
 
   }
 
+
   //--------------------------------------------------
   // CARGAR ORDEN
   //--------------------------------------------------
@@ -97,6 +119,7 @@ export default function Operator() {
 
     const number =
       orderNumber.trim();
+
 
     if (!number) {
 
@@ -110,8 +133,10 @@ export default function Operator() {
 
     }
 
+
     const productionOrder =
       findOrder(number);
+
 
     if (!productionOrder) {
 
@@ -127,6 +152,7 @@ export default function Operator() {
 
     }
 
+
     setError("");
 
     setOrder(
@@ -137,6 +163,7 @@ export default function Operator() {
 
   }
 
+
   //--------------------------------------------------
   // IMPRIMIR
   //--------------------------------------------------
@@ -145,12 +172,16 @@ export default function Operator() {
 
     if (!order) return;
 
+
     const result =
       printLabel(order);
 
+
     if (!result.success) {
 
-      alert(result.message);
+      alert(
+        result.message
+      );
 
       focusOrderInput();
 
@@ -158,20 +189,71 @@ export default function Operator() {
 
     }
 
+
+    //------------------------------------------------
+    // ELEMENTOS DINÁMICOS
+    //------------------------------------------------
+
     setLabel(
       result.label ?? []
     );
 
-    setPreviewOpen(true);
+
+    //------------------------------------------------
+    // IMAGEN DE PLANTILLA
+    //------------------------------------------------
+
+    setBackgroundImage(
+      result.backgroundImage
+    );
+
+
+    //------------------------------------------------
+    // FORMATO
+    //------------------------------------------------
+
+    setLabelFormat(
+      result.labelFormat ??
+      "FORMATO_1"
+    );
+
+
+    //------------------------------------------------
+    // DATOS
+    //------------------------------------------------
+
+    setLabelData(
+      result.labelData
+    );
+
+
+    //------------------------------------------------
+    // ABRIR PREVIEW
+    //------------------------------------------------
+
+    setPreviewOpen(
+      true
+    );
+
+
+    //------------------------------------------------
+    // ACTUALIZAR ORDEN
+    //------------------------------------------------
 
     const updated =
-      findOrder(order.order);
+      findOrder(
+        order.order
+      );
+
 
     if (updated) {
 
-      setOrder(updated);
+      setOrder(
+        updated
+      );
 
     }
+
 
     //------------------------------------------------
     // CERRAR VISTA PREVIA
@@ -179,7 +261,9 @@ export default function Operator() {
 
     setTimeout(() => {
 
-      setPreviewOpen(false);
+      setPreviewOpen(
+        false
+      );
 
       setOrderNumber("");
 
@@ -187,19 +271,25 @@ export default function Operator() {
 
       focusOrderInput();
 
+
       //------------------------------------------------
       // ULTIMA ETIQUETA
       //------------------------------------------------
 
-      if (result.finished) {
+      if (
+        result.finished
+      ) {
 
-        setFinishedOpen(true);
+        setFinishedOpen(
+          true
+        );
 
       }
 
     }, 2000);
 
   }
+
 
   //--------------------------------------------------
   // REIMPRIMIR
@@ -209,21 +299,26 @@ export default function Operator() {
 
     if (!order) return;
 
+
     const coil =
       prompt(
         "¿Qué bobina desea reimprimir?"
       );
 
+
     if (!coil) return;
+
 
     alert(
       "Reimpresión de la bobina " +
       coil
     );
 
+
     focusOrderInput();
 
   }
+
 
   //--------------------------------------------------
   // PENDIENTES
@@ -233,26 +328,34 @@ export default function Operator() {
     order
       ? Math.max(
           0,
-          order.rolls - order.printed
+          order.rolls -
+          order.printed
         )
       : 0;
+
 
   //--------------------------------------------------
   // ORDEN FINALIZADA
   //--------------------------------------------------
 
   const finished =
-    order?.status === "FINALIZADA";
+    order?.status ===
+    "FINALIZADA";
+
 
   //--------------------------------------------------
   // PROXIMA BOBINA
   //--------------------------------------------------
 
   const nextCoil =
-    order && pending > 0
+    order &&
+    pending > 0
+
       ? order.firstCoil +
         order.printed
+
       : null;
+
 
   //--------------------------------------------------
   // PANTALLA
@@ -295,22 +398,36 @@ export default function Operator() {
 
               <Autocomplete
                 freeSolo
-                open={autocompleteOpen}
+                open={
+                  autocompleteOpen
+                }
                 onOpen={() =>
-                  setAutocompleteOpen(true)
+                  setAutocompleteOpen(
+                    true
+                  )
                 }
                 onClose={() =>
-                  setAutocompleteOpen(false)
+                  setAutocompleteOpen(
+                    false
+                  )
                 }
-                options={orderHistory}
-                value={orderNumber}
-                inputValue={orderNumber}
+                options={
+                  orderHistory
+                }
+                value={
+                  orderNumber
+                }
+                inputValue={
+                  orderNumber
+                }
                 onInputChange={(
                   _event,
                   value
                 ) => {
 
-                  setOrderNumber(value);
+                  setOrderNumber(
+                    value
+                  );
 
                   if (error) {
 
@@ -319,47 +436,52 @@ export default function Operator() {
                   }
 
                 }}
-                renderInput={(params) => (
+                renderInput={
+                  (params) => (
 
-                  <TextField
-                    {...params}
-                    inputRef={
-                      orderInputRef
-                    }
-                    fullWidth
-                    label="Orden de Producción"
-                    placeholder="Introduce la orden"
-                    onKeyDown={(e) => {
-
-                      if (
-                        e.key === " " ||
-                        e.code === "Space"
-                      ) {
-
-                        e.preventDefault();
-
-                        setAutocompleteOpen(
-                          true
-                        );
-
-                        return;
-
+                    <TextField
+                      {...params}
+                      inputRef={
+                        orderInputRef
                       }
+                      fullWidth
+                      label="Orden de Producción"
+                      placeholder="Introduce la orden"
+                      onKeyDown={
+                        (e) => {
 
-                      if (
-                        e.key === "Enter"
-                      ) {
+                          if (
+                            e.key === " " ||
+                            e.code === "Space"
+                          ) {
 
-                        e.preventDefault();
+                            e.preventDefault();
 
-                        loadOrder();
+                            setAutocompleteOpen(
+                              true
+                            );
 
+                            return;
+
+                          }
+
+
+                          if (
+                            e.key === "Enter"
+                          ) {
+
+                            e.preventDefault();
+
+                            loadOrder();
+
+                          }
+
+                        }
                       }
+                    />
 
-                    }}
-                  />
-
-                )}
+                  )
+                }
               />
 
             </Grid>
@@ -378,7 +500,9 @@ export default function Operator() {
                 sx={{
                   height: "56px"
                 }}
-                onClick={loadOrder}
+                onClick={
+                  loadOrder
+                }
               >
 
                 CARGAR ORDEN
@@ -441,20 +565,24 @@ export default function Operator() {
                     {order.sku}
                   </Typography>
 
+
                   <Typography>
                     <b>Producto:</b>{" "}
                     {order.product}
                   </Typography>
 
+
                   <Typography>
                     <b>Plantilla:</b>{" "}
-                    {order.template}
+                    {order.templateId}
                   </Typography>
+
 
                   <Typography>
                     <b>Impresora:</b>{" "}
                     {order.printer}
                   </Typography>
+
 
                   <Typography>
                     <b>Estado:</b>{" "}
@@ -472,8 +600,6 @@ export default function Operator() {
                     md: 4
                   }}
                 >
-
-                  {/* TARJETA VERDE */}
 
                   <Card
                     sx={{
@@ -560,7 +686,8 @@ export default function Operator() {
                     sx={{
                       mt: 2,
                       p: 2,
-                      textAlign: "center",
+                      textAlign:
+                        "center",
                       borderRadius: 2,
                       border:
                         "2px solid #1976D2",
@@ -573,7 +700,8 @@ export default function Operator() {
                       sx={{
                         fontSize: 17,
                         fontWeight: 600,
-                        color: "#555"
+                        color:
+                          "#555"
                       }}
                     >
 
@@ -590,7 +718,8 @@ export default function Operator() {
                           fontSize: 58,
                           fontWeight: 700,
                           lineHeight: 1,
-                          color: "#1976D2"
+                          color:
+                            "#1976D2"
                         }}
                       >
 
@@ -605,7 +734,8 @@ export default function Operator() {
                           mt: 1,
                           fontSize: 24,
                           fontWeight: 700,
-                          color: "#4CAF50"
+                          color:
+                            "#4CAF50"
                         }}
                       >
 
@@ -634,7 +764,9 @@ export default function Operator() {
                   variant="contained"
                   color="success"
                   size="large"
-                  disabled={finished}
+                  disabled={
+                    finished
+                  }
                   onClick={
                     printCurrentLabel
                   }
@@ -668,26 +800,49 @@ export default function Operator() {
       )}
 
 
-      {/* VISTA PREVIA */}
+      {/* =========================================
+          VISTA PREVIA REAL DE LA PLANTILLA
+          ========================================= */}
 
       <Dialog
-        open={previewOpen}
+        open={
+          previewOpen
+        }
         onClose={() =>
-          setPreviewOpen(false)
+          setPreviewOpen(
+            false
+          )
         }
         maxWidth="lg"
       >
 
         <DialogTitle>
 
-          Vista previa
+          Vista previa de etiqueta
 
         </DialogTitle>
+
 
         <DialogContent>
 
           <LabelPreview
-            elements={label}
+
+            elements={
+              label
+            }
+
+            backgroundImage={
+              backgroundImage
+            }
+
+            labelFormat={
+              labelFormat
+            }
+
+            labelData={
+              labelData
+            }
+
           />
 
         </DialogContent>
@@ -695,12 +850,18 @@ export default function Operator() {
       </Dialog>
 
 
-      {/* PEDIDO FINALIZADO */}
+      {/* =========================================
+          PEDIDO FINALIZADO
+          ========================================= */}
 
       <Dialog
-        open={finishedOpen}
+        open={
+          finishedOpen
+        }
         onClose={() =>
-          setFinishedOpen(false)
+          setFinishedOpen(
+            false
+          )
         }
       >
 
@@ -753,7 +914,9 @@ export default function Operator() {
           <Button
             variant="contained"
             onClick={() =>
-              setFinishedOpen(false)
+              setFinishedOpen(
+                false
+              )
             }
           >
 

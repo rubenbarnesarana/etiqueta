@@ -1,294 +1,172 @@
-import {
-  Card,
-  CardContent,
-  Box,
-  Slider,
-  Typography
-} from "@mui/material";
-
-import { useEffect, useState } from "react";
-
+import { useEffect, useRef } from "react";
+import { Box, Paper, Typography } from "@mui/material";
+import JsBarcode from "jsbarcode";
+import QRCode from "qrcode";
 import { useDesigner } from "./DesignerContext";
-import DesignerItem from "./DesignerItem";
-import Guides from "./Guides";
 
-import type { DesignerElement } from "./DesignerTypes";
-
-interface Props {
+interface CanvasProps {
   addText: boolean;
   insertField: string;
+  zoom: number;
+  backgroundImage?: string;
+  labelFormat?: "FORMATO_1" | "FORMATO_2";
 }
+
+const FORMATS = {
+  FORMATO_1: {
+    width: 80,
+    height: 285
+  },
+  FORMATO_2: {
+    width: 110,
+    height: 240
+  }
+};
 
 export default function Canvas({
   addText,
-  insertField
-}: Props) {
+  insertField,
+  zoom,
+  backgroundImage,
+  labelFormat = "FORMATO_1"
+}: CanvasProps) {
 
   const {
     elements,
     setElements,
-    setSelected
+    selected,
+    setSelected,
+    labelData
   } = useDesigner();
 
-  const [zoom, setZoom] = useState(100);
-
-  const [verticalGuide] =
-    useState<number | null>(260);
-
-  const [horizontalGuide] =
-    useState<number | null>(170);
-
-  //-------------------------------------------------
-  // NUEVO TEXTO
-  //-------------------------------------------------
-
-  useEffect(() => {
-
-    if (!addText) return;
-
-    const item: DesignerElement = {
-
-      id: Date.now(),
-
-      type: "text",
-
-      text: "Nuevo texto",
-
-      x: 60,
-
-      y: 60,
-
-      width: 140,
-
-      height: 35,
-
-      rotation: 0,
-
-      fontSize: 16,
-
-      fontWeight: 400,
-
-      color: "#000000",
-
-      locked: false,
-
-      visible: true
-
-    };
-
-    setElements(prev => [...prev, item]);
-
-  }, [addText, setElements]);
-
-  //-------------------------------------------------
-  // INSERTAR CAMPOS
-  //-------------------------------------------------
-
-  useEffect(() => {
-
-    if (insertField === "") return;
-
-    const labels: Record<string, string> = {
-
-      SKU: "{SKU}",
-
-      DESCRIPTION: "{DESCRIPTION}",
-
-      BARCODE: "",
-
-      QR: "",
-
-      DATE: "{DATE}",
-
-      LOT: "{LOT}",
-
-      COIL: "{COIL}",
-
-      ROLLS: "{ROLLS}",
-
-      LOGO: "LOGO"
-
-    };
-
-    //-------------------------------------------------
-    // SI INSERTAMOS SKU
-    // CREAMOS SKU + CÓDIGO DE BARRAS
-    //-------------------------------------------------
-
-    if (insertField === "SKU") {
-
-      const timestamp = Date.now();
-
-      const skuItem: DesignerElement = {
-
-        id: timestamp,
-
-        type: "field",
-
-        field: "SKU",
-
-        binding: "SKU",
-
-        text: "{SKU}",
-
-        x: 60,
-
-        y: 60,
-
-        width: 140,
-
-        height: 35,
-
-        rotation: 0,
-
-        fontSize: 16,
-
-        fontWeight: 400,
-
-        color: "#000000",
-
-        locked: false,
-
-        visible: true
-
-      };
-
-      const barcodeItem: DesignerElement = {
-
-        id: timestamp + 1,
-
-        type: "barcode",
-
-        field: "BARCODE",
-
-        binding: "SKU",
-
-        text: "",
-
-        barcodeFormat: "CODE128",
-
-        barcodeHeight: 45,
-
-        barcodeWidth: 1.5,
-
-        barcodeDisplayValue: true,
-
-        x: 60,
-
-        y: 100,
-
-        width: 220,
-
-        height: 70,
-
-        rotation: 0,
-
-        fontSize: 12,
-
-        fontWeight: 400,
-
-        color: "#000000",
-
-        locked: false,
-
-        visible: true
-
-      };
-
-      setElements(prev => [
-
-        ...prev,
-
-        skuItem,
-
-        barcodeItem
-
-      ]);
-
-      return;
-
+  const canvasRef =
+    useRef<HTMLDivElement>(null);
+
+  const format =
+    FORMATS[labelFormat];
+
+  const labelWidth =
+    format.width;
+
+  const labelHeight =
+    format.height;
+
+
+  /*
+   * ==================================================
+   * IMAGEN DE FONDO
+   * ==================================================
+   *
+   * Ya NO forzamos AMNON.
+   *
+   * Cada plantilla decide qué imagen utiliza:
+   *
+   * /templates/amnon-formato1.png
+   * /templates/blind-pipe-formato1.png
+   * /templates/microtube-formato1.png
+   * /templates/naan-pc-formato1.png
+   * /templates/naan-pc-max-formato1.png
+   * /templates/tifdrip-plus-formato1.png
+   * /templates/topdrip-formato1.png
+   * /templates/turbo-excel-formato1.png
+   */
+
+  const templateImage =
+    backgroundImage || "";
+
+
+  /*
+   * ==================================================
+   * OBTENER VALOR DEL ELEMENTO
+   * ==================================================
+   */
+
+  function getElementValue(
+    element: any
+  ): string {
+
+    if (element.binding) {
+
+      const key =
+        element.binding
+          .replace("${", "")
+          .replace("}", "");
+
+      return (
+        labelData[
+          key as keyof typeof labelData
+        ] ?? ""
+      );
     }
 
-    //-------------------------------------------------
-    // TIPO DE ELEMENTO
-    //-------------------------------------------------
+    if (element.field) {
 
-    let type: DesignerElement["type"] = "field";
-
-    if (insertField === "BARCODE") {
-
-      type = "barcode";
-
+      return (
+        labelData[
+          element.field as keyof typeof labelData
+        ] ?? ""
+      );
     }
 
-    if (insertField === "QR") {
+    return (
+      element.value ??
+      element.text ??
+      ""
+    );
+  }
 
-      type = "qr";
 
-    }
+  /*
+   * ==================================================
+   * CREAR ELEMENTO
+   * ==================================================
+   */
 
-    if (insertField === "LOGO") {
+  function createElement(
+    type:
+      | "text"
+      | "field"
+      | "barcode"
+      | "qr"
+      | "logo",
+    field?: string
+  ) {
 
-      type = "logo";
-
-    }
-
-    //-------------------------------------------------
-    // BINDING
-    //-------------------------------------------------
-
-    let binding: string | undefined =
-      insertField;
-
-    if (insertField === "BARCODE") {
-
-      binding = "SKU";
-
-    }
-
-    if (insertField === "QR") {
-
-      binding = "SKU";
-
-    }
-
-    //-------------------------------------------------
-    // NUEVO ELEMENTO
-    //-------------------------------------------------
-
-    const item: DesignerElement = {
+    const newElement: any = {
 
       id: Date.now(),
 
       type,
 
-      field: insertField,
+      field,
 
-      binding,
+      text:
+        type === "text"
+          ? "Texto"
+          : field ?? "",
 
-      text: labels[insertField] ?? "",
+      value:
+        type === "text"
+          ? "Texto"
+          : "",
 
-      x: 60,
+      x: 10,
 
-      y: 60,
+      y: 10,
 
       width:
         type === "barcode"
-          ? 220
-          : type === "qr"
-          ? 90
-          : 140,
+          ? 55
+          : 35,
 
       height:
         type === "barcode"
-          ? 70
-          : type === "qr"
-          ? 90
-          : 35,
+          ? 25
+          : 15,
 
       rotation: 0,
 
-      fontSize: 16,
+      fontSize: 12,
 
       fontWeight: 400,
 
@@ -297,284 +175,751 @@ export default function Canvas({
       locked: false,
 
       visible: true
-
     };
+
 
     if (type === "barcode") {
 
-      item.barcodeFormat = "CODE128";
-      item.barcodeHeight = 45;
-      item.barcodeWidth = 1.5;
-      item.barcodeDisplayValue = true;
+      newElement.barcodeFormat =
+        "CODE128";
 
+      newElement.barcodeHeight =
+        30;
+
+      newElement.barcodeWidth =
+        2;
+
+      newElement.barcodeDisplayValue =
+        true;
+
+      newElement.field =
+        "BARCODE";
     }
 
+
     setElements(prev => [
-
       ...prev,
-
-      item
-
+      newElement
     ]);
 
-  }, [insertField, setElements]);
 
-  //-------------------------------------------------
-  // CANVAS
-  //-------------------------------------------------
+    setSelected(
+      newElement.id
+    );
+  }
+
+
+  /*
+   * ==================================================
+   * AÑADIR TEXTO
+   * ==================================================
+   */
+
+  useEffect(() => {
+
+    if (!addText) {
+      return;
+    }
+
+    createElement("text");
+
+  }, [addText]);
+
+
+  /*
+   * ==================================================
+   * INSERTAR CAMPO
+   * ==================================================
+   */
+
+  useEffect(() => {
+
+    if (!insertField) {
+      return;
+    }
+
+
+    const field =
+      insertField.toUpperCase();
+
+
+    if (field === "BARCODE") {
+
+      createElement(
+        "barcode",
+        "BARCODE"
+      );
+
+      return;
+    }
+
+
+    if (field === "QR") {
+
+      createElement(
+        "qr",
+        "QR"
+      );
+
+      return;
+    }
+
+
+    if (field === "LOGO") {
+
+      createElement(
+        "logo",
+        "LOGO"
+      );
+
+      return;
+    }
+
+
+    createElement(
+      "field",
+      field
+    );
+
+  }, [insertField]);
+
+
+  /*
+   * ==================================================
+   * CÓDIGO DE BARRAS
+   * ==================================================
+   */
+
+  function Barcode({
+    value,
+    element
+  }: {
+    value: string;
+    element: any;
+  }) {
+
+    const ref =
+      useRef<SVGSVGElement>(null);
+
+
+    useEffect(() => {
+
+      if (!ref.current) {
+        return;
+      }
+
+
+      try {
+
+        JsBarcode(
+          ref.current,
+          value || "123456789",
+          {
+            format:
+              element.barcodeFormat ||
+              "CODE128",
+
+            displayValue:
+              element.barcodeDisplayValue !==
+              false,
+
+            height:
+              element.barcodeHeight ||
+              30,
+
+            width:
+              element.barcodeWidth ||
+              2,
+
+            margin: 0
+          }
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Error generando código de barras:",
+          error
+        );
+      }
+
+    }, [
+      value,
+      element
+    ]);
+
+
+    return (
+      <svg
+        ref={ref}
+        style={{
+          width: "100%",
+          height: "100%"
+        }}
+      />
+    );
+  }
+
+
+  /*
+   * ==================================================
+   * QR
+   * ==================================================
+   */
+
+  function QR({
+    value
+  }: {
+    value: string;
+  }) {
+
+    const ref =
+      useRef<HTMLCanvasElement>(null);
+
+
+    useEffect(() => {
+
+      if (!ref.current) {
+        return;
+      }
+
+
+      QRCode.toCanvas(
+        ref.current,
+        value || "123456789",
+        {
+          margin: 0,
+          width: 100
+        }
+      );
+
+    }, [value]);
+
+
+    return (
+      <canvas
+        ref={ref}
+        style={{
+          width: "100%",
+          height: "100%"
+        }}
+      />
+    );
+  }
+
+
+  /*
+   * ==================================================
+   * MOVER ELEMENTOS
+   * ==================================================
+   */
+
+  function handleMouseDown(
+    event: React.MouseEvent,
+    id: number
+  ) {
+
+    event.stopPropagation();
+
+
+    const element =
+      elements.find(
+        item =>
+          item.id === id
+      );
+
+
+    if (
+      !element ||
+      element.locked
+    ) {
+      return;
+    }
+
+
+    setSelected(id);
+
+
+    const startX =
+      event.clientX;
+
+    const startY =
+      event.clientY;
+
+    const originalX =
+      element.x;
+
+    const originalY =
+      element.y;
+
+
+    function handleMove(
+      moveEvent: MouseEvent
+    ) {
+
+      const deltaX =
+        (moveEvent.clientX -
+          startX) /
+        (zoom / 100);
+
+      const deltaY =
+        (moveEvent.clientY -
+          startY) /
+        (zoom / 100);
+
+
+      setElements(prev =>
+        prev.map(item => {
+
+          if (
+            item.id !== id
+          ) {
+            return item;
+          }
+
+
+          return {
+
+            ...item,
+
+            x: Math.max(
+              0,
+              Math.min(
+                labelWidth -
+                  item.width,
+
+                originalX +
+                  deltaX
+              )
+            ),
+
+            y: Math.max(
+              0,
+              Math.min(
+                labelHeight -
+                  item.height,
+
+                originalY +
+                  deltaY
+              )
+            )
+          };
+        })
+      );
+    }
+
+
+    function handleUp() {
+
+      window.removeEventListener(
+        "mousemove",
+        handleMove
+      );
+
+      window.removeEventListener(
+        "mouseup",
+        handleUp
+      );
+    }
+
+
+    window.addEventListener(
+      "mousemove",
+      handleMove
+    );
+
+    window.addEventListener(
+      "mouseup",
+      handleUp
+    );
+  }
+
+
+  /*
+   * ==================================================
+   * EDITAR TEXTO
+   * ==================================================
+   */
+
+  function handleDoubleClick(
+    event: React.MouseEvent,
+    element: any
+  ) {
+
+    event.stopPropagation();
+
+
+    if (
+      element.locked ||
+      element.type === "barcode" ||
+      element.type === "qr" ||
+      element.type === "logo"
+    ) {
+      return;
+    }
+
+
+    const value =
+      window.prompt(
+        "Texto",
+        element.text ||
+          element.value ||
+          ""
+      );
+
+
+    if (value === null) {
+      return;
+    }
+
+
+    setElements(prev =>
+      prev.map(item =>
+        item.id === element.id
+          ? {
+              ...item,
+              text: value,
+              value
+            }
+          : item
+      )
+    );
+  }
+
+
+  /*
+   * ==================================================
+   * CANVAS
+   * ==================================================
+   */
 
   return (
 
-    <Card>
+    <Box
+      sx={{
+        width: "100%",
+        overflow: "auto"
+      }}
+    >
 
-      <CardContent>
+      <Paper
+        ref={canvasRef}
 
-        {/* ZOOM */}
+        elevation={3}
 
-        <Box mb={2}>
+        onClick={() =>
+          setSelected(null)
+        }
 
-          <Typography>
+        sx={{
 
-            Zoom {zoom}%
+          position: "relative",
 
-          </Typography>
+          width:
+            `${labelWidth}mm`,
 
-          <Slider
+          height:
+            `${labelHeight}mm`,
 
-            min={50}
+          minWidth:
+            `${labelWidth}mm`,
 
-            max={200}
+          minHeight:
+            `${labelHeight}mm`,
 
-            step={10}
+          transform:
+            `scale(${zoom / 100})`,
 
-            value={zoom}
+          transformOrigin:
+            "top left",
 
-            onChange={(_, value) =>
+          mb:
+            `${Math.max(
+              0,
+              labelHeight *
+                (zoom / 100 - 1)
+            )}mm`,
 
-              setZoom(value as number)
+          backgroundColor:
+            "#ffffff",
 
-            }
+          overflow:
+            "hidden",
 
+          border:
+            "1px solid #bdbdbd"
+        }}
+      >
+
+
+        {/* ==================================================
+            FONDO DE LA PLANTILLA
+           ================================================== */}
+
+        {templateImage && (
+
+          <img
+            src={templateImage}
+
+            alt="Plantilla"
+
+            draggable={false}
+
+            onLoad={(event) => {
+
+              const image =
+                event.currentTarget;
+
+              console.log(
+                "PLANTILLA OK:",
+                templateImage
+              );
+
+              console.log(
+                "naturalWidth:",
+                image.naturalWidth
+              );
+
+              console.log(
+                "naturalHeight:",
+                image.naturalHeight
+              );
+            }}
+
+            onError={() => {
+
+              console.error(
+                "ERROR CARGANDO PLANTILLA:",
+                templateImage
+              );
+
+            }}
+
+            style={{
+
+              position:
+                "absolute",
+
+              top: 0,
+
+              left: 0,
+
+              width:
+                "100%",
+
+              height:
+                "100%",
+
+              objectFit:
+                "fill",
+
+              display:
+                "block",
+
+              margin: 0,
+
+              padding: 0,
+
+              border: 0,
+
+              zIndex: 0,
+
+              pointerEvents:
+                "none",
+
+              userSelect:
+                "none"
+            }}
           />
 
-        </Box>
+        )}
 
-        {/* CANVAS */}
 
-        <Box
+        {/* ==================================================
+            ELEMENTOS DINÁMICOS
+           ================================================== */}
 
-          display="flex"
+        {elements
+          .filter(
+            element =>
+              element.visible !==
+              false
+          )
+          .map(element => {
 
-          justifyContent="center"
+            const value =
+              getElementValue(
+                element
+              );
 
-        >
+            const isSelected =
+              selected ===
+              element.id;
 
-          <Box display="flex">
 
-            {/* REGLA VERTICAL */}
-
-            <Box
-
-              sx={{
-
-                width: 25,
-
-                height: 340,
-
-                background: "#f2f2f2",
-
-                borderRight: "1px solid #ccc",
-
-                position: "relative"
-
-              }}
-
-            >
-
-              {Array.from({
-
-                length: 17
-
-              }).map((_, i) => (
-
-                <Box
-
-                  key={i}
-
-                  sx={{
-
-                    position: "absolute",
-
-                    top: i * 20,
-
-                    right: 0,
-
-                    width: 8,
-
-                    height: 1,
-
-                    background: "#666"
-
-                  }}
-
-                />
-
-              ))}
-
-            </Box>
-
-            <Box>
-
-              {/* REGLA HORIZONTAL */}
+            return (
 
               <Box
+                key={
+                  element.id
+                }
+
+                onMouseDown={event =>
+                  handleMouseDown(
+                    event,
+                    element.id
+                  )
+                }
+
+                onDoubleClick={event =>
+                  handleDoubleClick(
+                    event,
+                    element
+                  )
+                }
 
                 sx={{
 
-                  height: 25,
+                  position:
+                    "absolute",
 
-                  width: 520,
+                  left:
+                    `${element.x}mm`,
 
-                  background: "#f2f2f2",
+                  top:
+                    `${element.y}mm`,
 
-                  borderBottom: "1px solid #ccc",
+                  width:
+                    `${element.width}mm`,
 
-                  position: "relative"
-
-                }}
-
-              >
-
-                {Array.from({
-
-                  length: 27
-
-                }).map((_, i) => (
-
-                  <Box
-
-                    key={i}
-
-                    sx={{
-
-                      position: "absolute",
-
-                      left: i * 20,
-
-                      bottom: 0,
-
-                      width: 1,
-
-                      height: 8,
-
-                      background: "#666"
-
-                    }}
-
-                  />
-
-                ))}
-
-              </Box>
-
-              {/* ÁREA DE DISEÑO */}
-
-              <Box
-
-                onClick={() => setSelected(null)}
-
-                sx={{
-
-                  position: "relative",
-
-                  width: 520,
-
-                  height: 340,
-
-                  overflow: "hidden",
-
-                  background: "#fff",
-
-                  border: "2px solid #0B7A3B",
+                  height:
+                    `${element.height}mm`,
 
                   transform:
-
-                    `scale(${zoom / 100})`,
+                    `rotate(${element.rotation || 0}deg)`,
 
                   transformOrigin:
+                    "center",
 
-                    "top left",
+                  zIndex: 2,
 
-                  backgroundImage: `
+                  cursor:
+                    element.locked
+                      ? "default"
+                      : "move",
 
-                    linear-gradient(
+                  border:
+                    isSelected
+                      ? "1px dashed #1976d2"
+                      : "1px solid transparent",
 
-                      #ececec 1px,
+                  boxSizing:
+                    "border-box",
 
-                      transparent 1px
-
-                    ),
-
-                    linear-gradient(
-
-                      90deg,
-
-                      #ececec 1px,
-
-                      transparent 1px
-
-                    )
-
-                  `,
-
-                  backgroundSize:
-
-                    "10px 10px"
-
+                  overflow:
+                    "hidden"
                 }}
-
               >
 
-                {/* GUÍAS */}
 
-                <Guides
+                {element.type ===
+                  "barcode" && (
 
-                  vertical={verticalGuide}
+                  <Barcode
+                    value={value}
+                    element={
+                      element
+                    }
+                  />
 
-                  horizontal={horizontalGuide}
+                )}
 
-                />
 
-                {/* ELEMENTOS */}
+                {element.type ===
+                  "qr" && (
 
-                {elements
+                  <QR
+                    value={value}
+                  />
 
-                  .filter(e => e.visible)
+                )}
 
-                  .map(element => (
 
-                    <DesignerItem
+                {element.type ===
+                  "logo" && (
 
-                      key={element.id}
+                  <Box
+                    component="img"
+                    src="/rivulis-logo.png"
+                    alt="Rivulis"
 
-                      element={element}
+                    sx={{
+                      width:
+                        "100%",
 
-                    />
+                      height:
+                        "100%",
 
-                  ))}
+                      objectFit:
+                        "contain"
+                    }}
+                  />
+
+                )}
+
+
+                {(element.type ===
+                  "text" ||
+                  element.type ===
+                  "field") && (
+
+                  <Typography
+                    sx={{
+
+                      width:
+                        "100%",
+
+                      height:
+                        "100%",
+
+                      fontSize:
+                        `${element.fontSize}px`,
+
+                      fontWeight:
+                        element.fontWeight ||
+                        400,
+
+                      color:
+                        element.color ||
+                        "#000000",
+
+                      lineHeight:
+                        1.1,
+
+                      whiteSpace:
+                        "pre-wrap",
+
+                      overflow:
+                        "hidden",
+
+                      userSelect:
+                        "none"
+                    }}
+                  >
+
+                    {value}
+
+                  </Typography>
+
+                )}
 
               </Box>
 
-            </Box>
+            );
+          })}
 
-          </Box>
+      </Paper>
 
-        </Box>
-
-      </CardContent>
-
-    </Card>
-
+    </Box>
   );
-
 }

@@ -7,7 +7,8 @@ import {
   CardContent,
   Stack,
   TextField,
-  Typography
+  Typography,
+  MenuItem
 } from "@mui/material";
 
 import { DataGrid } from "@mui/x-data-grid";
@@ -31,32 +32,80 @@ import {
   getTemplates
 } from "../../services/TemplateStorage";
 
+import {
+  getTemplateForSku,
+  assignTemplateToSku,
+  removeAssignment
+} from "../../services/ProductTemplateStorage";
+
 export default function Products() {
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [search, setSearch] = useState("");
-  const [openDialog, setOpenDialog] = useState(false);
-  const [editing, setEditing] = useState<Product | undefined>();
+  const [products, setProducts] =
+    useState<Product[]>([]);
+
+  const [search, setSearch] =
+    useState("");
+
+  const [openDialog, setOpenDialog] =
+    useState(false);
+
+  const [editing, setEditing] =
+    useState<Product | undefined>();
+
+  const [templateRefresh, setTemplateRefresh] =
+    useState(0);
+
+  //--------------------------------------------------
+  // CARGAR PRODUCTOS
+  //--------------------------------------------------
 
   useEffect(() => {
+
     loadProducts();
+
   }, []);
 
   function loadProducts() {
-    setProducts(getProducts());
+
+    setProducts(
+      getProducts()
+    );
+
   }
+
+  //--------------------------------------------------
+  // NUEVO PRODUCTO
+  //--------------------------------------------------
 
   function newProduct() {
+
     setEditing(undefined);
+
     setOpenDialog(true);
+
   }
 
-  function editProduct(product: Product) {
+  //--------------------------------------------------
+  // EDITAR PRODUCTO
+  //--------------------------------------------------
+
+  function editProduct(
+    product: Product
+  ) {
+
     setEditing(product);
+
     setOpenDialog(true);
+
   }
 
-  function saveProduct(product: Product) {
+  //--------------------------------------------------
+  // GUARDAR PRODUCTO
+  //--------------------------------------------------
+
+  function saveProduct(
+    product: Product
+  ) {
 
     if (editing) {
 
@@ -74,47 +123,184 @@ export default function Products() {
 
     setOpenDialog(false);
 
+    setTemplateRefresh(
+      value => value + 1
+    );
+
   }
 
-  function deleteProduct(id: number) {
+  //--------------------------------------------------
+  // ELIMINAR PRODUCTO
+  //--------------------------------------------------
 
-    if (!window.confirm("¿Eliminar este producto?")) return;
+  function deleteProduct(
+    id: number
+  ) {
+
+    if (
+      !window.confirm(
+        "¿Eliminar este producto?"
+      )
+    ) {
+
+      return;
+
+    }
+
+    const product =
+      products.find(
+        item =>
+          Number(item.id) ===
+          Number(id)
+      );
+
+    if (product) {
+
+      removeAssignment(
+        product.sapCode
+      );
+
+    }
 
     removeProduct(id);
 
     loadProducts();
 
-  }
-
-  const templates = getTemplates();
-
-  const rows = useMemo(() => {
-
-    return products.map(product => ({
-
-      ...product,
-
-      template:
-
-        templates.find(t => t.id === product.templateId)?.name ?? ""
-
-    }));
-
-  }, [products]);
-
-  const filteredProducts = useMemo(() => {
-
-    return rows.filter((p) =>
-
-      p.sapCode.toLowerCase().includes(search.toLowerCase()) ||
-
-      p.description.toLowerCase().includes(search.toLowerCase())
-
+    setTemplateRefresh(
+      value => value + 1
     );
 
-  }, [rows, search]);
+  }
 
-  const columns: GridColDef[] = [
+  //--------------------------------------------------
+  // PLANTILLAS
+  //--------------------------------------------------
+
+  const templates =
+    useMemo(
+      () => getTemplates(),
+      [templateRefresh]
+    );
+
+  //--------------------------------------------------
+  // CAMBIAR PLANTILLA
+  //--------------------------------------------------
+
+  function changeTemplate(
+    sku: string,
+    value: string
+  ) {
+
+    if (!value) {
+
+      removeAssignment(sku);
+
+    } else {
+
+      assignTemplateToSku(
+        sku,
+        Number(value)
+      );
+
+    }
+
+    setTemplateRefresh(
+      refresh => refresh + 1
+    );
+
+  }
+
+  //--------------------------------------------------
+  // FILAS
+  //--------------------------------------------------
+
+  const rows =
+    useMemo(() => {
+
+      return products.map(
+        product => {
+
+          const assignedTemplateId =
+            getTemplateForSku(
+              product.sapCode
+            );
+
+          const productTemplateId =
+            assignedTemplateId ??
+            product.templateId;
+
+          const template =
+            templates.find(
+              item =>
+                Number(item.id) ===
+                Number(productTemplateId)
+            );
+
+          return {
+
+            ...product,
+
+            template:
+              template?.name ?? "",
+
+            assignedTemplateId:
+              productTemplateId ?? ""
+
+          };
+
+        }
+      );
+
+    }, [
+      products,
+      templates,
+      templateRefresh
+    ]);
+
+  //--------------------------------------------------
+  // FILTRAR
+  //--------------------------------------------------
+
+  const filteredProducts =
+    useMemo(() => {
+
+      const value =
+        search
+          .toLowerCase()
+          .trim();
+
+      if (!value) {
+
+        return rows;
+
+      }
+
+      return rows.filter(
+        product =>
+
+          product.sapCode
+            .toLowerCase()
+            .includes(value)
+
+          ||
+
+          product.description
+            .toLowerCase()
+            .includes(value)
+
+      );
+
+    }, [
+      rows,
+      search
+    ]);
+
+  //--------------------------------------------------
+  // COLUMNAS
+  //--------------------------------------------------
+
+  const columns:
+    GridColDef[] = [
 
     {
       field: "sapCode",
@@ -158,33 +344,132 @@ export default function Products() {
       flex: 1.3
     },
 
+    //------------------------------------------------
+    // PLANTILLA
+    //------------------------------------------------
+
     {
-      field: "template",
+      field: "assignedTemplateId",
+
       headerName: "Plantilla",
-      flex: 1.2
+
+      flex: 1.5,
+
+      sortable: false,
+
+      renderCell: (params) => {
+
+        const sku =
+          String(
+            params.row.sapCode
+          );
+
+        const current =
+          params.row.assignedTemplateId
+            ? String(
+                params.row.assignedTemplateId
+              )
+            : "";
+
+        return (
+
+          <TextField
+            select
+            size="small"
+            fullWidth
+            value={current}
+            onChange={(event) => {
+
+              changeTemplate(
+                sku,
+                event.target.value
+              );
+
+            }}
+            sx={{
+              minWidth: 170,
+              mt: 0.5
+            }}
+          >
+
+            <MenuItem value="">
+              Sin plantilla
+            </MenuItem>
+
+            {templates
+              .filter(
+                template =>
+                  template.active
+              )
+              .map(
+                template => (
+
+                  <MenuItem
+                    key={template.id}
+                    value={
+                      String(
+                        template.id
+                      )
+                    }
+                  >
+
+                    {template.name}
+
+                  </MenuItem>
+
+                )
+              )}
+
+          </TextField>
+
+        );
+
+      }
+
     },
+
+    //------------------------------------------------
+    // ACCIONES
+    //------------------------------------------------
 
     {
       field: "actions",
+
       headerName: "",
+
       width: 120,
+
       sortable: false,
 
       renderCell: (params) => (
 
-        <Stack direction="row">
+        <Stack
+          direction="row"
+        >
 
           <Button
-            onClick={() => editProduct(params.row as Product)}
+            onClick={() =>
+              editProduct(
+                params.row as Product
+              )
+            }
           >
+
             <EditIcon />
+
           </Button>
 
           <Button
             color="error"
-            onClick={() => deleteProduct(params.row.id)}
+            onClick={() =>
+              deleteProduct(
+                params.row.id
+              )
+            }
           >
+
             <DeleteIcon />
+
           </Button>
 
         </Stack>
@@ -195,9 +480,15 @@ export default function Products() {
 
   ];
 
+  //--------------------------------------------------
+  // PANTALLA
+  //--------------------------------------------------
+
   return (
 
     <Box>
+
+      {/* CABECERA */}
 
       <Stack
         direction="row"
@@ -210,7 +501,9 @@ export default function Products() {
           variant="h4"
           fontWeight="bold"
         >
+
           Productos
+
         </Typography>
 
         <Button
@@ -218,12 +511,20 @@ export default function Products() {
           color="success"
           onClick={newProduct}
         >
+
           Nuevo producto
+
         </Button>
 
       </Stack>
 
-      <Card sx={{ mb: 3 }}>
+      {/* BUSCADOR */}
+
+      <Card
+        sx={{
+          mb: 3
+        }}
+      >
 
         <CardContent>
 
@@ -231,24 +532,43 @@ export default function Products() {
             fullWidth
             label="Buscar producto..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) =>
+              setSearch(
+                e.target.value
+              )
+            }
           />
 
         </CardContent>
 
       </Card>
 
+      {/* TABLA */}
+
       <Card>
 
-        <Box sx={{ height: 650 }}>
+        <Box
+          sx={{
+            height: 650
+          }}
+        >
 
           <DataGrid
 
-            rows={filteredProducts}
+            rows={
+              filteredProducts
+            }
 
-            columns={columns}
+            columns={
+              columns
+            }
 
-            pageSizeOptions={[10, 25, 50, 100]}
+            pageSizeOptions={[
+              10,
+              25,
+              50,
+              100
+            ]}
 
             initialState={{
               pagination: {
@@ -261,8 +581,11 @@ export default function Products() {
 
             disableRowSelectionOnClick
 
-            onRowDoubleClick={(params) =>
-              editProduct(params.row as Product)
+            onRowDoubleClick={
+              (params) =>
+                editProduct(
+                  params.row as Product
+                )
             }
 
           />
@@ -271,21 +594,33 @@ export default function Products() {
 
       </Card>
 
+      {/* DIALOGO PRODUCTO */}
+
       <ProductDialog
 
-        open={openDialog}
+        open={
+          openDialog
+        }
 
-        editing={editing}
+        editing={
+          editing
+        }
 
         onClose={() => {
 
-          setEditing(undefined);
+          setEditing(
+            undefined
+          );
 
-          setOpenDialog(false);
+          setOpenDialog(
+            false
+          );
 
         }}
 
-        onSave={saveProduct}
+        onSave={
+          saveProduct
+        }
 
       />
 

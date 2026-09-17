@@ -15,106 +15,140 @@ import { getProducts } from "../../services/ProductStorage";
 import { getTemplates } from "../../services/TemplateStorage";
 
 interface Props {
-
-  open:boolean;
-
-  onClose:()=>void;
-
-  onSave:(order:any)=>void;
-
-  editing?:any;
-
+  open: boolean;
+  onClose: () => void;
+  onSave: (order: any) => void;
+  editing?: any;
 }
 
 export default function ProductionDialog({
-
   open,
-
   onClose,
-
   onSave,
-
   editing
+}: Props) {
 
-}:Props){
+  const products = getProducts();
+  const templates = getTemplates();
 
-  const products=getProducts();
+  const [order, setOrder] = useState("");
+  const [sku, setSku] = useState("");
+  const [product, setProduct] = useState("");
 
-  const templates=getTemplates();
+  const [templateId, setTemplateId] = useState(0);
 
-  const [order,setOrder]=useState("");
+  const [rolls, setRolls] = useState("");
+  const [firstCoil, setFirstCoil] = useState("1");
+  const [printer, setPrinter] = useState("BA420");
 
-  const [sku,setSku]=useState("");
+  useEffect(() => {
 
-  const [product,setProduct]=useState("");
+    if (editing) {
 
-  const [template,setTemplate]=useState("");
+      setOrder(editing.order ?? "");
+      setSku(editing.sku ?? "");
+      setProduct(editing.product ?? "");
 
-  const [templateId,setTemplateId]=useState(0);
-
-  const [rolls,setRolls]=useState("");
-
-  const [firstCoil,setFirstCoil]=useState("1");
-
-  const [printer,setPrinter]=useState("BA420");
-
-  useEffect(()=>{
-
-    if(editing){
-
-      setOrder(editing.order);
-
-      setSku(editing.sku);
-
-      setProduct(editing.product);
-
-      setTemplateId(editing.templateId ?? 0);
-
-      setTemplate(
-
-        templates.find(t=>t.id===editing.templateId)?.name ?? ""
-
+      setTemplateId(
+        Number(editing.templateId ?? 0)
       );
 
-      setRolls(String(editing.rolls));
+      setRolls(
+        String(editing.rolls ?? "")
+      );
 
-      setFirstCoil(String(editing.firstCoil));
+      setFirstCoil(
+        String(editing.firstCoil ?? 1)
+      );
 
-      setPrinter(editing.printer);
+      setPrinter(
+        editing.printer ?? "BA420"
+      );
+
+    } else {
+
+      setOrder("");
+      setSku("");
+      setProduct("");
+
+      setTemplateId(
+        templates.length > 0
+          ? templates[0].id
+          : 0
+      );
+
+      setRolls("");
+      setFirstCoil("1");
+      setPrinter("BA420");
 
     }
 
-  },[editing]);
+  }, [editing, open]);
 
-  function changeSKU(value:string){
+  function changeSKU(value: string) {
 
     setSku(value);
 
-    const p=products.find(
-
-      x=>x.sapCode===value
-
+    const p = products.find(
+      x => x.sapCode === value
     );
 
-    if(!p)return;
+    if (!p) {
+      return;
+    }
 
-    setProduct(p.description);
+    setProduct(
+      p.description
+    );
 
-    setTemplateId(p.templateId);
-
-    setTemplate(
-
-      templates.find(t=>t.id===p.templateId)?.name ?? ""
-
+    /*
+     * Al seleccionar el SKU proponemos
+     * su plantilla como plantilla inicial.
+     *
+     * El usuario puede cambiarla manualmente
+     * después.
+     */
+    setTemplateId(
+      Number(p.templateId ?? 0)
     );
 
   }
 
-  function save(){
+  function changeTemplate(value: string) {
+
+    setTemplateId(
+      Number(value)
+    );
+
+  }
+
+  function save() {
+
+    if (!order.trim()) {
+      alert("Introduce la Orden SAP.");
+      return;
+    }
+
+    if (!sku) {
+      alert("Selecciona un SKU.");
+      return;
+    }
+
+    if (!templateId) {
+      alert("Selecciona una plantilla.");
+      return;
+    }
+
+    if (!rolls || Number(rolls) <= 0) {
+      alert("Introduce el número de rollos.");
+      return;
+    }
 
     onSave({
 
-      id:editing?.id ?? Date.now(),
+      id:
+        editing?.id ??
+        Date.now(),
 
       order,
 
@@ -124,240 +158,225 @@ export default function ProductionDialog({
 
       templateId,
 
-      rolls:Number(rolls),
+      rolls:
+        Number(rolls),
 
-      printed:editing?.printed ?? 0,
+      printed:
+        editing?.printed ??
+        0,
 
-      firstCoil:Number(firstCoil),
+      firstCoil:
+        Number(firstCoil),
 
       printer,
 
-      status:editing?.status ?? "ABIERTA"
+      status:
+        editing?.status ??
+        "ABIERTA"
 
     });
 
   }
 
-  return(
+  return (
 
-<Dialog
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+    >
 
-open={open}
+      <DialogTitle>
+        {editing ? "Editar" : "Nueva"} Orden
+      </DialogTitle>
 
-onClose={onClose}
+      <DialogContent>
 
-maxWidth="md"
+        <Grid
+          container
+          spacing={2}
+          mt={1}
+        >
 
-fullWidth
+          {/* ORDEN SAP */}
 
->
+          <Grid size={{ xs: 12, md: 6 }}>
 
-<DialogTitle>
+            <TextField
+              fullWidth
+              label="Orden SAP"
+              value={order}
+              onChange={(e) =>
+                setOrder(e.target.value)
+              }
+            />
 
-{editing?"Editar":"Nueva"} Orden
+          </Grid>
 
-</DialogTitle>
+          {/* SKU */}
 
-<DialogContent>
+          <Grid size={{ xs: 12, md: 6 }}>
 
-<Grid
+            <TextField
+              select
+              fullWidth
+              label="SKU"
+              value={sku}
+              onChange={(e) =>
+                changeSKU(e.target.value)
+              }
+            >
 
-container
+              {products.map(p => (
 
-spacing={2}
+                <MenuItem
+                  key={p.id}
+                  value={p.sapCode}
+                >
 
-mt={1}
+                  {p.sapCode} - {p.description}
 
->
+                </MenuItem>
 
-<Grid size={{xs:12,md:6}}>
+              ))}
 
-<TextField
+            </TextField>
 
-fullWidth
+          </Grid>
 
-label="Orden SAP"
+          {/* PRODUCTO */}
 
-value={order}
+          <Grid size={{ xs: 12, md: 6 }}>
 
-onChange={(e)=>setOrder(e.target.value)}
+            <TextField
+              fullWidth
+              label="Producto"
+              value={product}
+              InputProps={{
+                readOnly: true
+              }}
+            />
 
-/>
+          </Grid>
 
-</Grid>
+          {/* PLANTILLA */}
 
-<Grid size={{xs:12,md:6}}>
+          <Grid size={{ xs: 12, md: 6 }}>
 
-<TextField
+            <TextField
+              select
+              fullWidth
+              label="Plantilla"
+              value={templateId}
+              onChange={(e) =>
+                changeTemplate(e.target.value)
+              }
+            >
 
-select
+              {templates.map(template => (
 
-fullWidth
+                <MenuItem
+                  key={template.id}
+                  value={template.id}
+                >
 
-label="SKU"
+                  {template.name}
 
-value={sku}
+                </MenuItem>
 
-onChange={(e)=>changeSKU(e.target.value)}
+              ))}
 
->
+            </TextField>
 
-{products.map(p=>(
+          </Grid>
 
-<MenuItem
+          {/* ROLLOS */}
 
-key={p.id}
+          <Grid size={{ xs: 12, md: 4 }}>
 
-value={p.sapCode}
+            <TextField
+              fullWidth
+              type="number"
+              label="Total Rollos"
+              value={rolls}
+              onChange={(e) =>
+                setRolls(e.target.value)
+              }
+              inputProps={{
+                min: 1
+              }}
+            />
 
->
+          </Grid>
 
-{p.sapCode} - {p.description}
+          {/* BOBINA INICIAL */}
 
-</MenuItem>
+          <Grid size={{ xs: 12, md: 4 }}>
 
-))}
+            <TextField
+              fullWidth
+              type="number"
+              label="Bobina Inicial"
+              value={firstCoil}
+              onChange={(e) =>
+                setFirstCoil(e.target.value)
+              }
+              inputProps={{
+                min: 1
+              }}
+            />
 
-</TextField>
+          </Grid>
 
-</Grid>
+          {/* IMPRESORA */}
 
-<Grid size={{xs:12,md:6}}>
+          <Grid size={{ xs: 12, md: 4 }}>
 
-<TextField
+            <TextField
+              select
+              fullWidth
+              label="Impresora"
+              value={printer}
+              onChange={(e) =>
+                setPrinter(e.target.value)
+              }
+            >
 
-fullWidth
+              <MenuItem value="BA420">
+                Toshiba BA420
+              </MenuItem>
 
-label="Producto"
+              <MenuItem value="BA400">
+                Toshiba BA400
+              </MenuItem>
 
-value={product}
+            </TextField>
 
-InputProps={{
+          </Grid>
 
-readOnly:true
+        </Grid>
 
-}}
+      </DialogContent>
 
-/>
+      <DialogActions>
 
-</Grid>
+        <Button onClick={onClose}>
+          Cancelar
+        </Button>
 
-<Grid size={{xs:12,md:6}}>
+        <Button
+          variant="contained"
+          color="success"
+          onClick={save}
+        >
+          Guardar
+        </Button>
 
-<TextField
+      </DialogActions>
 
-fullWidth
+    </Dialog>
 
-label="Plantilla"
-
-value={template}
-
-InputProps={{
-
-readOnly:true
-
-}}
-
-/>
-
-</Grid>
-
-<Grid size={{xs:12,md:4}}>
-
-<TextField
-
-fullWidth
-
-type="number"
-
-label="Total Rollos"
-
-value={rolls}
-
-onChange={(e)=>setRolls(e.target.value)}
-
-/>
-
-</Grid>
-
-<Grid size={{xs:12,md:4}}>
-
-<TextField
-
-fullWidth
-
-type="number"
-
-label="Bobina Inicial"
-
-value={firstCoil}
-
-onChange={(e)=>setFirstCoil(e.target.value)}
-
-/>
-
-</Grid>
-
-<Grid size={{xs:12,md:4}}>
-
-<TextField
-
-select
-
-fullWidth
-
-label="Impresora"
-
-value={printer}
-
-onChange={(e)=>setPrinter(e.target.value)}
-
->
-
-<MenuItem value="BA420">
-
-Toshiba BA420
-
-</MenuItem>
-
-<MenuItem value="BA400">
-
-Toshiba BA400
-
-</MenuItem>
-
-</TextField>
-
-</Grid>
-
-</Grid>
-
-</DialogContent>
-
-<DialogActions>
-
-<Button onClick={onClose}>
-
-Cancelar
-
-</Button>
-
-<Button
-
-variant="contained"
-
-onClick={save}
-
->
-
-Guardar
-
-</Button>
-
-</DialogActions>
-
-</Dialog>
-
-);
+  );
 
 }

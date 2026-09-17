@@ -9,6 +9,8 @@ import type { DesignerElement } from "./DesignerTypes";
 
 export interface LabelData {
 
+  ORDER: string;
+
   SKU: string;
 
   DESCRIPTION: string;
@@ -98,31 +100,41 @@ export function DesignerProvider({
   /*
    * DATOS DE PRUEBA
    *
-   * Estos datos sirven para comprobar
-   * que los campos dinámicos funcionan.
+   * Estos datos se utilizan mientras
+   * trabajamos con el diseñador.
    *
-   * El SKU será utilizado también
-   * por el código de barras y el QR.
+   * Posteriormente serán sustituidos
+   * automáticamente por los datos de
+   * la Orden de Producción.
    */
 
   const [labelData, setLabelData] =
     useState<LabelData>({
 
+      ORDER: "405053310",
+
       SKU: "123456789",
 
-      DESCRIPTION: "Producto de prueba",
+      DESCRIPTION:
+        "Producto de prueba",
 
-      BARCODE: "123456789",
+      BARCODE:
+        "123456789",
 
-      QR: "123456789",
+      QR:
+        "123456789",
 
-      DATE: "300726",
+      DATE:
+        "300726",
 
-      LOT: "260730",
+      LOT:
+        "260730",
 
-      COIL: "001",
+      COIL:
+        "001",
 
-      ROLLS: "10"
+      ROLLS:
+        "10"
 
     });
 

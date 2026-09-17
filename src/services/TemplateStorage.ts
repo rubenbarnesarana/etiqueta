@@ -7,105 +7,174 @@ export interface Template {
 }
 
 const STORAGE_KEY = "templates";
+const CURRENT_TEMPLATE_KEY = "currentTemplateId";
 
-/* ========================= */
-/* Obtener */
-/* ========================= */
+//--------------------------------------------------
+// OBTENER PLANTILLAS
+//--------------------------------------------------
 
 export function getTemplates(): Template[] {
+
   const data = localStorage.getItem(STORAGE_KEY);
 
-  if (!data) return [];
-
-  try {
-    return JSON.parse(data);
-  } catch {
+  if (!data) {
     return [];
   }
+
+  try {
+
+    const templates = JSON.parse(data);
+
+    if (Array.isArray(templates)) {
+      return templates;
+    }
+
+  } catch {
+
+    console.error(
+      "Error leyendo las plantillas."
+    );
+
+  }
+
+  return [];
 }
 
-/* ========================= */
-/* Guardar */
-/* ========================= */
+//--------------------------------------------------
+// GUARDAR PLANTILLAS
+//--------------------------------------------------
 
-export function saveTemplates(templates: Template[]) {
+export function saveTemplates(
+  templates: Template[]
+) {
+
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify(templates)
   );
+
 }
 
-/* ========================= */
-/* Añadir */
-/* ========================= */
+//--------------------------------------------------
+// AÑADIR PLANTILLA
+//--------------------------------------------------
 
-export function addTemplate(template: Template) {
+export function addTemplate(
+  template: Template
+) {
+
   const templates = getTemplates();
 
   templates.push(template);
 
   saveTemplates(templates);
+
 }
 
-/* ========================= */
-/* Actualizar */
-/* ========================= */
+//--------------------------------------------------
+// ACTUALIZAR PLANTILLA
+//--------------------------------------------------
 
-export function updateTemplate(template: Template) {
-  const templates = getTemplates().map((t) =>
-    Number(t.id) === Number(template.id)
-      ? template
-      : t
+export function updateTemplate(
+  template: Template
+) {
+
+  const templates = getTemplates().map(
+    item =>
+      Number(item.id) === Number(template.id)
+        ? template
+        : item
   );
 
   saveTemplates(templates);
+
 }
 
-/* ========================= */
-/* Eliminar */
-/* ========================= */
+//--------------------------------------------------
+// ELIMINAR PLANTILLA
+//--------------------------------------------------
 
-export function deleteTemplate(id: number) {
+export function deleteTemplate(
+  id: number
+) {
+
+  const templates = getTemplates().filter(
+    template =>
+      Number(template.id) !== Number(id)
+  );
+
+  saveTemplates(templates);
+
+}
+
+//--------------------------------------------------
+// BUSCAR PLANTILLA
+//--------------------------------------------------
+
+export function findTemplate(
+  id: number
+): Template | null {
+
   const templates = getTemplates();
 
-  const newTemplates = templates.filter(
-    (t) => Number(t.id) !== Number(id)
+  return (
+    templates.find(
+      template =>
+        Number(template.id) === Number(id)
+    ) ?? null
   );
 
-  saveTemplates(newTemplates);
 }
 
-/* ========================= */
-/* Buscar */
-/* ========================= */
+//--------------------------------------------------
+// SELECCIONAR PLANTILLA ACTUAL
+//--------------------------------------------------
 
-export function findTemplate(id: number) {
-  return getTemplates().find(
-    (t) => Number(t.id) === Number(id)
-  );
-}
+export function setCurrentTemplate(
+  id: number
+) {
 
-/* ========================= */
-/* Plantilla actual */
-/* ========================= */
-
-const CURRENT_TEMPLATE = "currentTemplate";
-
-export function setCurrentTemplate(id: number) {
   localStorage.setItem(
-    CURRENT_TEMPLATE,
+    CURRENT_TEMPLATE_KEY,
     String(id)
   );
+
 }
 
-export function getCurrentTemplate() {
-  const value = localStorage.getItem(CURRENT_TEMPLATE);
+//--------------------------------------------------
+// OBTENER PLANTILLA ACTUAL
+//--------------------------------------------------
 
-  if (!value) return null;
+export function getCurrentTemplate():
+  number | null {
 
-  return Number(value);
+  const data =
+    localStorage.getItem(
+      CURRENT_TEMPLATE_KEY
+    );
+
+  if (!data) {
+    return null;
+  }
+
+  const id = Number(data);
+
+  if (Number.isNaN(id)) {
+    return null;
+  }
+
+  return id;
+
 }
+
+//--------------------------------------------------
+// BORRAR PLANTILLA ACTUAL
+//--------------------------------------------------
 
 export function clearCurrentTemplate() {
-  localStorage.removeItem(CURRENT_TEMPLATE);
+
+  localStorage.removeItem(
+    CURRENT_TEMPLATE_KEY
+  );
+
 }

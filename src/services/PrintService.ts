@@ -2,8 +2,23 @@ import type { ProductionOrder } from "./OrderStorage";
 import { updateOrder } from "./OrderStorage";
 
 import { findProduct } from "./ProductStorage";
-import { findTemplate } from "./TemplateStorage";
-import { buildLabel } from "./TemplateEngine";
+
+import {
+  findTemplate
+} from "./TemplateStorage";
+
+import {
+  getAssignedTemplate
+} from "./ProductTemplateStorage";
+
+import {
+  buildLabel
+} from "./TemplateEngine";
+
+
+//==================================================
+// RESULTADO DE IMPRESIÓN
+//==================================================
 
 export interface PrintResult {
 
@@ -17,23 +32,75 @@ export interface PrintResult {
 
   finished?: boolean;
 
+  // -----------------------------------------------
+  // DATOS DE LA PLANTILLA
+  // -----------------------------------------------
+
+  backgroundImage?: string;
+
+  labelFormat?:
+    | "FORMATO_1"
+    | "FORMATO_2";
+
+  labelWidth?: number;
+
+  labelHeight?: number;
+
+  // -----------------------------------------------
+  // DATOS DINÁMICOS DE LA ETIQUETA
+  // -----------------------------------------------
+
+  labelData?: {
+
+    SKU: string;
+
+    DESCRIPTION: string;
+
+    BARCODE: string;
+
+    QR: string;
+
+    DATE: string;
+
+    LOT: string;
+
+    COIL: string;
+
+    ROLLS: string;
+
+  };
+
 }
 
-export function printLabel(order: ProductionOrder): PrintResult {
 
-  //--------------------------------------------------
-  // La orden ya terminó
-  //--------------------------------------------------
+//==================================================
+// IMPRIMIR UNA ETIQUETA
+//==================================================
 
-  if (order.printed >= order.rolls) {
+export function printLabel(
+  order: ProductionOrder
+): PrintResult {
+
+
+  //------------------------------------------------
+  // LA ORDEN YA TERMINÓ
+  //------------------------------------------------
+
+  if (
+    order.printed >=
+    order.rolls
+  ) {
 
     return {
 
       success: false,
 
-      message: "La orden ya está completamente impresa.",
+      message:
+        "La orden ya está completamente impresa.",
 
-      coilNumber: order.firstCoil + order.printed,
+      coilNumber:
+        order.firstCoil +
+        order.printed,
 
       finished: true
 
@@ -41,11 +108,16 @@ export function printLabel(order: ProductionOrder): PrintResult {
 
   }
 
-  //--------------------------------------------------
-  // Buscar producto
-  //--------------------------------------------------
 
-  const product = findProduct(order.sku);
+  //------------------------------------------------
+  // BUSCAR PRODUCTO
+  //------------------------------------------------
+
+  const product =
+    findProduct(
+      order.sku
+    );
+
 
   if (!product) {
 
@@ -53,7 +125,8 @@ export function printLabel(order: ProductionOrder): PrintResult {
 
       success: false,
 
-      message: "Producto no encontrado.",
+      message:
+        "Producto no encontrado.",
 
       coilNumber: 0
 
@@ -61,11 +134,47 @@ export function printLabel(order: ProductionOrder): PrintResult {
 
   }
 
-  //--------------------------------------------------
-  // Buscar plantilla
-  //--------------------------------------------------
 
-  const template = findTemplate(product.templateId);
+  //------------------------------------------------
+  // BUSCAR PLANTILLA
+  //
+  // PRIORIDAD:
+  //
+  // 1. Asignación SKU → plantilla
+  // 2. Plantilla antigua del producto
+  //------------------------------------------------
+
+  const assignedTemplate =
+    getAssignedTemplate(
+      order.sku
+    );
+
+
+  let template;
+
+
+  if (
+    assignedTemplate
+  ) {
+
+    template =
+      findTemplate(
+        assignedTemplate.id
+      );
+
+  } else {
+
+    template =
+      findTemplate(
+        product.templateId
+      );
+
+  }
+
+
+  //------------------------------------------------
+  // COMPROBAR PLANTILLA
+  //------------------------------------------------
 
   if (!template) {
 
@@ -73,7 +182,8 @@ export function printLabel(order: ProductionOrder): PrintResult {
 
       success: false,
 
-      message: "La plantilla asignada no existe.",
+      message:
+        "El SKU no tiene una plantilla asignada.",
 
       coilNumber: 0
 
@@ -81,71 +191,220 @@ export function printLabel(order: ProductionOrder): PrintResult {
 
   }
 
-  //--------------------------------------------------
-  // Construir etiqueta
-  //--------------------------------------------------
 
-  const currentCoil = order.firstCoil + order.printed;
+  //------------------------------------------------
+  // NUMERO DE BOBINA
+  //------------------------------------------------
 
-  const label = buildLabel(template.elements, {
+  const currentCoil =
+    order.firstCoil +
+    order.printed;
 
-    SKU: order.sku,
 
-    DESCRIPTION: order.product,
+  //------------------------------------------------
+  // FECHA
+  //------------------------------------------------
 
-    BARCODE: order.sku,
+  const now =
+    new Date();
 
-    QR: order.sku,
 
-    DATE: new Date().toLocaleDateString(),
+  const date =
+    now.toLocaleDateString(
+      "es-ES"
+    );
 
-    LOT: "",
 
-    COIL: String(currentCoil),
+  //------------------------------------------------
+  // LOTE
+  //
+  // Por ahora utilizamos YYMMDD.
+  //------------------------------------------------
 
-    ROLLS: String(order.rolls)
+  const lot =
+    String(
+      now.getFullYear()
+    ).slice(-2) +
 
-  });
+    String(
+      now.getMonth() + 1
+    ).padStart(
+      2,
+      "0"
+    ) +
 
-  //--------------------------------------------------
-  // Actualizar orden
-  //--------------------------------------------------
+    String(
+      now.getDate()
+    ).padStart(
+      2,
+      "0"
+    );
 
-  const printed = order.printed + 1;
 
-  const finished = printed >= order.rolls;
+  //------------------------------------------------
+  // DATOS DINÁMICOS
+  //------------------------------------------------
 
-  const updated: ProductionOrder = {
+  const labelData = {
+
+    SKU:
+      order.sku,
+
+    DESCRIPTION:
+      order.product,
+
+    BARCODE:
+      order.sku,
+
+    QR:
+      order.sku,
+
+    DATE:
+      date,
+
+    LOT:
+      lot,
+
+    COIL:
+      String(
+        currentCoil
+      ),
+
+    ROLLS:
+      String(
+        order.rolls
+      )
+
+  };
+
+
+  //------------------------------------------------
+  // CONSTRUIR ELEMENTOS DINÁMICOS
+  //
+  // Aquí se mantienen los elementos configurados
+  // en el diseñador.
+  //------------------------------------------------
+
+  const label =
+    buildLabel(
+      template.elements,
+      labelData
+    );
+
+
+  //------------------------------------------------
+  // FORMATO
+  //------------------------------------------------
+
+  const labelFormat =
+    template.labelFormat ??
+    "FORMATO_1";
+
+
+  let labelWidth =
+    80;
+
+  let labelHeight =
+    285;
+
+
+  if (
+    labelFormat ===
+    "FORMATO_2"
+  ) {
+
+    labelWidth =
+      110;
+
+    labelHeight =
+      240;
+
+  }
+
+
+  //------------------------------------------------
+  // IMAGEN DE FONDO
+  //
+  // Esta es la plantilla real que se debe utilizar
+  // como base de impresión.
+  //------------------------------------------------
+
+  const backgroundImage =
+    template.backgroundImage ??
+    undefined;
+
+
+  //------------------------------------------------
+  // ACTUALIZAR ORDEN
+  //------------------------------------------------
+
+  const printed =
+    order.printed +
+    1;
+
+
+  const finished =
+    printed >=
+    order.rolls;
+
+
+  const updated:
+    ProductionOrder = {
 
     ...order,
 
     printed,
 
-    status: finished
-      ? "FINALIZADA"
-      : "ABIERTA"
+    status:
+      finished
+        ? "FINALIZADA"
+        : "ABIERTA"
 
   };
 
-  updateOrder(updated);
 
-  //--------------------------------------------------
-  // Respuesta
-  //--------------------------------------------------
+  updateOrder(
+    updated
+  );
+
+
+  //------------------------------------------------
+  // RESPUESTA
+  //------------------------------------------------
 
   return {
 
     success: true,
 
-    message: finished
-      ? "ÚLTIMA_ETIQUETA"
-      : "OK",
+    message:
+      finished
+        ? "ÚLTIMA_ETIQUETA"
+        : "OK",
 
-    coilNumber: currentCoil,
+    coilNumber:
+      currentCoil,
 
     label,
 
-    finished
+    finished,
+
+    // ---------------------------------------------
+    // PLANTILLA
+    // ---------------------------------------------
+
+    backgroundImage,
+
+    labelFormat,
+
+    labelWidth,
+
+    labelHeight,
+
+    // ---------------------------------------------
+    // DATOS
+    // ---------------------------------------------
+
+    labelData
 
   };
 

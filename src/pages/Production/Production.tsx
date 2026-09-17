@@ -33,6 +33,10 @@ import {
   deleteOrder
 } from "../../services/OrderStorage";
 
+import {
+  getTemplates
+} from "../../services/TemplateStorage";
+
 export default function Production() {
 
   const [orders, setOrders] =
@@ -64,7 +68,9 @@ export default function Production() {
     const all = getOrders();
 
     const index =
-      all.findIndex(x => x.id === order.id);
+      all.findIndex(
+        x => Number(x.id) === Number(order.id)
+      );
 
     if (index >= 0) {
 
@@ -112,8 +118,9 @@ export default function Production() {
 
   function removeOrder(id: number) {
 
-    if (!window.confirm("¿Eliminar esta orden?"))
+    if (!window.confirm("¿Eliminar esta orden?")) {
       return;
+    }
 
     deleteOrder(id);
 
@@ -121,7 +128,26 @@ export default function Production() {
 
   }
 
-  return (    <Box>
+  function getTemplateName(
+    templateId: number
+  ): string {
+
+    const templates = getTemplates();
+
+    const template =
+      templates.find(
+        t => Number(t.id) === Number(templateId)
+      );
+
+    return template?.name ?? "-";
+
+  }
+
+  return (
+
+    <Box>
+
+      {/* CABECERA */}
 
       <Stack
         direction="row"
@@ -134,9 +160,7 @@ export default function Production() {
           variant="h4"
           fontWeight="bold"
         >
-
           🏭 Producción
-
         </Typography>
 
         <Button
@@ -144,12 +168,13 @@ export default function Production() {
           color="success"
           onClick={newOrder}
         >
-
           + Nueva Orden
-
         </Button>
 
       </Stack>
+
+
+      {/* TABLA */}
 
       <Card>
 
@@ -161,13 +186,21 @@ export default function Production() {
 
               <TableRow>
 
-                <TableCell>Orden SAP</TableCell>
+                <TableCell>
+                  Orden SAP
+                </TableCell>
 
-                <TableCell>SKU</TableCell>
+                <TableCell>
+                  SKU
+                </TableCell>
 
-                <TableCell>Producto</TableCell>
+                <TableCell>
+                  Producto
+                </TableCell>
 
-                <TableCell>Plantilla</TableCell>
+                <TableCell>
+                  Plantilla
+                </TableCell>
 
                 <TableCell align="center">
                   Rollos
@@ -193,7 +226,10 @@ export default function Production() {
 
             </TableHead>
 
+
             <TableBody>
+
+              {/* SIN ORDENES */}
 
               {orders.length === 0 && (
 
@@ -203,39 +239,76 @@ export default function Production() {
                     colSpan={9}
                     align="center"
                   >
-
                     No existen órdenes.
-
                   </TableCell>
 
                 </TableRow>
 
               )}
 
+
+              {/* ORDENES */}
+
               {orders.map(order => (
 
                 <TableRow
                   key={order.id}
                   hover
-                >                 <TableCell>{order.order}</TableCell>
+                >
 
-                  <TableCell>{order.sku}</TableCell>
+                  <TableCell>
+                    {order.order}
+                  </TableCell>
 
-                  <TableCell>{order.product}</TableCell>
 
-                  <TableCell>{order.template}</TableCell>
+                  <TableCell>
+                    {order.sku}
+                  </TableCell>
+
+
+                  <TableCell>
+                    {order.product}
+                  </TableCell>
+
+
+                  {/* PLANTILLA */}
+
+                  <TableCell>
+
+                    {getTemplateName(
+                      order.templateId
+                    )}
+
+                  </TableCell>
+
+
+                  {/* ROLLOS */}
 
                   <TableCell align="center">
                     {order.rolls}
                   </TableCell>
 
+
+                  {/* IMPRESOS */}
+
                   <TableCell align="center">
                     {order.printed}
                   </TableCell>
 
+
+                  {/* PENDIENTES */}
+
                   <TableCell align="center">
-                    {order.rolls - order.printed}
+
+                    {Math.max(
+                      0,
+                      order.rolls - order.printed
+                    )}
+
                   </TableCell>
+
+
+                  {/* ESTADO */}
 
                   <TableCell align="center">
 
@@ -250,33 +323,38 @@ export default function Production() {
 
                   </TableCell>
 
+
+                  {/* ACCIONES */}
+
                   <TableCell align="center">
 
                     <IconButton
                       color="primary"
-                      onClick={() => editOrder(order)}
+                      onClick={() =>
+                        editOrder(order)
+                      }
                     >
-
                       <EditIcon />
-
                     </IconButton>
+
 
                     <IconButton
                       color="secondary"
-                      onClick={() => manageOrder(order)}
+                      onClick={() =>
+                        manageOrder(order)
+                      }
                     >
-
                       <SettingsIcon />
-
                     </IconButton>
+
 
                     <IconButton
                       color="error"
-                      onClick={() => removeOrder(order.id)}
+                      onClick={() =>
+                        removeOrder(order.id)
+                      }
                     >
-
                       <DeleteIcon />
-
                     </IconButton>
 
                   </TableCell>
@@ -291,10 +369,15 @@ export default function Production() {
 
         </CardContent>
 
-      </Card>      
+      </Card>
+
+
+      {/* NUEVA / EDITAR ORDEN */}
+
       <ProductionDialog
         open={openDialog}
         editing={editing}
+
         onClose={() => {
 
           setOpenDialog(false);
@@ -302,15 +385,25 @@ export default function Production() {
           setEditing(undefined);
 
         }}
+
         onSave={saveOrder}
       />
+
+
+      {/* GESTIONAR ORDEN */}
 
       <ProductionManageDialog
         open={Boolean(managing)}
         order={managing}
-        onClose={() => setManaging(undefined)}
+
+        onClose={() =>
+          setManaging(undefined)
+        }
+
         onSave={saveOrder}
-      />    </Box>
+      />
+
+    </Box>
 
   );
 
