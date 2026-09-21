@@ -1,8 +1,21 @@
-import { useEffect, useRef } from "react";
-import { Box, Paper, Typography } from "@mui/material";
+import {
+  useEffect,
+  useRef
+} from "react";
+
+import {
+  Box,
+  Paper,
+  Typography
+} from "@mui/material";
+
 import JsBarcode from "jsbarcode";
 import QRCode from "qrcode";
-import { useDesigner } from "./DesignerContext";
+
+import {
+  useDesigner
+} from "./DesignerContext";
+
 
 interface CanvasProps {
   addText: boolean;
@@ -12,16 +25,497 @@ interface CanvasProps {
   labelFormat?: "FORMATO_1" | "FORMATO_2";
 }
 
+
 const FORMATS = {
+
   FORMATO_1: {
     width: 80,
     height: 285
   },
+
   FORMATO_2: {
     width: 110,
     height: 240
   }
+
 };
+
+
+const FORMAT_1_DEFAULTS: Record<
+  string,
+  {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation?: number;
+    fontSize?: number;
+    fontWeight?: number;
+  }
+> = {
+
+  UPPER_TEXT: {
+    x: 5,
+    y: 32,
+    width: 70,
+    height: 48,
+    rotation: 180,
+    fontSize: 14,
+    fontWeight: 600
+  },
+
+  BARCODE: {
+    x: 8,
+    y: 166,
+    width: 64,
+    height: 22
+  },
+
+  ORDER: {
+    x: 6,
+    y: 190,
+    width: 22,
+    height: 10,
+    fontSize: 10,
+    fontWeight: 600
+  },
+
+  LOT: {
+    x: 29,
+    y: 190,
+    width: 22,
+    height: 10,
+    fontSize: 10,
+    fontWeight: 600
+  },
+
+  COIL: {
+    x: 52,
+    y: 190,
+    width: 22,
+    height: 10,
+    fontSize: 10,
+    fontWeight: 600
+  },
+
+  SKU: {
+    x: 8,
+    y: 184,
+    width: 64,
+    height: 8,
+    fontSize: 11,
+    fontWeight: 600
+  },
+
+  DESCRIPTION: {
+    x: 5,
+    y: 207,
+    width: 70,
+    height: 12,
+    fontSize: 13,
+    fontWeight: 600
+  },
+
+  QR: {
+    x: 45,
+    y: 232,
+    width: 24,
+    height: 24
+  }
+
+};
+
+
+/*
+ * ==================================================
+ * TABLA CODE 128
+ * ==================================================
+ */
+
+const CODE128_PATTERNS = [
+
+  "212222",
+  "222122",
+  "222221",
+  "121223",
+  "121322",
+  "131222",
+  "122213",
+  "122312",
+  "132212",
+  "221213",
+
+  "221312",
+  "231212",
+  "112232",
+  "122132",
+  "122231",
+  "113222",
+  "123122",
+  "123221",
+  "223211",
+  "221132",
+
+  "221231",
+  "213212",
+  "223112",
+  "312131",
+  "311222",
+  "321122",
+  "321221",
+  "312212",
+  "322112",
+  "322211",
+
+  "212123",
+  "212321",
+  "232121",
+  "111323",
+  "131123",
+  "131321",
+  "112313",
+  "132113",
+  "132311",
+  "211313",
+
+  "231113",
+  "231311",
+  "112133",
+  "112331",
+  "132131",
+  "113123",
+  "113321",
+  "133121",
+  "313121",
+  "211331",
+
+  "231131",
+  "213113",
+  "213311",
+  "213131",
+  "311123",
+  "311321",
+  "331121",
+  "312113",
+  "312311",
+  "332111",
+
+  "314111",
+  "221411",
+  "431111",
+  "111224",
+  "111422",
+  "121124",
+  "121421",
+  "141122",
+  "141221",
+  "112214",
+
+  "112412",
+  "122114",
+  "122411",
+  "142112",
+  "142211",
+  "241211",
+  "221114",
+  "413111",
+  "241112",
+  "134111",
+
+  "111242",
+  "121142",
+  "121241",
+  "114212",
+  "124112",
+  "124211",
+  "411212",
+  "421112",
+  "421211",
+  "212141",
+
+  "214121",
+  "412121",
+  "111143",
+  "111341",
+  "131141",
+  "114113",
+  "114311",
+  "411113",
+  "411311",
+  "113141",
+
+  "114131",
+  "311141",
+  "411131",
+  "211412",
+  "211214",
+  "211232",
+  "2331112"
+
+];
+
+
+/*
+ * ==================================================
+ * GENERAR CODE 128
+ * ==================================================
+ *
+ * Para SKU numérico:
+ *
+ * PAR:
+ * START C
+ *
+ * IMPAR:
+ * START C
+ * pares numéricos
+ * CODE B
+ * último dígito
+ *
+ * 101089300:
+ *
+ * START C
+ * 10
+ * 10
+ * 89
+ * 30
+ * CODE B
+ * 0
+ * CHECKSUM
+ * STOP
+ */
+
+function buildTecItCode128(
+  value: string
+) {
+
+  const numeric =
+    /^\d+$/.test(
+      value
+    );
+
+
+  if (
+    !numeric
+  ) {
+    return null;
+  }
+
+
+  const codes: number[] =
+    [];
+
+
+  /*
+   * ==================================================
+   * UN SOLO DÍGITO
+   * ==================================================
+   */
+
+  if (
+    value.length ===
+    1
+  ) {
+
+    codes.push(
+      104
+    );
+
+
+    codes.push(
+      value.charCodeAt(
+        0
+      ) -
+      32
+    );
+
+  } else {
+
+    /*
+     * START C
+     */
+
+    codes.push(
+      105
+    );
+
+
+    const evenPartLength =
+      value.length %
+      2 ===
+      0
+        ? value.length
+        : value.length -
+          1;
+
+
+    /*
+     * PARES EN CODE C
+     */
+
+    for (
+      let i = 0;
+      i < evenPartLength;
+      i += 2
+    ) {
+
+      const pair =
+        value.substring(
+          i,
+          i + 2
+        );
+
+
+      codes.push(
+        Number(
+          pair
+        )
+      );
+
+    }
+
+
+    /*
+     * SI SOBRA UN DÍGITO
+     */
+
+    if (
+      value.length %
+      2 !==
+      0
+    ) {
+
+      /*
+       * CODE B
+       */
+
+      codes.push(
+        100
+      );
+
+
+      const lastCharacter =
+        value.charAt(
+          value.length -
+          1
+        );
+
+
+      codes.push(
+        lastCharacter.charCodeAt(
+          0
+        ) -
+        32
+      );
+
+    }
+
+  }
+
+
+  /*
+   * ==================================================
+   * CHECKSUM
+   * ==================================================
+   */
+
+  let checksum =
+    codes[0];
+
+
+  for (
+    let i = 1;
+    i < codes.length;
+    i++
+  ) {
+
+    checksum +=
+      codes[i] *
+      i;
+
+  }
+
+
+  checksum =
+    checksum %
+    103;
+
+
+  codes.push(
+    checksum
+  );
+
+
+  /*
+   * STOP
+   */
+
+  codes.push(
+    106
+  );
+
+
+  /*
+   * ==================================================
+   * CONVERTIR A MÓDULOS
+   * ==================================================
+   */
+
+  let modules =
+    "";
+
+
+  for (
+    const code of codes
+  ) {
+
+    const pattern =
+      CODE128_PATTERNS[
+        code
+      ];
+
+
+    if (
+      !pattern
+    ) {
+      continue;
+    }
+
+
+    let black =
+      true;
+
+
+    for (
+      const character of pattern
+    ) {
+
+      const width =
+        Number(
+          character
+        );
+
+
+      modules +=
+        (
+          black
+            ? "1"
+            : "0"
+        ).repeat(
+          width
+        );
+
+
+      black =
+        !black;
+
+    }
+
+  }
+
+
+  return modules;
+}
+
 
 export default function Canvas({
   addText,
@@ -39,45 +533,35 @@ export default function Canvas({
     labelData
   } = useDesigner();
 
+
   const canvasRef =
-    useRef<HTMLDivElement>(null);
+    useRef<HTMLDivElement>(
+      null
+    );
+
 
   const format =
-    FORMATS[labelFormat];
+    FORMATS[
+      labelFormat
+    ];
+
 
   const labelWidth =
     format.width;
+
 
   const labelHeight =
     format.height;
 
 
-  /*
-   * ==================================================
-   * IMAGEN DE FONDO
-   * ==================================================
-   *
-   * Ya NO forzamos AMNON.
-   *
-   * Cada plantilla decide qué imagen utiliza:
-   *
-   * /templates/amnon-formato1.png
-   * /templates/blind-pipe-formato1.png
-   * /templates/microtube-formato1.png
-   * /templates/naan-pc-formato1.png
-   * /templates/naan-pc-max-formato1.png
-   * /templates/tifdrip-plus-formato1.png
-   * /templates/topdrip-formato1.png
-   * /templates/turbo-excel-formato1.png
-   */
-
   const templateImage =
-    backgroundImage || "";
+    backgroundImage ||
+    "";
 
 
   /*
    * ==================================================
-   * OBTENER VALOR DEL ELEMENTO
+   * OBTENER VALOR
    * ==================================================
    */
 
@@ -85,34 +569,81 @@ export default function Canvas({
     element: any
   ): string {
 
-    if (element.binding) {
+    if (
+      element.binding
+    ) {
 
       const key =
         element.binding
-          .replace("${", "")
-          .replace("}", "");
+          .replace(
+            "${",
+            ""
+          )
+          .replace(
+            "}",
+            ""
+          );
 
-      return (
+
+      return String(
         labelData[
           key as keyof typeof labelData
-        ] ?? ""
+        ] ??
+        ""
       );
+
     }
 
-    if (element.field) {
 
-      return (
+    if (
+      element.field
+    ) {
+
+      return String(
         labelData[
           element.field as keyof typeof labelData
-        ] ?? ""
+        ] ??
+        ""
       );
+
     }
 
-    return (
+
+    return String(
       element.value ??
       element.text ??
       ""
     );
+  }
+
+
+  /*
+   * ==================================================
+   * DEFAULTS
+   * ==================================================
+   */
+
+  function getFieldDefaults(
+    field?: string
+  ) {
+
+    if (
+      labelFormat ===
+        "FORMATO_1" &&
+      field
+    ) {
+
+      return (
+        FORMAT_1_DEFAULTS[
+          field
+        ] ??
+        null
+      );
+
+    }
+
+
+    return null;
   }
 
 
@@ -129,62 +660,134 @@ export default function Canvas({
       | "barcode"
       | "qr"
       | "logo",
+
     field?: string
   ) {
 
+    const normalizedField =
+      field
+        ? field.toUpperCase()
+        : undefined;
+
+
+    const defaults =
+      getFieldDefaults(
+        normalizedField
+      );
+
+
+    const isUpperText =
+      normalizedField ===
+      "UPPER_TEXT";
+
+
+    const isBarcode =
+      type ===
+      "barcode";
+
+
+    const isQR =
+      type ===
+      "qr";
+
+
     const newElement: any = {
 
-      id: Date.now(),
+      id:
+        Date.now(),
 
       type,
 
-      field,
+      field:
+        normalizedField,
 
       text:
-        type === "text"
+        type ===
+        "text"
           ? "Texto"
-          : field ?? "",
+          : normalizedField ??
+            "",
 
       value:
-        type === "text"
+        type ===
+        "text"
           ? "Texto"
           : "",
 
-      x: 10,
+      x:
+        defaults?.x ??
+        10,
 
-      y: 10,
+      y:
+        defaults?.y ??
+        10,
 
       width:
-        type === "barcode"
-          ? 55
-          : 35,
+        defaults?.width ??
+        (
+          isBarcode
+            ? 55
+            : isQR
+              ? 25
+              : 35
+        ),
 
       height:
-        type === "barcode"
-          ? 25
-          : 15,
+        defaults?.height ??
+        (
+          isBarcode
+            ? 25
+            : isQR
+              ? 25
+              : 15
+        ),
 
-      rotation: 0,
+      rotation:
+        defaults?.rotation ??
+        (
+          isUpperText
+            ? 180
+            : 0
+        ),
 
-      fontSize: 12,
+      fontSize:
+        defaults?.fontSize ??
+        (
+          isUpperText
+            ? 14
+            : 12
+        ),
 
-      fontWeight: 400,
+      fontWeight:
+        defaults?.fontWeight ??
+        (
+          isUpperText
+            ? 600
+            : 400
+        ),
 
-      color: "#000000",
+      color:
+        "#000000",
 
-      locked: false,
+      locked:
+        false,
 
-      visible: true
+      visible:
+        true
+
     };
 
 
-    if (type === "barcode") {
+    if (
+      type ===
+      "barcode"
+    ) {
 
       newElement.barcodeFormat =
         "CODE128";
 
       newElement.barcodeHeight =
-        30;
+        76;
 
       newElement.barcodeWidth =
         2;
@@ -194,13 +797,27 @@ export default function Canvas({
 
       newElement.field =
         "BARCODE";
+
     }
 
 
-    setElements(prev => [
-      ...prev,
-      newElement
-    ]);
+    if (
+      type ===
+      "qr"
+    ) {
+
+      newElement.field =
+        "QR";
+
+    }
+
+
+    setElements(
+      prev => [
+        ...prev,
+        newElement
+      ]
+    );
 
 
     setSelected(
@@ -217,13 +834,20 @@ export default function Canvas({
 
   useEffect(() => {
 
-    if (!addText) {
+    if (
+      !addText
+    ) {
       return;
     }
 
-    createElement("text");
 
-  }, [addText]);
+    createElement(
+      "text"
+    );
+
+  }, [
+    addText
+  ]);
 
 
   /*
@@ -234,16 +858,22 @@ export default function Canvas({
 
   useEffect(() => {
 
-    if (!insertField) {
+    if (
+      !insertField
+    ) {
       return;
     }
 
 
     const field =
-      insertField.toUpperCase();
+      insertField
+        .toUpperCase();
 
 
-    if (field === "BARCODE") {
+    if (
+      field ===
+      "BARCODE"
+    ) {
 
       createElement(
         "barcode",
@@ -254,7 +884,10 @@ export default function Canvas({
     }
 
 
-    if (field === "QR") {
+    if (
+      field ===
+      "QR"
+    ) {
 
       createElement(
         "qr",
@@ -265,7 +898,10 @@ export default function Canvas({
     }
 
 
-    if (field === "LOGO") {
+    if (
+      field ===
+      "LOGO"
+    ) {
 
       createElement(
         "logo",
@@ -281,82 +917,561 @@ export default function Canvas({
       field
     );
 
-  }, [insertField]);
+  }, [
+    insertField
+  ]);
 
 
   /*
    * ==================================================
-   * CÓDIGO DE BARRAS
+   * BARCODE
    * ==================================================
    */
 
   function Barcode({
-    value,
-    element
+    value
   }: {
     value: string;
     element: any;
   }) {
 
-    const ref =
-      useRef<SVGSVGElement>(null);
+    const svgRef =
+      useRef<SVGSVGElement>(
+        null
+      );
 
 
     useEffect(() => {
 
-      if (!ref.current) {
+      const svg =
+        svgRef.current;
+
+
+      if (
+        !svg
+      ) {
         return;
       }
 
 
+      const barcodeValue =
+        String(
+          value ||
+          "123456789"
+        ).trim();
+
+
+      /*
+       * LIMPIAR BARCODE ANTERIOR
+       */
+
+      while (
+        svg.firstChild
+      ) {
+
+        svg.removeChild(
+          svg.firstChild
+        );
+
+      }
+
+
+      const modules =
+        buildTecItCode128(
+          barcodeValue
+        );
+
+
+      /*
+       * ==================================================
+       * BARCODE NUMÉRICO
+       * ==================================================
+       */
+
+      if (
+        modules
+      ) {
+
+        const namespace =
+          "http://www.w3.org/2000/svg";
+
+
+        /*
+         * ==================================================
+         * PROPORCIÓN DE LA REFERENCIA TEC-IT
+         *
+         * 101 módulos
+         * 2 unidades por módulo
+         *
+         * BARRAS:
+         * 202 x 76
+         *
+         * TEXTO:
+         * debajo de las barras
+         *
+         * No metemos quiet-zone dentro del SVG.
+         * El espacio blanco lo proporciona el
+         * propio elemento de la etiqueta.
+         * ==================================================
+         */
+
+        const moduleWidth =
+          2;
+
+
+        const barcodeWidth =
+          modules.length *
+          moduleWidth;
+
+
+        /*
+         * Referencia:
+         * barras de aproximadamente 76 px.
+         */
+
+        const barHeight =
+          76;
+
+
+        /*
+         * Separación entre barras y número.
+         */
+
+        const textGap =
+          4;
+
+
+        /*
+         * Tamaño del número.
+         */
+
+        const textSize =
+          18;
+
+
+        /*
+         * Espacio inferior reservado para texto.
+         */
+
+        const textSpace =
+          24;
+
+
+        const totalWidth =
+          barcodeWidth;
+
+
+        const totalHeight =
+          barHeight +
+          textGap +
+          textSpace;
+
+
+        /*
+         * ==================================================
+         * VIEWBOX
+         * ==================================================
+         */
+
+        svg.setAttribute(
+          "viewBox",
+          `0 0 ${totalWidth} ${totalHeight}`
+        );
+
+
+        svg.setAttribute(
+          "preserveAspectRatio",
+          "xMidYMid meet"
+        );
+
+
+        /*
+         * ==================================================
+         * FONDO
+         * ==================================================
+         */
+
+        const background =
+          document.createElementNS(
+            namespace,
+            "rect"
+          );
+
+
+        background.setAttribute(
+          "x",
+          "0"
+        );
+
+
+        background.setAttribute(
+          "y",
+          "0"
+        );
+
+
+        background.setAttribute(
+          "width",
+          String(
+            totalWidth
+          )
+        );
+
+
+        background.setAttribute(
+          "height",
+          String(
+            totalHeight
+          )
+        );
+
+
+        background.setAttribute(
+          "fill",
+          "#ffffff"
+        );
+
+
+        svg.appendChild(
+          background
+        );
+
+
+        /*
+         * ==================================================
+         * DIBUJAR BARRAS
+         * ==================================================
+         */
+
+        let x =
+          0;
+
+
+        let index =
+          0;
+
+
+        while (
+          index <
+          modules.length
+        ) {
+
+          /*
+           * MÓDULO BLANCO
+           */
+
+          if (
+            modules[
+              index
+            ] ===
+            "0"
+          ) {
+
+            x +=
+              moduleWidth;
+
+
+            index++;
+
+
+            continue;
+          }
+
+
+          /*
+           * AGRUPAR MÓDULOS NEGROS CONSECUTIVOS
+           */
+
+          let blackModules =
+            0;
+
+
+          while (
+            index <
+              modules.length &&
+            modules[
+              index
+            ] ===
+              "1"
+          ) {
+
+            blackModules++;
+
+
+            index++;
+
+          }
+
+
+          const rectangle =
+            document.createElementNS(
+              namespace,
+              "rect"
+            );
+
+
+          rectangle.setAttribute(
+            "x",
+            String(
+              x
+            )
+          );
+
+
+          rectangle.setAttribute(
+            "y",
+            "0"
+          );
+
+
+          rectangle.setAttribute(
+            "width",
+            String(
+              blackModules *
+              moduleWidth
+            )
+          );
+
+
+          rectangle.setAttribute(
+            "height",
+            String(
+              barHeight
+            )
+          );
+
+
+          rectangle.setAttribute(
+            "fill",
+            "#000000"
+          );
+
+
+          svg.appendChild(
+            rectangle
+          );
+
+
+          x +=
+            blackModules *
+            moduleWidth;
+
+        }
+
+
+        /*
+         * ==================================================
+         * NÚMERO
+         * ==================================================
+         */
+
+        const text =
+          document.createElementNS(
+            namespace,
+            "text"
+          );
+
+
+        text.setAttribute(
+          "x",
+          String(
+            totalWidth /
+            2
+          )
+        );
+
+
+        text.setAttribute(
+          "y",
+          String(
+            barHeight +
+            textGap +
+            17
+          )
+        );
+
+
+        text.setAttribute(
+          "text-anchor",
+          "middle"
+        );
+
+
+        text.setAttribute(
+          "font-family",
+          "Arial, Helvetica, sans-serif"
+        );
+
+
+        text.setAttribute(
+          "font-size",
+          String(
+            textSize
+          )
+        );
+
+
+        text.setAttribute(
+          "font-weight",
+          "400"
+        );
+
+
+        text.setAttribute(
+          "fill",
+          "#000000"
+        );
+
+
+        text.textContent =
+          barcodeValue;
+
+
+        svg.appendChild(
+          text
+        );
+
+
+        return;
+      }
+
+
+      /*
+       * ==================================================
+       * FALLBACK PARA BARCODES NO NUMÉRICOS
+       * ==================================================
+       */
+
       try {
 
         JsBarcode(
-          ref.current,
-          value || "123456789",
+          svg,
+          barcodeValue,
           {
+
             format:
-              element.barcodeFormat ||
               "CODE128",
 
             displayValue:
-              element.barcodeDisplayValue !==
-              false,
+              true,
 
             height:
-              element.barcodeHeight ||
-              30,
+              76,
 
             width:
-              element.barcodeWidth ||
               2,
 
-            margin: 0
+            margin:
+              0,
+
+            marginTop:
+              0,
+
+            marginBottom:
+              0,
+
+            marginLeft:
+              0,
+
+            marginRight:
+              0,
+
+            textAlign:
+              "center",
+
+            textPosition:
+              "bottom",
+
+            textMargin:
+              4,
+
+            font:
+              "Arial",
+
+            fontSize:
+              18,
+
+            background:
+              "#ffffff",
+
+            lineColor:
+              "#000000"
+
           }
         );
 
-      } catch (error) {
+      } catch (
+        error
+      ) {
 
         console.error(
           "Error generando código de barras:",
           error
         );
+
       }
 
     }, [
-      value,
-      element
+      value
     ]);
 
 
     return (
-      <svg
-        ref={ref}
-        style={{
-          width: "100%",
-          height: "100%"
+
+      <Box
+        sx={{
+
+          width:
+            "100%",
+
+          height:
+            "100%",
+
+          display:
+            "flex",
+
+          alignItems:
+            "center",
+
+          justifyContent:
+            "center",
+
+          overflow:
+            "hidden",
+
+          backgroundColor:
+            "#ffffff"
+
         }}
-      />
+      >
+
+        <svg
+          ref={
+            svgRef
+          }
+
+          preserveAspectRatio=
+            "xMidYMid meet"
+
+          style={{
+
+            width:
+              "100%",
+
+            height:
+              "100%",
+
+            display:
+              "block",
+
+            overflow:
+              "visible"
+
+          }}
+        />
+
+      </Box>
+
     );
   }
 
@@ -374,36 +1489,59 @@ export default function Canvas({
   }) {
 
     const ref =
-      useRef<HTMLCanvasElement>(null);
+      useRef<HTMLCanvasElement>(
+        null
+      );
 
 
     useEffect(() => {
 
-      if (!ref.current) {
+      if (
+        !ref.current
+      ) {
         return;
       }
 
 
       QRCode.toCanvas(
         ref.current,
-        value || "123456789",
+        value ||
+        "123456789",
         {
-          margin: 0,
-          width: 100
+
+          margin:
+            0,
+
+          width:
+            100
+
         }
       );
 
-    }, [value]);
+    }, [
+      value
+    ]);
 
 
     return (
+
       <canvas
-        ref={ref}
+        ref={
+          ref
+        }
+
         style={{
-          width: "100%",
-          height: "100%"
+          width:
+            "100%",
+
+          height:
+            "100%",
+
+          display:
+            "block"
         }}
       />
+
     );
   }
 
@@ -415,8 +1553,10 @@ export default function Canvas({
    */
 
   function handleMouseDown(
-    event: React.MouseEvent,
-    id: number
+    event:
+      React.MouseEvent,
+    id:
+      number
   ) {
 
     event.stopPropagation();
@@ -425,7 +1565,8 @@ export default function Canvas({
     const element =
       elements.find(
         item =>
-          item.id === id
+          item.id ===
+          id
       );
 
 
@@ -437,7 +1578,9 @@ export default function Canvas({
     }
 
 
-    setSelected(id);
+    setSelected(
+      id
+    );
 
 
     const startX =
@@ -454,58 +1597,79 @@ export default function Canvas({
 
 
     function handleMove(
-      moveEvent: MouseEvent
+      moveEvent:
+        MouseEvent
     ) {
 
       const deltaX =
-        (moveEvent.clientX -
-          startX) /
-        (zoom / 100);
+        (
+          moveEvent.clientX -
+          startX
+        ) /
+        (
+          zoom /
+          100
+        );
+
 
       const deltaY =
-        (moveEvent.clientY -
-          startY) /
-        (zoom / 100);
+        (
+          moveEvent.clientY -
+          startY
+        ) /
+        (
+          zoom /
+          100
+        );
 
 
-      setElements(prev =>
-        prev.map(item => {
+      setElements(
+        prev =>
+          prev.map(
+            item => {
 
-          if (
-            item.id !== id
-          ) {
-            return item;
-          }
+              if (
+                item.id !==
+                id
+              ) {
+                return item;
+              }
 
 
-          return {
+              return {
 
-            ...item,
+                ...item,
 
-            x: Math.max(
-              0,
-              Math.min(
-                labelWidth -
-                  item.width,
+                x:
+                  Math.max(
+                    0,
+                    Math.min(
+                      labelWidth -
+                      item.width,
 
-                originalX +
-                  deltaX
-              )
-            ),
+                      originalX +
+                      deltaX
+                    )
+                  ),
 
-            y: Math.max(
-              0,
-              Math.min(
-                labelHeight -
-                  item.height,
+                y:
+                  Math.max(
+                    0,
+                    Math.min(
+                      labelHeight -
+                      item.height,
 
-                originalY +
-                  deltaY
-              )
-            )
-          };
-        })
+                      originalY +
+                      deltaY
+                    )
+                  )
+
+              };
+
+            }
+          )
       );
+
     }
 
 
@@ -516,10 +1680,12 @@ export default function Canvas({
         handleMove
       );
 
+
       window.removeEventListener(
         "mouseup",
         handleUp
       );
+
     }
 
 
@@ -527,6 +1693,7 @@ export default function Canvas({
       "mousemove",
       handleMove
     );
+
 
     window.addEventListener(
       "mouseup",
@@ -542,8 +1709,10 @@ export default function Canvas({
    */
 
   function handleDoubleClick(
-    event: React.MouseEvent,
-    element: any
+    event:
+      React.MouseEvent,
+    element:
+      any
   ) {
 
     event.stopPropagation();
@@ -551,9 +1720,20 @@ export default function Canvas({
 
     if (
       element.locked ||
-      element.type === "barcode" ||
-      element.type === "qr" ||
-      element.type === "logo"
+      element.type ===
+        "barcode" ||
+      element.type ===
+        "qr" ||
+      element.type ===
+        "logo"
+    ) {
+      return;
+    }
+
+
+    if (
+      element.type ===
+      "field"
     ) {
       return;
     }
@@ -563,27 +1743,76 @@ export default function Canvas({
       window.prompt(
         "Texto",
         element.text ||
-          element.value ||
-          ""
+        element.value ||
+        ""
       );
 
 
-    if (value === null) {
+    if (
+      value ===
+      null
+    ) {
       return;
     }
 
 
-    setElements(prev =>
-      prev.map(item =>
-        item.id === element.id
-          ? {
-              ...item,
-              text: value,
-              value
-            }
-          : item
-      )
+    setElements(
+      prev =>
+        prev.map(
+          item =>
+            item.id ===
+            element.id
+              ? {
+                  ...item,
+                  text:
+                    value,
+                  value
+                }
+              : item
+        )
     );
+  }
+
+
+  /*
+   * ==================================================
+   * ALINEACIÓN
+   * ==================================================
+   */
+
+  function getTextAlign(
+    element: any
+  ):
+    | "left"
+    | "center"
+    | "right" {
+
+    const field =
+      String(
+        element.field ??
+        ""
+      ).toUpperCase();
+
+
+    if (
+      field ===
+        "UPPER_TEXT" ||
+      field ===
+        "ORDER" ||
+      field ===
+        "LOT" ||
+      field ===
+        "COIL" ||
+      field ===
+        "SKU" ||
+      field ===
+        "DESCRIPTION"
+    ) {
+      return "center";
+    }
+
+
+    return "left";
   }
 
 
@@ -597,23 +1826,33 @@ export default function Canvas({
 
     <Box
       sx={{
-        width: "100%",
-        overflow: "auto"
+        width:
+          "100%",
+
+        overflow:
+          "auto"
       }}
     >
 
       <Paper
-        ref={canvasRef}
+        ref={
+          canvasRef
+        }
 
-        elevation={3}
+        elevation={
+          3
+        }
 
         onClick={() =>
-          setSelected(null)
+          setSelected(
+            null
+          )
         }
 
         sx={{
 
-          position: "relative",
+          position:
+            "relative",
 
           width:
             `${labelWidth}mm`,
@@ -637,7 +1876,11 @@ export default function Canvas({
             `${Math.max(
               0,
               labelHeight *
-                (zoom / 100 - 1)
+              (
+                zoom /
+                100 -
+                1
+              )
             )}mm`,
 
           backgroundColor:
@@ -648,61 +1891,34 @@ export default function Canvas({
 
           border:
             "1px solid #bdbdbd"
+
         }}
       >
 
 
-        {/* ==================================================
-            FONDO DE LA PLANTILLA
-           ================================================== */}
-
         {templateImage && (
 
           <img
-            src={templateImage}
+            src={
+              templateImage
+            }
 
             alt="Plantilla"
 
-            draggable={false}
-
-            onLoad={(event) => {
-
-              const image =
-                event.currentTarget;
-
-              console.log(
-                "PLANTILLA OK:",
-                templateImage
-              );
-
-              console.log(
-                "naturalWidth:",
-                image.naturalWidth
-              );
-
-              console.log(
-                "naturalHeight:",
-                image.naturalHeight
-              );
-            }}
-
-            onError={() => {
-
-              console.error(
-                "ERROR CARGANDO PLANTILLA:",
-                templateImage
-              );
-
-            }}
+            draggable={
+              false
+            }
 
             style={{
 
               position:
                 "absolute",
 
-              top: 0,
+              top:
+                0,
 
-              left: 0,
+              left:
+                0,
 
               width:
                 "100%",
@@ -716,28 +1932,29 @@ export default function Canvas({
               display:
                 "block",
 
-              margin: 0,
+              margin:
+                0,
 
-              padding: 0,
+              padding:
+                0,
 
-              border: 0,
+              border:
+                0,
 
-              zIndex: 0,
+              zIndex:
+                0,
 
               pointerEvents:
                 "none",
 
               userSelect:
                 "none"
+
             }}
           />
 
         )}
 
-
-        {/* ==================================================
-            ELEMENTOS DINÁMICOS
-           ================================================== */}
 
         {elements
           .filter(
@@ -745,178 +1962,259 @@ export default function Canvas({
               element.visible !==
               false
           )
-          .map(element => {
+          .map(
+            element => {
 
-            const value =
-              getElementValue(
-                element
+              const value =
+                getElementValue(
+                  element
+                );
+
+
+              const isSelected =
+                selected ===
+                element.id;
+
+
+              const textAlign =
+                getTextAlign(
+                  element
+                );
+
+
+              const field =
+                String(
+                  element.field ??
+                  ""
+                ).toUpperCase();
+
+
+              const isUpperText =
+                field ===
+                "UPPER_TEXT";
+
+
+              const isBoxField =
+                field ===
+                  "ORDER" ||
+                field ===
+                  "LOT" ||
+                field ===
+                  "COIL";
+
+
+              return (
+
+                <Box
+                  key={
+                    element.id
+                  }
+
+                  onMouseDown={
+                    event =>
+                      handleMouseDown(
+                        event,
+                        element.id
+                      )
+                  }
+
+                  onDoubleClick={
+                    event =>
+                      handleDoubleClick(
+                        event,
+                        element
+                      )
+                  }
+
+                  sx={{
+
+                    position:
+                      "absolute",
+
+                    left:
+                      `${element.x}mm`,
+
+                    top:
+                      `${element.y}mm`,
+
+                    width:
+                      `${element.width}mm`,
+
+                    height:
+                      `${element.height}mm`,
+
+                    transform:
+                      `rotate(${element.rotation || 0}deg)`,
+
+                    transformOrigin:
+                      "center",
+
+                    zIndex:
+                      2,
+
+                    cursor:
+                      element.locked
+                        ? "default"
+                        : "move",
+
+                    border:
+                      isSelected
+                        ? "1px dashed #1976d2"
+                        : "1px solid transparent",
+
+                    boxSizing:
+                      "border-box",
+
+                    overflow:
+                      "hidden",
+
+                    display:
+                      "flex",
+
+                    alignItems:
+                      isBoxField
+                        ? "center"
+                        : "flex-start",
+
+                    justifyContent:
+                      textAlign ===
+                      "center"
+                        ? "center"
+                        : "flex-start"
+
+                  }}
+                >
+
+
+                  {element.type ===
+                    "barcode" && (
+
+                    <Barcode
+                      value={
+                        value
+                      }
+                      element={
+                        element
+                      }
+                    />
+
+                  )}
+
+
+                  {element.type ===
+                    "qr" && (
+
+                    <QR
+                      value={
+                        value
+                      }
+                    />
+
+                  )}
+
+
+                  {element.type ===
+                    "logo" && (
+
+                    <Box
+                      component="img"
+                      src="/rivulis-logo.png"
+                      alt="Rivulis"
+
+                      sx={{
+                        width:
+                          "100%",
+
+                        height:
+                          "100%",
+
+                        objectFit:
+                          "contain"
+                      }}
+                    />
+
+                  )}
+
+
+                  {(element.type ===
+                    "text" ||
+                    element.type ===
+                    "field") && (
+
+                    <Typography
+                      component="div"
+
+                      sx={{
+
+                        width:
+                          "100%",
+
+                        height:
+                          "100%",
+
+                        display:
+                          "flex",
+
+                        flexDirection:
+                          "column",
+
+                        justifyContent:
+                          isUpperText ||
+                          isBoxField
+                            ? "center"
+                            : "flex-start",
+
+                        textAlign,
+
+                        fontSize:
+                          `${element.fontSize}px`,
+
+                        fontWeight:
+                          element.fontWeight ||
+                          400,
+
+                        color:
+                          element.color ||
+                          "#000000",
+
+                        lineHeight:
+                          isUpperText
+                            ? 1.25
+                            : 1.1,
+
+                        whiteSpace:
+                          "pre-wrap",
+
+                        overflow:
+                          "hidden",
+
+                        userSelect:
+                          "none",
+
+                        boxSizing:
+                          "border-box",
+
+                        m:
+                          0,
+
+                        p:
+                          0
+
+                      }}
+                    >
+
+                      {value}
+
+                    </Typography>
+
+                  )}
+
+                </Box>
+
               );
 
-            const isSelected =
-              selected ===
-              element.id;
-
-
-            return (
-
-              <Box
-                key={
-                  element.id
-                }
-
-                onMouseDown={event =>
-                  handleMouseDown(
-                    event,
-                    element.id
-                  )
-                }
-
-                onDoubleClick={event =>
-                  handleDoubleClick(
-                    event,
-                    element
-                  )
-                }
-
-                sx={{
-
-                  position:
-                    "absolute",
-
-                  left:
-                    `${element.x}mm`,
-
-                  top:
-                    `${element.y}mm`,
-
-                  width:
-                    `${element.width}mm`,
-
-                  height:
-                    `${element.height}mm`,
-
-                  transform:
-                    `rotate(${element.rotation || 0}deg)`,
-
-                  transformOrigin:
-                    "center",
-
-                  zIndex: 2,
-
-                  cursor:
-                    element.locked
-                      ? "default"
-                      : "move",
-
-                  border:
-                    isSelected
-                      ? "1px dashed #1976d2"
-                      : "1px solid transparent",
-
-                  boxSizing:
-                    "border-box",
-
-                  overflow:
-                    "hidden"
-                }}
-              >
-
-
-                {element.type ===
-                  "barcode" && (
-
-                  <Barcode
-                    value={value}
-                    element={
-                      element
-                    }
-                  />
-
-                )}
-
-
-                {element.type ===
-                  "qr" && (
-
-                  <QR
-                    value={value}
-                  />
-
-                )}
-
-
-                {element.type ===
-                  "logo" && (
-
-                  <Box
-                    component="img"
-                    src="/rivulis-logo.png"
-                    alt="Rivulis"
-
-                    sx={{
-                      width:
-                        "100%",
-
-                      height:
-                        "100%",
-
-                      objectFit:
-                        "contain"
-                    }}
-                  />
-
-                )}
-
-
-                {(element.type ===
-                  "text" ||
-                  element.type ===
-                  "field") && (
-
-                  <Typography
-                    sx={{
-
-                      width:
-                        "100%",
-
-                      height:
-                        "100%",
-
-                      fontSize:
-                        `${element.fontSize}px`,
-
-                      fontWeight:
-                        element.fontWeight ||
-                        400,
-
-                      color:
-                        element.color ||
-                        "#000000",
-
-                      lineHeight:
-                        1.1,
-
-                      whiteSpace:
-                        "pre-wrap",
-
-                      overflow:
-                        "hidden",
-
-                      userSelect:
-                        "none"
-                    }}
-                  >
-
-                    {value}
-
-                  </Typography>
-
-                )}
-
-              </Box>
-
-            );
-          })}
+            }
+          )}
 
       </Paper>
 

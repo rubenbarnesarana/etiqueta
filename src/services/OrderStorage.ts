@@ -2,166 +2,279 @@ export interface ProductionOrder {
 
   id: number;
 
+  /*
+   * Production Order
+   */
   order: string;
 
-  sku: string;
+  /*
+   * Lot Number
+   */
+  lot: string;
 
+  /*
+   * Producto
+   */
+  sku: string;
   product: string;
 
+  /*
+   * Plantilla
+   */
   templateId: number;
 
+  /*
+   * Producción
+   */
   rolls: number;
 
+  /*
+   * Primer Coil Number
+   */
   firstCoil: number;
 
+  /*
+   * Impresora
+   */
   printer: string;
 
-  status: "ABIERTA" | "FINALIZADA";
+  /*
+   * Estado
+   */
+  status:
+    | "ABIERTA"
+    | "FINALIZADA";
 
+  /*
+   * Número de etiquetas
+   * ya impresas
+   */
   printed: number;
-
 }
 
-const STORAGE_KEY = "productionOrders";
 
-const HISTORY_KEY = "orderHistory";
+const STORAGE_KEY =
+  "productionOrders";
 
-export function getOrders(): ProductionOrder[] {
 
-  const data = localStorage.getItem(STORAGE_KEY);
+/*
+ * ==================================================
+ * LEER ÓRDENES
+ * ==================================================
+ */
 
-  if (!data) return [];
+export function getOrders():
+  ProductionOrder[] {
+
+  const data =
+    localStorage.getItem(
+      STORAGE_KEY
+    );
+
+
+  if (!data) {
+    return [];
+  }
+
 
   try {
 
-    return JSON.parse(data);
+    const orders =
+      JSON.parse(data);
+
+
+    if (!Array.isArray(orders)) {
+      return [];
+    }
+
+
+    /*
+     * Normalizamos también las órdenes antiguas.
+     *
+     * Las órdenes creadas antes de añadir
+     * Lot Number no tendrán la propiedad lot.
+     */
+
+    return orders.map(
+      (order: any) => ({
+
+        id:
+          Number(order.id),
+
+        order:
+          String(
+            order.order ?? ""
+          ),
+
+        lot:
+          String(
+            order.lot ?? ""
+          ),
+
+        sku:
+          String(
+            order.sku ?? ""
+          ),
+
+        product:
+          String(
+            order.product ?? ""
+          ),
+
+        templateId:
+          Number(
+            order.templateId ?? 0
+          ),
+
+        rolls:
+          Number(
+            order.rolls ?? 0
+          ),
+
+        firstCoil:
+          Number(
+            order.firstCoil ?? 1
+          ),
+
+        printer:
+          String(
+            order.printer ?? "BA420"
+          ),
+
+        status:
+          order.status ===
+          "FINALIZADA"
+            ? "FINALIZADA"
+            : "ABIERTA",
+
+        printed:
+          Number(
+            order.printed ?? 0
+          )
+
+      })
+    );
 
   } catch {
 
     return [];
 
   }
-
 }
 
-export function saveOrders(orders: ProductionOrder[]) {
+
+/*
+ * ==================================================
+ * GUARDAR ÓRDENES
+ * ==================================================
+ */
+
+export function saveOrders(
+  orders: ProductionOrder[]
+) {
 
   localStorage.setItem(
-
     STORAGE_KEY,
-
-    JSON.stringify(orders)
-
+    JSON.stringify(
+      orders
+    )
   );
 
 }
 
-export function addOrder(order: ProductionOrder) {
 
-  const orders = getOrders();
+/*
+ * ==================================================
+ * AÑADIR ORDEN
+ * ==================================================
+ */
 
-  orders.push(order);
+export function addOrder(
+  order: ProductionOrder
+) {
 
-  saveOrders(orders);
+  const orders =
+    getOrders();
 
-}
 
-export function findOrder(orderNumber: string) {
-
-  const order = getOrders().find(
-
-    o => o.order === orderNumber
-
+  orders.push(
+    order
   );
 
-  if (order) {
 
-    saveOrderHistory(order.order);
-
-  }
-
-  return order;
-
-}
-
-export function updateOrder(order: ProductionOrder) {
-
-  const orders = getOrders().map(o =>
-
-    Number(o.id) === Number(order.id)
-
-      ? order
-
-      : o
-
-  );
-
-  saveOrders(orders);
-
-}
-
-export function deleteOrder(id: number) {
-
-  const orders = getOrders().filter(
-
-    o => Number(o.id) !== Number(id)
-
-  );
-
-  saveOrders(orders);
-
-}
-
-/*----------------------------------------------------*/
-/* HISTORIAL */
-/*----------------------------------------------------*/
-
-export function getOrderHistory(): string[] {
-
-  const data = localStorage.getItem(HISTORY_KEY);
-
-  if (!data) return [];
-
-  try {
-
-    return JSON.parse(data);
-
-  } catch {
-
-    return [];
-
-  }
-
-}
-
-export function saveOrderHistory(order: string) {
-
-  let history = getOrderHistory();
-
-  history = history.filter(x => x !== order);
-
-  history.unshift(order);
-
-  if (history.length > 20) {
-
-    history = history.slice(0, 20);
-
-  }
-
-  localStorage.setItem(
-
-    HISTORY_KEY,
-
-    JSON.stringify(history)
-
+  saveOrders(
+    orders
   );
 
 }
 
-export function getLastOrder(): string {
 
-  const history = getOrderHistory();
+/*
+ * ==================================================
+ * BUSCAR ORDEN
+ * ==================================================
+ */
 
-  return history.length > 0 ? history[0] : "";
+export function findOrder(
+  orderNumber: string
+) {
+
+  return getOrders().find(
+    order =>
+      order.order ===
+      orderNumber
+  );
+
+}
+
+
+/*
+ * ==================================================
+ * ACTUALIZAR ORDEN
+ * ==================================================
+ */
+
+export function updateOrder(
+  order: ProductionOrder
+) {
+
+  const orders =
+    getOrders().map(
+      item =>
+        Number(item.id) ===
+        Number(order.id)
+          ? order
+          : item
+    );
+
+
+  saveOrders(
+    orders
+  );
+
+}
+
+
+/*
+ * ==================================================
+ * ELIMINAR ORDEN
+ * ==================================================
+ */
+
+export function deleteOrder(
+  id: number
+) {
+
+  const orders =
+    getOrders().filter(
+      order =>
+        Number(order.id) !==
+        Number(id)
+  );
+
+
+  saveOrders(
+    orders
+  );
 
 }

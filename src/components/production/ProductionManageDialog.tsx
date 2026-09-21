@@ -12,14 +12,36 @@ import {
   Box
 } from "@mui/material";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState
+} from "react";
 
-import type { ProductionOrder } from "../../services/OrderStorage";
-import { updateOrder } from "../../services/OrderStorage";
+import type {
+  ProductionOrder
+} from "../../services/OrderStorage";
 
-import { findTemplate } from "../../services/TemplateStorage";
+import {
+  updateOrder
+} from "../../services/OrderStorage";
 
-import { useDesigner } from "../designer/DesignerContext";
+import {
+  findTemplate
+} from "../../services/TemplateStorage";
+
+import {
+  findProduct
+} from "../../services/ProductStorage";
+
+import {
+  generateUpperText,
+  generateBottomDescription
+} from "../../services/LabelTextGenerator";
+
+import {
+  useDesigner
+} from "../designer/DesignerContext";
+
 import Canvas from "../designer/Canvas";
 
 
@@ -45,19 +67,38 @@ export default function ProductionManageDialog({
   } = useDesigner();
 
 
-  const [printed, setPrinted] =
-    useState(0);
+  const [
+    printed,
+    setPrinted
+  ] = useState(0);
 
-  const [showPreview, setShowPreview] =
-    useState(false);
 
-  const [labelFormat, setLabelFormat] =
-    useState<"FORMATO_1" | "FORMATO_2">(
+  const [
+    showPreview,
+    setShowPreview
+  ] = useState(false);
+
+
+  const [
+    labelFormat,
+    setLabelFormat
+  ] =
+    useState<
+      "FORMATO_1" |
+      "FORMATO_2"
+    >(
       "FORMATO_1"
     );
 
-  const [backgroundImage, setBackgroundImage] =
-    useState<string | undefined>(
+
+  const [
+    backgroundImage,
+    setBackgroundImage
+  ] =
+    useState<
+      string |
+      undefined
+    >(
       undefined
     );
 
@@ -69,26 +110,38 @@ export default function ProductionManageDialog({
    */
 
   const totalRolls =
-    Number(order?.rolls ?? 0);
+    Number(
+      order?.rolls ??
+      0
+    );
+
 
   const firstCoil =
-    Number(order?.firstCoil ?? 1);
+    Number(
+      order?.firstCoil ??
+      1
+    );
+
 
   const safePrinted =
     Math.min(
       totalRolls,
       Math.max(
         0,
-        Number(printed)
+        Number(
+          printed
+        )
       )
     );
+
 
   const pending =
     Math.max(
       0,
       totalRolls -
-        safePrinted
+      safePrinted
     );
+
 
   const nextCoil =
     firstCoil +
@@ -97,7 +150,7 @@ export default function ProductionManageDialog({
 
   /*
    * ==================================================
-   * AL ABRIR UNA ORDEN
+   * ABRIR ORDEN
    * ==================================================
    */
 
@@ -107,11 +160,23 @@ export default function ProductionManageDialog({
       return;
     }
 
+
     setPrinted(
-      Number(order.printed ?? 0)
+      Number(
+        order.printed ??
+        0
+      )
     );
 
-    setShowPreview(false);
+
+    setShowPreview(
+      false
+    );
+
+
+    setBackgroundImage(
+      undefined
+    );
 
   }, [
     order,
@@ -121,12 +186,8 @@ export default function ProductionManageDialog({
 
   /*
    * ==================================================
-   * ACTUALIZAR BOBINA DE LA ETIQUETA
+   * ACTUALIZAR COIL EN LA ETIQUETA
    * ==================================================
-   *
-   * IMPORTANTE:
-   * Este Hook está ANTES del return.
-   * Así React ejecuta siempre los mismos Hooks.
    */
 
   useEffect(() => {
@@ -138,26 +199,63 @@ export default function ProductionManageDialog({
       return;
     }
 
-    const coil =
-      Number(order.firstCoil) +
+
+    const currentPrinted =
       Math.min(
-        Number(order.rolls),
+        Number(
+          order.rolls
+        ),
         Math.max(
           0,
-          Number(printed)
+          Number(
+            printed
+          )
         )
       );
 
-    setLabelData(prev => ({
-      ...prev,
 
-      COIL:
-        String(coil)
-          .padStart(
-            3,
-            "0"
+    const coil =
+      Number(
+        order.firstCoil
+      ) +
+      currentPrinted;
+
+
+    /*
+     * Si ya se ha terminado la orden,
+     * no mostramos un Coil inexistente.
+     */
+
+    if (
+      currentPrinted >=
+      Number(
+        order.rolls
+      )
+    ) {
+      return;
+    }
+
+
+    if (
+      coil >
+      9999
+    ) {
+      return;
+    }
+
+
+    setLabelData(
+      prev => ({
+
+        ...prev,
+
+        COIL:
+          String(
+            coil
           )
-    }));
+
+      })
+    );
 
   }, [
     printed,
@@ -169,7 +267,7 @@ export default function ProductionManageDialog({
 
   /*
    * ==================================================
-   * SI NO HAY ORDEN
+   * SIN ORDEN
    * ==================================================
    */
 
@@ -186,9 +284,15 @@ export default function ProductionManageDialog({
 
   function loadLabel() {
 
+    /*
+     * PLANTILLA
+     */
+
     const template =
       findTemplate(
-        Number(order.templateId)
+        Number(
+          order.templateId
+        )
       );
 
 
@@ -203,7 +307,65 @@ export default function ProductionManageDialog({
 
 
     /*
-     * Cargar elementos de la plantilla
+     * PRODUCTO
+     */
+
+    const product =
+      findProduct(
+        String(
+          order.sku
+        )
+      );
+
+
+    if (!product) {
+
+      alert(
+        `No se ha encontrado el SKU ${order.sku} en Productos.\n\nDebes crear el producto antes de cargar la etiqueta.`
+      );
+
+      return;
+    }
+
+
+    /*
+     * ==================================================
+     * TEXTO SUPERIOR AUTOMÁTICO
+     * ==================================================
+     */
+
+    const upperText =
+      generateUpperText(
+        product,
+        template
+      );
+
+
+    /*
+     * ==================================================
+     * DESCRIPCIÓN INFERIOR AUTOMÁTICA
+     * ==================================================
+     *
+     * Ejemplo:
+     *
+     * Producto:
+     * AMNON PC AS 16/40/2.2/0.75 R-500M
+     *
+     * Etiqueta:
+     * AS 16/40/2.2/0.75 R-500M
+     */
+
+    const bottomDescription =
+      generateBottomDescription(
+        product,
+        template
+      );
+
+
+    /*
+     * ==================================================
+     * CARGAR DISEÑO
+     * ==================================================
      */
 
     setElements(
@@ -215,12 +377,10 @@ export default function ProductionManageDialog({
     );
 
 
-    setSelected(null);
+    setSelected(
+      null
+    );
 
-
-    /*
-     * Formato
-     */
 
     setLabelFormat(
       template.labelFormat ??
@@ -234,44 +394,115 @@ export default function ProductionManageDialog({
 
 
     /*
-     * Datos reales de la orden
+     * ==================================================
+     * DATOS DE LA ETIQUETA
+     * ==================================================
      */
 
-    setLabelData(prev => ({
-      ...prev,
+    setLabelData(
+      prev => ({
 
-      ORDER:
-        String(order.order),
+        ...prev,
 
-      SKU:
-        String(order.sku),
 
-      DESCRIPTION:
-        String(order.product),
+        /*
+         * PRODUCTION ORDER
+         */
 
-      BARCODE:
-        String(order.sku),
-
-      QR:
-        String(order.sku),
-
-      COIL:
-        String(nextCoil)
-          .padStart(
-            3,
-            "0"
+        ORDER:
+          String(
+            order.order
           ),
 
-      ROLLS:
-        String(totalRolls)
-    }));
+
+        /*
+         * LOT NUMBER
+         */
+
+        LOT:
+          String(
+            order.lot ??
+            ""
+          ),
 
 
-    /*
-     * Mostrar preview
-     */
+        /*
+         * COIL NUMBER
+         */
 
-    setShowPreview(true);
+        COIL:
+          String(
+            nextCoil
+          ),
+
+
+        /*
+         * SKU
+         */
+
+        SKU:
+          String(
+            order.sku
+          ),
+
+
+        /*
+         * DESCRIPCIÓN INFERIOR
+         *
+         * Ya no utilizamos directamente
+         * product.description.
+         */
+
+        DESCRIPTION:
+          bottomDescription,
+
+
+        /*
+         * TEXTO SUPERIOR
+         */
+
+        UPPER_TEXT:
+          upperText,
+
+
+        /*
+         * CÓDIGO DE BARRAS
+         *
+         * El valor es siempre el SKU.
+         */
+
+        BARCODE:
+          String(
+            order.sku
+          ),
+
+
+        /*
+         * QR
+         */
+
+        QR:
+          String(
+            order.sku
+          ),
+
+
+        /*
+         * TOTAL ROLLOS
+         */
+
+        ROLLS:
+          String(
+            totalRolls
+          )
+
+      })
+    );
+
+
+    setShowPreview(
+      true
+    );
   }
 
 
@@ -288,19 +519,25 @@ export default function ProductionManageDialog({
         totalRolls,
         Math.max(
           0,
-          Number(printed)
+          Number(
+            printed
+          )
         )
       );
 
 
     const newStatus:
-      "ABIERTA" | "FINALIZADA" =
-      newPrinted >= totalRolls
+      "ABIERTA" |
+      "FINALIZADA" =
+
+      newPrinted >=
+      totalRolls
         ? "FINALIZADA"
         : "ABIERTA";
 
 
     updateOrder({
+
       ...order,
 
       printed:
@@ -308,6 +545,7 @@ export default function ProductionManageDialog({
 
       status:
         newStatus
+
     });
 
 
@@ -326,28 +564,46 @@ export default function ProductionManageDialog({
   function restart() {
 
     updateOrder({
+
       ...order,
 
-      printed: 0,
+      printed:
+        0,
 
       status:
         "ABIERTA"
+
     });
 
 
-    setPrinted(0);
+    setPrinted(
+      0
+    );
 
 
-    setLabelData(prev => ({
-      ...prev,
+    setLabelData(
+      prev => ({
 
-      COIL:
-        String(firstCoil)
-          .padStart(
-            3,
-            "0"
+        ...prev,
+
+        ORDER:
+          String(
+            order.order
+          ),
+
+        LOT:
+          String(
+            order.lot ??
+            ""
+          ),
+
+        COIL:
+          String(
+            firstCoil
           )
-    }));
+
+      })
+    );
 
 
     onSaved?.();
@@ -356,10 +612,8 @@ export default function ProductionManageDialog({
 
   /*
    * ==================================================
-   * MARCAR ETIQUETA COMO IMPRESA
+   * SIGUIENTE ETIQUETA
    * ==================================================
-   *
-   * Todavía NO imprime físicamente.
    */
 
   function nextLabel() {
@@ -377,18 +631,45 @@ export default function ProductionManageDialog({
     }
 
 
+    const currentCoil =
+      firstCoil +
+      safePrinted;
+
+
+    /*
+     * Coil 9999 SÍ se puede imprimir.
+     */
+
+    if (
+      currentCoil >
+      9999
+    ) {
+
+      alert(
+        "Se ha superado el Coil Number máximo: 9999."
+      );
+
+      return;
+    }
+
+
     const newPrinted =
-      safePrinted + 1;
+      safePrinted +
+      1;
 
 
     const newStatus:
-      "ABIERTA" | "FINALIZADA" =
-      newPrinted >= totalRolls
+      "ABIERTA" |
+      "FINALIZADA" =
+
+      newPrinted >=
+      totalRolls
         ? "FINALIZADA"
         : "ABIERTA";
 
 
     updateOrder({
+
       ...order,
 
       printed:
@@ -396,6 +677,7 @@ export default function ProductionManageDialog({
 
       status:
         newStatus
+
     });
 
 
@@ -404,21 +686,41 @@ export default function ProductionManageDialog({
     );
 
 
-    const newCoil =
-      firstCoil +
-      newPrinted;
+    /*
+     * PREPARAR SIGUIENTE COIL
+     */
+
+    if (
+      newPrinted <
+      totalRolls
+    ) {
+
+      const newCoil =
+        firstCoil +
+        newPrinted;
 
 
-    setLabelData(prev => ({
-      ...prev,
+      if (
+        newCoil <=
+        9999
+      ) {
 
-      COIL:
-        String(newCoil)
-          .padStart(
-            3,
-            "0"
-          )
-    }));
+        setLabelData(
+          prev => ({
+
+            ...prev,
+
+            COIL:
+              String(
+                newCoil
+              )
+
+          })
+        );
+
+      }
+
+    }
 
 
     onSaved?.();
@@ -434,9 +736,16 @@ export default function ProductionManageDialog({
   return (
 
     <Dialog
-      open={open}
-      onClose={onClose}
+      open={
+        open
+      }
+
+      onClose={
+        onClose
+      }
+
       fullWidth
+
       maxWidth={
         showPreview
           ? "lg"
@@ -451,9 +760,15 @@ export default function ProductionManageDialog({
 
       <DialogContent>
 
-        <Stack spacing={2}>
+        <Stack
+          spacing={
+            2
+          }
+        >
 
-          {/* DATOS DE LA ORDEN */}
+          {/* ==================================================
+              DATOS ETIQUETA
+             ================================================== */}
 
           <Paper
             variant="outlined"
@@ -462,21 +777,58 @@ export default function ProductionManageDialog({
             }}
           >
 
-            <Stack spacing={1}>
+            <Stack
+              spacing={
+                1.5
+              }
+            >
 
               <Typography
                 variant="subtitle2"
                 color="text.secondary"
               >
-                Orden SAP
+                Datos de la etiqueta
               </Typography>
 
 
-              <Typography
-                variant="h6"
-                fontWeight="bold"
-              >
+              <Typography>
+
+                <strong>
+                  Production Order:
+                </strong>{" "}
+
                 {order.order}
+
+              </Typography>
+
+
+              <Typography>
+
+                <strong>
+                  Lot Number:
+                </strong>{" "}
+
+                {
+                  order.lot ||
+                  "-"
+                }
+
+              </Typography>
+
+
+              <Typography>
+
+                <strong>
+                  Coil Number:
+                </strong>{" "}
+
+                {
+                  pending >
+                  0
+                    ? nextCoil
+                    : "-"
+                }
+
               </Typography>
 
 
@@ -486,30 +838,42 @@ export default function ProductionManageDialog({
               <Typography
                 variant="body2"
               >
+
                 <strong>
                   SKU:
                 </strong>{" "}
+
                 {order.sku}
+
               </Typography>
 
 
               <Typography
                 variant="body2"
               >
+
                 <strong>
                   Producto:
                 </strong>{" "}
+
                 {order.product}
+
               </Typography>
 
 
               <Typography
                 variant="body2"
               >
+
                 <strong>
                   Impresora:
                 </strong>{" "}
-                {order.printer || "-"}
+
+                {
+                  order.printer ||
+                  "-"
+                }
+
               </Typography>
 
             </Stack>
@@ -517,7 +881,9 @@ export default function ProductionManageDialog({
           </Paper>
 
 
-          {/* PRODUCCIÓN */}
+          {/* ==================================================
+              PRODUCCIÓN
+             ================================================== */}
 
           <Typography
             variant="subtitle2"
@@ -529,7 +895,9 @@ export default function ProductionManageDialog({
 
           <TextField
             label="Total de rollos"
-            value={totalRolls}
+            value={
+              totalRolls
+            }
             disabled
             fullWidth
           />
@@ -538,13 +906,18 @@ export default function ProductionManageDialog({
           <TextField
             label="Rollos impresos"
             type="number"
-            value={printed}
-            onChange={(e) => {
+            value={
+              printed
+            }
+            onChange={(
+              event
+            ) => {
 
               const value =
                 Number(
-                  e.target.value
+                  event.target.value
                 );
+
 
               setPrinted(
                 Math.min(
@@ -558,8 +931,11 @@ export default function ProductionManageDialog({
 
             }}
             inputProps={{
-              min: 0,
-              max: totalRolls
+              min:
+                0,
+
+              max:
+                totalRolls
             }}
             fullWidth
           />
@@ -567,20 +943,21 @@ export default function ProductionManageDialog({
 
           <TextField
             label="Rollos pendientes"
-            value={pending}
+            value={
+              pending
+            }
             disabled
             fullWidth
           />
 
 
           <TextField
-            label="Siguiente bobina"
+            label="Siguiente Coil Number"
             value={
-              String(nextCoil)
-                .padStart(
-                  3,
-                  "0"
-                )
+              pending >
+              0
+                ? nextCoil
+                : "-"
             }
             disabled
             fullWidth
@@ -590,12 +967,16 @@ export default function ProductionManageDialog({
           <Divider />
 
 
-          {/* ESTADO */}
+          {/* ==================================================
+              ESTADO
+             ================================================== */}
 
           <Paper
             variant="outlined"
             sx={{
-              p: 2,
+              p:
+                2,
+
               textAlign:
                 "center"
             }}
@@ -613,21 +994,30 @@ export default function ProductionManageDialog({
               variant="h6"
               fontWeight="bold"
             >
-              {pending === 0
-                ? "FINALIZADA"
-                : "ABIERTA"}
+
+              {
+                pending ===
+                0
+                  ? "FINALIZADA"
+                  : "ABIERTA"
+              }
+
             </Typography>
 
           </Paper>
 
 
-          {/* BOTÓN CARGAR */}
+          {/* ==================================================
+              CARGAR ETIQUETA
+             ================================================== */}
 
           {!showPreview && (
 
             <Button
               variant="contained"
-              onClick={loadLabel}
+              onClick={
+                loadLabel
+              }
               fullWidth
             >
               CARGAR ETIQUETA DE ESTA ORDEN
@@ -636,7 +1026,9 @@ export default function ProductionManageDialog({
           )}
 
 
-          {/* VISTA PREVIA */}
+          {/* ==================================================
+              VISTA PREVIA
+             ================================================== */}
 
           {showPreview && (
 
@@ -656,7 +1048,8 @@ export default function ProductionManageDialog({
               <Paper
                 variant="outlined"
                 sx={{
-                  p: 2,
+                  p:
+                    2,
 
                   backgroundColor:
                     "#eeeeee",
@@ -683,12 +1076,20 @@ export default function ProductionManageDialog({
                 >
 
                   <Canvas
-                    addText={false}
+                    addText={
+                      false
+                    }
+
                     insertField=""
-                    zoom={70}
+
+                    zoom={
+                      70
+                    }
+
                     backgroundImage={
                       backgroundImage
                     }
+
                     labelFormat={
                       labelFormat
                     }
@@ -699,7 +1100,9 @@ export default function ProductionManageDialog({
               </Paper>
 
 
-              {/* INFORMACIÓN DE LA ETIQUETA */}
+              {/* ==================================================
+                  ETIQUETA ACTUAL
+                 ================================================== */}
 
               <Paper
                 variant="outlined"
@@ -708,7 +1111,11 @@ export default function ProductionManageDialog({
                 }}
               >
 
-                <Stack spacing={1}>
+                <Stack
+                  spacing={
+                    1
+                  }
+                >
 
                   <Typography
                     fontWeight="bold"
@@ -718,38 +1125,67 @@ export default function ProductionManageDialog({
 
 
                   <Typography>
-                    Orden SAP:{" "}
+
+                    Production Order:{" "}
+
                     <strong>
                       {order.order}
                     </strong>
+
                   </Typography>
 
 
                   <Typography>
+
+                    Lot Number:{" "}
+
+                    <strong>
+                      {
+                        order.lot ||
+                        "-"
+                      }
+                    </strong>
+
+                  </Typography>
+
+
+                  <Typography>
+
+                    Coil Number:{" "}
+
+                    <strong>
+
+                      {
+                        pending >
+                        0
+                          ? nextCoil
+                          : "-"
+                      }
+
+                    </strong>
+
+                  </Typography>
+
+
+                  <Typography>
+
                     SKU:{" "}
+
                     <strong>
                       {order.sku}
                     </strong>
+
                   </Typography>
 
 
                   <Typography>
-                    Bobina:{" "}
-                    <strong>
-                      {String(nextCoil)
-                        .padStart(
-                          3,
-                          "0"
-                        )}
-                    </strong>
-                  </Typography>
 
-
-                  <Typography>
                     Pendientes:{" "}
+
                     <strong>
                       {pending}
                     </strong>
+
                   </Typography>
 
                 </Stack>
@@ -757,7 +1193,9 @@ export default function ProductionManageDialog({
               </Paper>
 
 
-              {/* SIMULACIÓN DE IMPRESIÓN */}
+              {/* ==================================================
+                  SIMULACIÓN IMPRESIÓN
+                 ================================================== */}
 
               <Button
                 variant="contained"
@@ -766,7 +1204,8 @@ export default function ProductionManageDialog({
                   nextLabel
                 }
                 disabled={
-                  pending === 0
+                  pending ===
+                  0
                 }
                 fullWidth
               >
@@ -779,11 +1218,8 @@ export default function ProductionManageDialog({
                 color="text.secondary"
                 textAlign="center"
               >
-                Este botón todavía no envía
-                nada a la Toshiba BA420.
-                Sirve para comprobar el
-                contador automático antes
-                de conectar la impresión.
+                Cada etiqueta impresa aumenta automáticamente el Coil Number:
+                1, 2, 3... hasta 9999.
               </Typography>
 
             </>

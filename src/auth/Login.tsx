@@ -1,4 +1,7 @@
-import { useState } from "react";
+import {
+  useEffect,
+  useState
+} from "react";
 
 import {
   Alert,
@@ -13,6 +16,7 @@ import {
 
 import { useAuth } from "./AuthContext";
 
+
 export default function Login() {
 
   const { login } = useAuth();
@@ -23,176 +27,504 @@ export default function Login() {
 
   const [error, setError] = useState("");
 
+  const [currentDate, setCurrentDate] = useState(
+    new Date()
+  );
+
+
+  /*
+   * ==================================================
+   * FECHA Y HORA ACTUAL
+   * ==================================================
+   */
+
+  useEffect(() => {
+
+    const timer = window.setInterval(() => {
+
+      setCurrentDate(
+        new Date()
+      );
+
+    }, 1000);
+
+
+    return () => {
+
+      window.clearInterval(
+        timer
+      );
+
+    };
+
+  }, []);
+
+
+  /*
+   * ==================================================
+   * LOGIN
+   * ==================================================
+   */
+
   function handleLogin() {
 
-    const ok = login(username, password);
+    const ok = login(
+      username,
+      password
+    );
+
 
     if (!ok) {
 
-      setError("Usuario o contraseña incorrectos");
+      setError(
+        "Usuario o contraseña incorrectos"
+      );
 
       return;
 
     }
 
+
     setError("");
 
   }
 
+
+  /*
+   * ==================================================
+   * FORMATO FECHA
+   * ==================================================
+   */
+
+  const dateText =
+    currentDate.toLocaleDateString(
+      "es-ES",
+      {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+      }
+    );
+
+
+  /*
+   * ==================================================
+   * FORMATO HORA
+   * ==================================================
+   */
+
+  const timeText =
+    currentDate.toLocaleTimeString(
+      "es-ES",
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      }
+    );
+
+
   return (
 
     <Box
-
       sx={{
-
-        width: "100vw",
-
-        height: "100vh",
+        width: "100%",
+        minHeight: "100vh",
 
         display: "flex",
-
+        alignItems: "center",
         justifyContent: "center",
 
-        alignItems: "center",
+        backgroundColor: "#F4F6F8",
 
-        backgroundColor: "#F4F6F8"
+        boxSizing: "border-box",
 
+        overflow: "hidden",
+
+        p: {
+          xs: 2,
+          md: 4
+        }
       }}
-
     >
 
-      <Card
-
+      <Box
         sx={{
+          width: "100%",
 
-          width: 420,
+          maxWidth: 1250,
 
-          borderRadius: 3
+          display: "grid",
 
+          gridTemplateColumns: {
+            xs: "1fr",
+            md: "minmax(0, 1fr) minmax(380px, 440px)"
+          },
+
+          alignItems: "center",
+
+          gap: {
+            xs: 4,
+            md: 8
+          },
+
+          boxSizing: "border-box"
         }}
-
       >
 
-        <CardContent>
 
-          <Stack spacing={3}>
+        {/* ==================================================
+            IZQUIERDA
+            LOGO RIVULIS
+           ================================================== */}
 
-            <Typography
+        <Box
+          sx={{
+            minWidth: 0,
 
-              variant="h4"
+            display: {
+              xs: "none",
+              md: "flex"
+            },
 
-              align="center"
+            alignItems: "center",
 
-              fontWeight="bold"
+            justifyContent: "center"
+          }}
+        >
 
-              color="#0B7A3B"
+          <Box
+            component="img"
 
-            >
+            src="/images/rivulis-logo.png"
 
-              ETIQUETA
+            alt="Rivulis"
 
-            </Typography>
+            sx={{
+              display: "block",
 
-            <Typography
+              width: "100%",
 
-              align="center"
+              maxWidth: 560,
 
-              color="text.secondary"
+              maxHeight: "65vh",
 
-            >
+              objectFit: "contain"
+            }}
+          />
 
-              Inicio de sesión
+        </Box>
 
-            </Typography>
 
-            {error !== "" && (
+        {/* ==================================================
+            DERECHA
+            LOGIN
+           ================================================== */}
 
-              <Alert severity="error">
+        <Box
+          sx={{
+            width: "100%",
 
-                {error}
+            display: "flex",
 
-              </Alert>
+            alignItems: "center",
 
-            )}
+            justifyContent: "center",
 
-            <TextField
+            minWidth: 0
+          }}
+        >
 
-              label="Usuario"
+          <Card
+            elevation={4}
 
-              fullWidth
+            sx={{
+              width: "100%",
 
-              value={username}
+              maxWidth: 420,
 
-              onChange={(e) =>
+              borderRadius: 3,
 
-                setUsername(e.target.value)
+              overflow: "hidden",
 
-              }
+              boxSizing: "border-box"
+            }}
+          >
 
-            />
 
-            <TextField
+            {/* BARRA VERDE SUPERIOR */}
 
-              type="password"
-
-              label="Contraseña"
-
-              fullWidth
-
-              value={password}
-
-              onChange={(e) =>
-
-                setPassword(e.target.value)
-
-              }
-
-              onKeyDown={(e) => {
-
-                if (e.key === "Enter") {
-
-                  handleLogin();
-
-                }
-
-              }}
-
-            />
-
-            <Button
-
-              variant="contained"
-
-              size="large"
-
-              onClick={handleLogin}
-
+            <Box
               sx={{
+                width: "100%",
 
-                backgroundColor: "#0B7A3B",
+                height: 7,
 
-                "&:hover": {
-
-                  backgroundColor: "#086530"
-
-                }
-
+                backgroundColor: "#0B7A3B"
               }}
+            />
 
+
+            <CardContent
+              sx={{
+                p: {
+                  xs: 3,
+                  md: 4
+                },
+
+                "&:last-child": {
+                  pb: {
+                    xs: 3,
+                    md: 4
+                  }
+                }
+              }}
             >
 
-              ENTRAR
+              <Stack spacing={3}>
 
-            </Button>
 
-          </Stack>
+                {/* ==================================================
+                    CABECERA
+                   ================================================== */}
 
-        </CardContent>
+                <Box>
 
-      </Card>
+                  <Typography
+                    sx={{
+                      color: "#0B7A3B",
+
+                      fontSize: {
+                        xs: 25,
+                        md: 29
+                      },
+
+                      fontWeight: 700,
+
+                      textAlign: "center",
+
+                      letterSpacing: 0.5
+                    }}
+                  >
+
+                    PROGRAMA ETIQUETAS
+
+                  </Typography>
+
+
+                  <Typography
+                    align="center"
+
+                    color="text.secondary"
+
+                    sx={{
+                      mt: 1.5,
+
+                      fontSize: 16
+                    }}
+                  >
+
+                    Inicio de sesión
+
+                  </Typography>
+
+
+                  {/* FECHA Y HORA */}
+
+                  <Box
+                    sx={{
+                      mt: 2,
+
+                      display: "flex",
+
+                      alignItems: "center",
+
+                      justifyContent: "center",
+
+                      gap: 1
+                    }}
+                  >
+
+                    <Typography
+                      sx={{
+                        fontSize: 14,
+
+                        fontWeight: 500,
+
+                        color: "#5F6B65"
+                      }}
+                    >
+
+                      {dateText}
+
+                    </Typography>
+
+
+                    <Typography
+                      sx={{
+                        fontSize: 14,
+
+                        color: "#A0A7A3"
+                      }}
+                    >
+
+                      •
+
+                    </Typography>
+
+
+                    <Typography
+                      sx={{
+                        fontSize: 14,
+
+                        fontWeight: 600,
+
+                        color: "#0B7A3B",
+
+                        fontVariantNumeric: "tabular-nums"
+                      }}
+                    >
+
+                      {timeText}
+
+                    </Typography>
+
+                  </Box>
+
+                </Box>
+
+
+                {/* ==================================================
+                    ERROR
+                   ================================================== */}
+
+                {error !== "" && (
+
+                  <Alert severity="error">
+
+                    {error}
+
+                  </Alert>
+
+                )}
+
+
+                {/* ==================================================
+                    USUARIO
+                   ================================================== */}
+
+                <TextField
+                  label="Usuario"
+
+                  fullWidth
+
+                  autoFocus
+
+                  value={username}
+
+                  onChange={(e) =>
+
+                    setUsername(
+                      e.target.value
+                    )
+
+                  }
+                />
+
+
+                {/* ==================================================
+                    CONTRASEÑA
+                   ================================================== */}
+
+                <TextField
+                  type="password"
+
+                  label="Contraseña"
+
+                  fullWidth
+
+                  value={password}
+
+                  onChange={(e) =>
+
+                    setPassword(
+                      e.target.value
+                    )
+
+                  }
+
+                  onKeyDown={(e) => {
+
+                    if (
+                      e.key === "Enter"
+                    ) {
+
+                      handleLogin();
+
+                    }
+
+                  }}
+                />
+
+
+                {/* ==================================================
+                    BOTÓN
+                   ================================================== */}
+
+                <Button
+                  variant="contained"
+
+                  size="large"
+
+                  fullWidth
+
+                  onClick={handleLogin}
+
+                  sx={{
+                    height: 52,
+
+                    fontSize: 16,
+
+                    fontWeight: 600,
+
+                    backgroundColor: "#0B7A3B",
+
+                    "&:hover": {
+                      backgroundColor: "#086530"
+                    }
+                  }}
+                >
+
+                  ENTRAR
+
+                </Button>
+
+
+                <Typography
+                  variant="caption"
+
+                  align="center"
+
+                  color="text.secondary"
+                >
+
+                  Rivulis Irrigation
+
+                </Typography>
+
+
+              </Stack>
+
+            </CardContent>
+
+          </Card>
+
+        </Box>
+
+
+      </Box>
 
     </Box>
 
   );
-
 }

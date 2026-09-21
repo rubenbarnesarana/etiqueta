@@ -24,8 +24,10 @@ import {
   findTemplate,
   getTemplates,
   getCurrentTemplate,
-  clearCurrentTemplate
+  clearCurrentTemplate,
+  type LabelFormat
 } from "../../services/TemplateStorage";
+
 
 export default function TemplateDesigner() {
 
@@ -37,6 +39,7 @@ export default function TemplateDesigner() {
     labelData,
     setLabelData
   } = useDesigner();
+
 
   const [templateId, setTemplateId] =
     useState<number | null>(null);
@@ -54,39 +57,16 @@ export default function TemplateDesigner() {
     useState<ReturnType<typeof getTemplates>>([]);
 
   const [labelFormat, setLabelFormat] =
-    useState<"FORMATO_1" | "FORMATO_2">("FORMATO_1");
+    useState<LabelFormat>("FORMATO_1");
 
   const [backgroundImage, setBackgroundImage] =
     useState("");
 
 
   /*
-   * FONDOS AUTOMÁTICOS
-   */
-
-  function getBackgroundForTemplate(
-    templateName: string
-  ): string {
-
-    const name =
-      templateName
-        .toLowerCase()
-        .trim();
-
-    if (name.includes("naan pc")) {
-      return "/templates/naan-pc-formato1.png";
-    }
-
-    if (name.includes("amnon")) {
-      return "/templates/amnon-formato1.png";
-    }
-
-    return "";
-  }
-
-
-  /*
-   * CARGAR PLANTILLAS
+   * ==================================================
+   * CARGAR LISTA DE PLANTILLAS
+   * ==================================================
    */
 
   function refreshTemplates() {
@@ -94,8 +74,8 @@ export default function TemplateDesigner() {
     setTemplates(
       getTemplates()
     );
-
   }
+
 
   useEffect(() => {
 
@@ -105,7 +85,9 @@ export default function TemplateDesigner() {
 
 
   /*
+   * ==================================================
    * CARGAR PLANTILLA ACTUAL
+   * ==================================================
    */
 
   useEffect(() => {
@@ -113,19 +95,24 @@ export default function TemplateDesigner() {
     const currentId =
       getCurrentTemplate();
 
-    if (!currentId) {
+
+    if (currentId === null) {
 
       setTemplateId(null);
+
       setElements([]);
+
       setSelected(null);
+
       setBackgroundImage("");
 
       return;
-
     }
+
 
     const template =
       findTemplate(currentId);
+
 
     if (template) {
 
@@ -133,34 +120,47 @@ export default function TemplateDesigner() {
         template.id
       );
 
+
       setElements(
-        template.elements ?? []
-      );
-
-      const savedBackground =
-        (template as any).backgroundImage;
-
-      setBackgroundImage(
-        savedBackground ||
-        getBackgroundForTemplate(
-          template.name
+        template.elements.map(
+          element => ({
+            ...element
+          })
         )
       );
 
-      setLabelFormat(
-        (template as any).labelFormat ||
-        "FORMATO_1"
+
+      setSelected(null);
+
+
+      setBackgroundImage(
+        template.backgroundImage || ""
       );
 
+
+      setLabelFormat(
+        template.labelFormat
+      );
     }
+
+
+    /*
+     * Solo usamos currentTemplate
+     * para abrir inicialmente la plantilla.
+     */
 
     clearCurrentTemplate();
 
-  }, [setElements, setSelected]);
+  }, [
+    setElements,
+    setSelected
+  ]);
 
 
   /*
+   * ==================================================
    * CAMBIAR PLANTILLA
+   * ==================================================
    */
 
   function handleTemplateChange(
@@ -170,96 +170,82 @@ export default function TemplateDesigner() {
     if (!value) {
 
       setTemplateId(null);
+
       setElements([]);
+
       setSelected(null);
+
       setBackgroundImage("");
 
-      return;
+      setLabelFormat(
+        "FORMATO_1"
+      );
 
+      return;
     }
+
 
     const id =
       Number(value);
 
+
     const template =
       findTemplate(id);
 
-    if (!template) return;
+
+    if (!template) {
+      return;
+    }
+
 
     setTemplateId(
       template.id
     );
 
+
     setElements(
-      template.elements ?? []
-    );
-
-    setSelected(null);
-
-    const savedBackground =
-      (template as any).backgroundImage;
-
-    setBackgroundImage(
-      savedBackground ||
-      getBackgroundForTemplate(
-        template.name
+      template.elements.map(
+        element => ({
+          ...element
+        })
       )
     );
 
-    setLabelFormat(
-      (template as any).labelFormat ||
-      "FORMATO_1"
+
+    setSelected(null);
+
+
+    setBackgroundImage(
+      template.backgroundImage || ""
     );
 
+
+    setLabelFormat(
+      template.labelFormat
+    );
   }
 
 
   /*
+   * ==================================================
    * CAMBIAR FORMATO
+   * ==================================================
    */
 
   function handleFormatChange(
-    value: "FORMATO_1" | "FORMATO_2"
+    value: LabelFormat
   ) {
 
-    setLabelFormat(value);
-
-    if (value === "FORMATO_2") {
-
-      setBackgroundImage("");
-
-      return;
-
-    }
-
-    if (templateId !== null) {
-
-      const template =
-        findTemplate(
-          templateId
-        );
-
-      if (template) {
-
-        const savedBackground =
-          (template as any).backgroundImage;
-
-        setBackgroundImage(
-          savedBackground ||
-          getBackgroundForTemplate(
-            template.name
-          )
-        );
-
-      }
-
-    }
-
+    setLabelFormat(
+      value
+    );
   }
 
 
   /*
+   * ==================================================
    * CAMBIAR FONDO
+   * ==================================================
    */
 
   function handleBackgroundChange(
@@ -269,18 +255,19 @@ export default function TemplateDesigner() {
     setBackgroundImage(
       value
     );
-
   }
 
 
   /*
+   * ==================================================
    * GUARDAR PLANTILLA
+   * ==================================================
    */
 
   function saveTemplate() {
 
     /*
-     * ACTUALIZAR
+     * ACTUALIZAR PLANTILLA EXISTENTE
      */
 
     if (templateId !== null) {
@@ -290,6 +277,7 @@ export default function TemplateDesigner() {
           templateId
         );
 
+
       if (!template) {
 
         alert(
@@ -297,47 +285,62 @@ export default function TemplateDesigner() {
         );
 
         return;
-
       }
+
 
       updateTemplate({
 
         ...template,
 
-        elements,
+        elements:
+          elements.map(
+            element => ({
+              ...element
+            })
+          ),
 
-        backgroundImage,
+        backgroundImage:
+          backgroundImage || undefined,
 
         labelFormat
 
-      } as any);
+      });
+
 
       refreshTemplates();
+
 
       alert(
         `Plantilla "${template.name}" actualizada.`
       );
 
-      return;
 
+      return;
     }
 
 
     /*
-     * CREAR NUEVA
+     * CREAR PLANTILLA NUEVA
      */
 
     const name =
-      prompt(
+      window.prompt(
         "Nombre de la plantilla:"
       );
 
-    if (!name) return;
+
+    if (!name) {
+      return;
+    }
+
 
     const cleanName =
       name.trim();
 
-    if (!cleanName) return;
+
+    if (!cleanName) {
+      return;
+    }
 
 
     /*
@@ -348,12 +351,12 @@ export default function TemplateDesigner() {
       getTemplates().find(
         template =>
           template.name
-            .toLowerCase()
-            .trim() ===
-          cleanName
-            .toLowerCase()
             .trim()
+            .toUpperCase() ===
+          cleanName
+            .toUpperCase()
       );
+
 
     if (existing) {
 
@@ -362,7 +365,6 @@ export default function TemplateDesigner() {
       );
 
       return;
-
     }
 
 
@@ -370,208 +372,145 @@ export default function TemplateDesigner() {
       Date.now();
 
 
-    /*
-     * FONDO AUTOMÁTICO
-     */
-
-    const automaticBackground =
-      backgroundImage ||
-      getBackgroundForTemplate(
-        cleanName
-      );
-
-
     addTemplate({
 
       id,
 
-      name: cleanName,
+      name:
+        cleanName,
 
-      elements,
+      elements:
+        elements.map(
+          element => ({
+            ...element
+          })
+        ),
 
       backgroundImage:
-        automaticBackground,
+        backgroundImage || undefined,
 
       labelFormat
 
-    } as any);
+    });
 
 
     setTemplateId(
       id
     );
 
-    setBackgroundImage(
-      automaticBackground
-    );
 
     refreshTemplates();
+
 
     alert(
       `Plantilla "${cleanName}" guardada.`
     );
-
   }
 
 
   /*
-   * CREAR AMNON DIRECTAMENTE
-   *
-   * Esto nos permite hacer la prueba
-   * sin tener que crearla manualmente.
-   */
-
-  function createAmnonTemplate() {
-
-    const existing =
-      getTemplates().find(
-        template =>
-          template.name
-            .toLowerCase()
-            .trim() === "amnon"
-      );
-
-    if (existing) {
-
-      setTemplateId(
-        existing.id
-      );
-
-      setElements(
-        existing.elements ?? []
-      );
-
-      setBackgroundImage(
-        (existing as any).backgroundImage ||
-        "/templates/amnon-formato1.png"
-      );
-
-      setLabelFormat(
-        "FORMATO_1"
-      );
-
-      refreshTemplates();
-
-      alert(
-        "La plantilla AMNON ya existe y ha sido cargada."
-      );
-
-      return;
-
-    }
-
-
-    const id =
-      Date.now();
-
-
-    addTemplate({
-
-      id,
-
-      name: "AMNON",
-
-      elements: [],
-
-      backgroundImage:
-        "/templates/amnon-formato1.png",
-
-      labelFormat:
-        "FORMATO_1"
-
-    } as any);
-
-
-    setTemplateId(
-      id
-    );
-
-    setElements([]);
-
-    setSelected(null);
-
-    setBackgroundImage(
-      "/templates/amnon-formato1.png"
-    );
-
-    setLabelFormat(
-      "FORMATO_1"
-    );
-
-    refreshTemplates();
-
-    alert(
-      "Plantilla AMNON creada."
-    );
-
-  }
-
-
-  /*
-   * AÑADIR TEXTO
+   * ==================================================
+   * AÑADIR TEXTO LIBRE
+   * ==================================================
    */
 
   function triggerText() {
 
     setAddText(true);
 
-    setTimeout(() => {
 
-      setAddText(false);
+    window.setTimeout(
+      () => {
 
-    }, 100);
+        setAddText(false);
 
+      },
+      100
+    );
   }
 
 
   /*
-   * INSERTAR CAMPO
+   * ==================================================
+   * INSERTAR CAMPO DINÁMICO
+   * ==================================================
    */
 
   function triggerField(
     field: string
   ) {
 
-    setInsertField(
-      field
+    /*
+     * Primero lo vaciamos para permitir
+     * insertar dos veces seguidas
+     * el mismo tipo de campo.
+     */
+
+    setInsertField("");
+
+
+    window.setTimeout(
+      () => {
+
+        setInsertField(
+          field
+        );
+
+
+        window.setTimeout(
+          () => {
+
+            setInsertField("");
+
+          },
+          100
+        );
+
+      },
+      0
     );
-
-    setTimeout(() => {
-
-      setInsertField("");
-
-    }, 100);
-
   }
 
 
   /*
-   * DUPLICAR
+   * ==================================================
+   * DUPLICAR ELEMENTO
+   * ==================================================
    */
 
   function duplicateSelected() {
 
-    if (selected == null) return;
+    if (selected === null) {
+      return;
+    }
+
 
     const element =
       elements.find(
-        e =>
-          e.id === selected
+        item =>
+          item.id === selected
       );
 
-    if (!element) return;
+
+    if (!element) {
+      return;
+    }
+
 
     const copy = {
 
       ...element,
 
-      id: Date.now(),
+      id:
+        Date.now(),
 
-      x: element.x + 15,
+      x:
+        element.x + 5,
 
-      y: element.y + 15
-
+      y:
+        element.y + 5
     };
+
 
     setElements(
       prev => [
@@ -580,36 +519,44 @@ export default function TemplateDesigner() {
       ]
     );
 
+
     setSelected(
       copy.id
     );
-
   }
 
 
   /*
-   * ELIMINAR
+   * ==================================================
+   * ELIMINAR ELEMENTO
+   * ==================================================
    */
 
   function deleteSelected() {
 
-    if (selected == null) return;
+    if (selected === null) {
+      return;
+    }
+
 
     setElements(
       prev =>
         prev.filter(
-          e =>
-            e.id !== selected
+          element =>
+            element.id !==
+            selected
         )
     );
 
-    setSelected(null);
 
+    setSelected(null);
   }
 
 
   /*
-   * DATOS DE PRUEBA
+   * ==================================================
+   * ACTUALIZAR DATOS DE PRUEBA
+   * ==================================================
    */
 
   function updateLabel(
@@ -624,12 +571,13 @@ export default function TemplateDesigner() {
         [field]: value
       })
     );
-
   }
 
 
   /*
+   * ==================================================
    * PLANTILLA SELECCIONADA
+   * ==================================================
    */
 
   const selectedTemplate =
@@ -643,29 +591,35 @@ export default function TemplateDesigner() {
 
 
   /*
-   * TAMAÑO
+   * ==================================================
+   * TAMAÑO REAL
+   * ==================================================
    */
 
   const formatWidth =
     labelFormat === "FORMATO_1"
-      ? 285
-      : 240;
-
-  const formatHeight =
-    labelFormat === "FORMATO_1"
       ? 80
       : 110;
 
+  const formatHeight =
+    labelFormat === "FORMATO_1"
+      ? 285
+      : 240;
+
 
   /*
+   * ==================================================
    * RENDER
+   * ==================================================
    */
 
   return (
 
     <Box p={2}>
 
-      {/* CABECERA */}
+      {/* ==================================================
+          CABECERA
+         ================================================== */}
 
       <Box
         display="flex"
@@ -681,40 +635,26 @@ export default function TemplateDesigner() {
           Diseñador de Plantillas
         </Typography>
 
-        <Stack
-          direction="row"
-          spacing={1}
+
+        <Button
+          variant="contained"
+          color="success"
+          startIcon={
+            <SaveIcon />
+          }
+          onClick={
+            saveTemplate
+          }
         >
-
-          <Button
-            variant="outlined"
-            color="success"
-            onClick={
-              createAmnonTemplate
-            }
-          >
-            Crear AMNON
-          </Button>
-
-          <Button
-            variant="contained"
-            color="success"
-            startIcon={
-              <SaveIcon />
-            }
-            onClick={
-              saveTemplate
-            }
-          >
-            Guardar
-          </Button>
-
-        </Stack>
+          Guardar
+        </Button>
 
       </Box>
 
 
-      {/* CONFIGURACIÓN */}
+      {/* ==================================================
+          CONFIGURACIÓN
+         ================================================== */}
 
       <Paper
         sx={{
@@ -738,6 +678,8 @@ export default function TemplateDesigner() {
             md: "row"
           }}
           spacing={2}
+          flexWrap="wrap"
+          useFlexGap
         >
 
           {/* PLANTILLA */}
@@ -764,11 +706,14 @@ export default function TemplateDesigner() {
               Seleccionar plantilla
             </MenuItem>
 
+
             {templates.map(
               template => (
 
                 <MenuItem
-                  key={template.id}
+                  key={
+                    template.id
+                  }
                   value={
                     String(
                       template.id
@@ -795,21 +740,24 @@ export default function TemplateDesigner() {
             onChange={(event) =>
               handleFormatChange(
                 event.target.value as
-                  | "FORMATO_1"
-                  | "FORMATO_2"
+                  LabelFormat
               )
             }
             sx={{
-              minWidth: 230
+              minWidth: 240
             }}
           >
 
-            <MenuItem value="FORMATO_1">
-              Formato 1 — 285 × 80 mm
+            <MenuItem
+              value="FORMATO_1"
+            >
+              Formato 1 — 80 × 285 mm
             </MenuItem>
 
-            <MenuItem value="FORMATO_2">
-              Formato 2 — 240 × 110 mm
+            <MenuItem
+              value="FORMATO_2"
+            >
+              Formato 2 — 110 × 240 mm
             </MenuItem>
 
           </TextField>
@@ -818,7 +766,6 @@ export default function TemplateDesigner() {
           {/* FONDO */}
 
           <TextField
-            select
             label="Fondo de plantilla"
             value={
               backgroundImage
@@ -828,28 +775,11 @@ export default function TemplateDesigner() {
                 event.target.value
               )
             }
+            placeholder="/templates/amnon-formato1.png"
             sx={{
-              minWidth: 300
+              minWidth: 340
             }}
-          >
-
-            <MenuItem value="">
-              Sin fondo
-            </MenuItem>
-
-            <MenuItem
-              value="/templates/naan-pc-formato1.png"
-            >
-              NAAN PC — Formato 1
-            </MenuItem>
-
-            <MenuItem
-              value="/templates/amnon-formato1.png"
-            >
-              AMNON — Formato 1
-            </MenuItem>
-
-          </TextField>
+          />
 
         </Stack>
 
@@ -862,6 +792,7 @@ export default function TemplateDesigner() {
           sx={{
             backgroundColor:
               "rgba(0,0,0,0.04)",
+
             borderRadius: 1
           }}
         >
@@ -870,19 +801,25 @@ export default function TemplateDesigner() {
             direction="row"
             spacing={3}
             flexWrap="wrap"
+            useFlexGap
           >
 
-            <Typography color="text.secondary">
-              Formato:
-              {" "}
+            <Typography
+              color="text.secondary"
+            >
+              Formato:{" "}
+
               <b>
                 {formatWidth} × {formatHeight} mm
               </b>
             </Typography>
 
-            <Typography color="text.secondary">
-              Plantilla:
-              {" "}
+
+            <Typography
+              color="text.secondary"
+            >
+              Plantilla:{" "}
+
               <b>
                 {
                   selectedTemplate?.name ||
@@ -891,15 +828,20 @@ export default function TemplateDesigner() {
               </b>
             </Typography>
 
-            <Typography color="text.secondary">
-              Fondo:
-              {" "}
+
+            <Typography
+              color="text.secondary"
+            >
+              Fondo:{" "}
+
               <b>
-                {backgroundImage
-                  ? backgroundImage
-                      .split("/")
-                      .pop()
-                  : "Ninguno"}
+                {
+                  backgroundImage
+                    ? backgroundImage
+                        .split("/")
+                        .pop()
+                    : "Ninguno"
+                }
               </b>
             </Typography>
 
@@ -910,7 +852,9 @@ export default function TemplateDesigner() {
       </Paper>
 
 
-      {/* HERRAMIENTAS */}
+      {/* ==================================================
+          HERRAMIENTAS
+         ================================================== */}
 
       <DesignerToolbar
 
@@ -922,24 +866,52 @@ export default function TemplateDesigner() {
           triggerText
         }
 
+        onOrder={() =>
+          triggerField(
+            "ORDER"
+          )
+        }
+
+        onLot={() =>
+          triggerField(
+            "LOT"
+          )
+        }
+
+        onCoil={() =>
+          triggerField(
+            "COIL"
+          )
+        }
+
         onSKU={() =>
-          triggerField("SKU")
+          triggerField(
+            "SKU"
+          )
         }
 
         onDescription={() =>
-          triggerField("DESCRIPTION")
+          triggerField(
+            "DESCRIPTION"
+          )
         }
 
         onBarcode={() =>
-          triggerField("BARCODE")
+          triggerField(
+            "BARCODE"
+          )
         }
 
         onQR={() =>
-          triggerField("QR")
+          triggerField(
+            "QR"
+          )
         }
 
         onLogo={() =>
-          triggerField("LOGO")
+          triggerField(
+            "LOGO"
+          )
         }
 
         onDuplicate={
@@ -956,20 +928,20 @@ export default function TemplateDesigner() {
 
         onZoomIn={() =>
           setZoom(
-            z =>
+            value =>
               Math.min(
                 200,
-                z + 10
+                value + 10
               )
           )
         }
 
         onZoomOut={() =>
           setZoom(
-            z =>
+            value =>
               Math.max(
                 50,
-                z - 10
+                value - 10
               )
           )
         }
@@ -981,7 +953,9 @@ export default function TemplateDesigner() {
       />
 
 
-      {/* DATOS DE PRUEBA */}
+      {/* ==================================================
+          DATOS DE PRUEBA
+         ================================================== */}
 
       <Paper
         sx={{
@@ -993,9 +967,11 @@ export default function TemplateDesigner() {
         <Typography
           variant="h6"
           mb={2}
+          fontWeight="bold"
         >
           Datos de prueba
         </Typography>
+
 
         <Stack
           direction="row"
@@ -1005,79 +981,126 @@ export default function TemplateDesigner() {
         >
 
           <TextField
+            label="Orden SAP"
+            value={
+              labelData.ORDER
+            }
+            onChange={(event) =>
+              updateLabel(
+                "ORDER",
+                event.target.value
+              )
+            }
+          />
+
+
+          <TextField
             label="SKU"
             value={
               labelData.SKU
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateLabel(
                 "SKU",
-                e.target.value
+                event.target.value
               )
             }
           />
+
 
           <TextField
             label="Descripción"
             value={
               labelData.DESCRIPTION
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateLabel(
                 "DESCRIPTION",
-                e.target.value
+                event.target.value
               )
             }
           />
+
+
+          <TextField
+            label="Código de barras"
+            value={
+              labelData.BARCODE
+            }
+            onChange={(event) =>
+              updateLabel(
+                "BARCODE",
+                event.target.value
+              )
+            }
+          />
+
+
+          <TextField
+            label="QR"
+            value={
+              labelData.QR
+            }
+            onChange={(event) =>
+              updateLabel(
+                "QR",
+                event.target.value
+              )
+            }
+          />
+
 
           <TextField
             label="Fecha"
             value={
               labelData.DATE
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateLabel(
                 "DATE",
-                e.target.value
+                event.target.value
               )
             }
           />
+
 
           <TextField
             label="Lote"
             value={
               labelData.LOT
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateLabel(
                 "LOT",
-                e.target.value
+                event.target.value
               )
             }
           />
+
 
           <TextField
             label="Bobina"
             value={
               labelData.COIL
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateLabel(
                 "COIL",
-                e.target.value
+                event.target.value
               )
             }
           />
+
 
           <TextField
             label="Rollos"
             value={
               labelData.ROLLS
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateLabel(
                 "ROLLS",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1087,7 +1110,9 @@ export default function TemplateDesigner() {
       </Paper>
 
 
-      {/* DISEÑADOR */}
+      {/* ==================================================
+          DISEÑADOR
+         ================================================== */}
 
       <Box
         display="flex"
@@ -1109,16 +1134,21 @@ export default function TemplateDesigner() {
             color="text.secondary"
             mb={1}
           >
-            Área de diseño:
-            {" "}
+            Área de diseño:{" "}
             {formatWidth} × {formatHeight} mm
+            {" · "}
+            Zoom {zoom}%
           </Typography>
+
 
           <Paper
             sx={{
               p: 2,
+
               overflow: "auto",
-              backgroundColor: "#eeeeee"
+
+              backgroundColor:
+                "#eeeeee"
             }}
           >
 
@@ -1134,6 +1164,9 @@ export default function TemplateDesigner() {
               }
               backgroundImage={
                 backgroundImage
+              }
+              labelFormat={
+                labelFormat
               }
             />
 
@@ -1156,7 +1189,5 @@ export default function TemplateDesigner() {
       </Box>
 
     </Box>
-
   );
-
 }

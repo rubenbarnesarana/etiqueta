@@ -18,6 +18,7 @@ import {
 import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 
 import {
   useEffect,
@@ -26,6 +27,7 @@ import {
 
 import Canvas from "../../components/designer/Canvas";
 import PropertyPanel from "../../components/designer/PropertyPanel";
+import DesignerToolbar from "../../components/designer/DesignerToolbar";
 
 import {
   getTemplates,
@@ -35,6 +37,7 @@ import {
   setCurrentTemplate,
   getCurrentTemplate,
   clearCurrentTemplate,
+  applyAmnonFormat1Layout,
   type Template,
   type LabelFormat
 } from "../../services/TemplateStorage";
@@ -92,14 +95,24 @@ export default function Templates() {
   const {
     elements,
     setElements,
+    selected,
+    setSelected,
     labelData,
-    setLabelData,
-    setSelected
+    setLabelData
   } = useDesigner();
 
 
-  const [templates, setTemplates] =
-    useState<Template[]>([]);
+  /*
+   * ==================================================
+   * PLANTILLAS
+   * ==================================================
+   */
+
+  const [
+    templates,
+    setTemplates
+  ] = useState<Template[]>([]);
+
 
   const [
     selectedTemplateId,
@@ -109,7 +122,33 @@ export default function Templates() {
 
 
   /*
+   * ==================================================
+   * DISEÑADOR
+   * ==================================================
+   */
+
+  const [
+    addText,
+    setAddText
+  ] = useState(false);
+
+
+  const [
+    insertField,
+    setInsertField
+  ] = useState("");
+
+
+  const [
+    zoom,
+    setZoom
+  ] = useState(100);
+
+
+  /*
+   * ==================================================
    * DIÁLOGO NUEVA PLANTILLA
+   * ==================================================
    */
 
   const [
@@ -117,17 +156,21 @@ export default function Templates() {
     setNewTemplateOpen
   ] = useState(false);
 
+
   const [
     newTemplateName,
     setNewTemplateName
   ] = useState("");
 
+
   const [
     newTemplateFormat,
     setNewTemplateFormat
-  ] = useState<LabelFormat>(
-    "FORMATO_1"
-  );
+  ] =
+    useState<LabelFormat>(
+      "FORMATO_1"
+    );
+
 
   const [
     newTemplateImage,
@@ -144,9 +187,21 @@ export default function Templates() {
   const selectedTemplate =
     templates.find(
       template =>
-        Number(template.id) ===
-        Number(selectedTemplateId)
-    ) ?? null;
+        Number(
+          template.id
+        ) ===
+        Number(
+          selectedTemplateId
+        )
+    ) ??
+    null;
+
+
+  const isAmnon =
+    selectedTemplate?.name
+      .trim()
+      .toUpperCase() ===
+    "AMNON";
 
 
   /*
@@ -160,17 +215,26 @@ export default function Templates() {
     const loaded =
       getTemplates();
 
-    setTemplates(loaded);
+
+    setTemplates(
+      loaded
+    );
+
 
     const current =
       getCurrentTemplate();
+
 
     if (
       current !== null &&
       loaded.some(
         template =>
-          Number(template.id) ===
-          Number(current)
+          Number(
+            template.id
+          ) ===
+          Number(
+            current
+          )
       )
     ) {
 
@@ -178,12 +242,18 @@ export default function Templates() {
         current
       );
 
+
       const template =
         loaded.find(
           item =>
-            Number(item.id) ===
-            Number(current)
+            Number(
+              item.id
+            ) ===
+            Number(
+              current
+            )
         );
+
 
       if (template) {
 
@@ -217,19 +287,34 @@ export default function Templates() {
     const template =
       templates.find(
         item =>
-          Number(item.id) ===
-          Number(id)
+          Number(
+            item.id
+          ) ===
+          Number(
+            id
+          )
       );
+
 
     if (!template) {
       return;
     }
 
-    setSelectedTemplateId(id);
 
-    setCurrentTemplate(id);
+    setSelectedTemplateId(
+      id
+    );
 
-    setSelected(null);
+
+    setCurrentTemplate(
+      id
+    );
+
+
+    setSelected(
+      null
+    );
+
 
     setElements(
       template.elements.map(
@@ -243,17 +328,22 @@ export default function Templates() {
 
   /*
    * ==================================================
-   * GUARDAR PLANTILLA ACTUAL
+   * GUARDAR PLANTILLA
    * ==================================================
    */
 
   function saveCurrentTemplate() {
 
-    if (!selectedTemplate) {
+    if (
+      !selectedTemplate
+    ) {
       return;
     }
 
-    const updatedTemplate: Template = {
+
+    const updatedTemplate:
+      Template = {
+
       ...selectedTemplate,
 
       elements:
@@ -262,18 +352,122 @@ export default function Templates() {
             ...element
           })
         )
+
     };
+
 
     updateTemplate(
       updatedTemplate
     );
 
+
     setTemplates(
       getTemplates()
     );
 
+
     alert(
       `Plantilla "${selectedTemplate.name}" guardada correctamente.`
+    );
+  }
+
+
+  /*
+   * ==================================================
+   * APLICAR DISEÑO OFICIAL AMNON
+   * ==================================================
+   */
+
+  function applyAmnonLayout() {
+
+    if (
+      !selectedTemplate
+    ) {
+      return;
+    }
+
+
+    if (
+      selectedTemplate.name
+        .trim()
+        .toUpperCase() !==
+      "AMNON"
+    ) {
+
+      alert(
+        "Este diseño solo se puede aplicar a la plantilla AMNON."
+      );
+
+      return;
+    }
+
+
+    const confirmed =
+      window.confirm(
+        "Se sustituirán los elementos dinámicos actuales de AMNON por la distribución automática.\n\nEl fondo de la plantilla se mantendrá como AMNON Formato 1.\n\n¿Continuar?"
+      );
+
+
+    if (
+      !confirmed
+    ) {
+      return;
+    }
+
+
+    const updated =
+      applyAmnonFormat1Layout(
+        selectedTemplate.id
+      );
+
+
+    if (
+      !updated
+    ) {
+
+      alert(
+        "No se ha podido aplicar el diseño AMNON."
+      );
+
+      return;
+    }
+
+
+    setElements(
+      updated.elements.map(
+        element => ({
+          ...element
+        })
+      )
+    );
+
+
+    setSelected(
+      null
+    );
+
+
+    const refreshed =
+      getTemplates();
+
+
+    setTemplates(
+      refreshed
+    );
+
+
+    setSelectedTemplateId(
+      updated.id
+    );
+
+
+    setCurrentTemplate(
+      updated.id
+    );
+
+
+    alert(
+      "Diseño AMNON aplicado correctamente."
     );
   }
 
@@ -286,35 +480,54 @@ export default function Templates() {
 
   function removeCurrentTemplate() {
 
-    if (!selectedTemplate) {
+    if (
+      !selectedTemplate
+    ) {
       return;
     }
+
 
     const confirmed =
       window.confirm(
         `¿Seguro que quieres eliminar la plantilla "${selectedTemplate.name}"?\n\nEsta acción no se puede deshacer.`
       );
 
-    if (!confirmed) {
+
+    if (
+      !confirmed
+    ) {
       return;
     }
+
 
     deleteTemplate(
       selectedTemplate.id
     );
 
+
     clearCurrentTemplate();
+
 
     const updated =
       getTemplates();
 
-    setTemplates(updated);
 
-    setSelectedTemplateId("");
+    setTemplates(
+      updated
+    );
+
+
+    setSelectedTemplateId(
+      ""
+    );
+
 
     setElements([]);
 
-    setSelected(null);
+
+    setSelected(
+      null
+    );
   }
 
 
@@ -326,15 +539,24 @@ export default function Templates() {
 
   function openNewTemplateDialog() {
 
-    setNewTemplateName("");
+    setNewTemplateName(
+      ""
+    );
+
 
     setNewTemplateFormat(
       "FORMATO_1"
     );
 
-    setNewTemplateImage("");
 
-    setNewTemplateOpen(true);
+    setNewTemplateImage(
+      ""
+    );
+
+
+    setNewTemplateOpen(
+      true
+    );
   }
 
 
@@ -347,9 +569,13 @@ export default function Templates() {
   function createNewTemplate() {
 
     const name =
-      newTemplateName.trim();
+      newTemplateName
+        .trim();
 
-    if (!name) {
+
+    if (
+      !name
+    ) {
 
       alert(
         "Debes indicar un nombre para la plantilla."
@@ -358,10 +584,6 @@ export default function Templates() {
       return;
     }
 
-
-    /*
-     * Comprobar nombre duplicado
-     */
 
     const duplicate =
       templates.some(
@@ -372,7 +594,10 @@ export default function Templates() {
           name.toUpperCase()
       );
 
-    if (duplicate) {
+
+    if (
+      duplicate
+    ) {
 
       alert(
         "Ya existe una plantilla con ese nombre."
@@ -382,32 +607,26 @@ export default function Templates() {
     }
 
 
-    /*
-     * Normalizamos la ruta de imagen.
-     *
-     * Se puede escribir:
-     *
-     * mi-plantilla.png
-     *
-     * o:
-     *
-     * /templates/mi-plantilla.png
-     */
-
     let image =
-      newTemplateImage.trim();
+      newTemplateImage
+        .trim();
+
 
     if (
       image &&
-      !image.startsWith("/")
+      !image.startsWith(
+        "/"
+      )
     ) {
 
       image =
         `/templates/${image}`;
+
     }
 
 
-    const newTemplate: Template = {
+    const newTemplate:
+      Template = {
 
       id:
         Date.now(),
@@ -418,7 +637,8 @@ export default function Templates() {
         newTemplateFormat,
 
       backgroundImage:
-        image || undefined,
+        image ||
+        undefined,
 
       elements: []
 
@@ -433,21 +653,33 @@ export default function Templates() {
     const updated =
       getTemplates();
 
-    setTemplates(updated);
+
+    setTemplates(
+      updated
+    );
+
 
     setSelectedTemplateId(
       newTemplate.id
     );
 
+
     setCurrentTemplate(
       newTemplate.id
     );
 
+
     setElements([]);
 
-    setSelected(null);
 
-    setNewTemplateOpen(false);
+    setSelected(
+      null
+    );
+
+
+    setNewTemplateOpen(
+      false
+    );
   }
 
 
@@ -481,15 +713,12 @@ export default function Templates() {
           );
 
 
-        /*
-         * Si existe:
-         * actualizamos formato y fondo,
-         * pero CONSERVAMOS sus elementos.
-         */
-
-        if (existing) {
+        if (
+          existing
+        ) {
 
           updateTemplate({
+
             ...existing,
 
             labelFormat:
@@ -497,16 +726,13 @@ export default function Templates() {
 
             backgroundImage:
               rollTemplate.image
+
           });
 
         } else {
 
-          /*
-           * Si no existe:
-           * la creamos.
-           */
-
-          const newTemplate: Template = {
+          const newTemplate:
+            Template = {
 
             id:
               Date.now() +
@@ -526,6 +752,7 @@ export default function Templates() {
               rollTemplate.image,
 
             elements: []
+
           };
 
 
@@ -537,6 +764,7 @@ export default function Templates() {
 
         currentTemplates =
           getTemplates();
+
       }
     );
 
@@ -544,12 +772,11 @@ export default function Templates() {
     const updated =
       getTemplates();
 
-    setTemplates(updated);
 
+    setTemplates(
+      updated
+    );
 
-    /*
-     * Dejamos AMNON seleccionada.
-     */
 
     const amnon =
       updated.find(
@@ -561,17 +788,24 @@ export default function Templates() {
       );
 
 
-    if (amnon) {
+    if (
+      amnon
+    ) {
 
       setSelectedTemplateId(
         amnon.id
       );
 
+
       setCurrentTemplate(
         amnon.id
       );
 
-      setSelected(null);
+
+      setSelected(
+        null
+      );
+
 
       setElements(
         amnon.elements.map(
@@ -580,7 +814,195 @@ export default function Templates() {
           })
         )
       );
+
     }
+  }
+
+
+  /*
+   * ==================================================
+   * AÑADIR TEXTO LIBRE
+   * ==================================================
+   */
+
+  function triggerText() {
+
+    setAddText(
+      true
+    );
+
+
+    window.setTimeout(
+      () => {
+
+        setAddText(
+          false
+        );
+
+      },
+      100
+    );
+  }
+
+
+  /*
+   * ==================================================
+   * INSERTAR CAMPO
+   * ==================================================
+   */
+
+  function triggerField(
+    field: string
+  ) {
+
+    setInsertField(
+      ""
+    );
+
+
+    window.setTimeout(
+      () => {
+
+        setInsertField(
+          field
+        );
+
+
+        window.setTimeout(
+          () => {
+
+            setInsertField(
+              ""
+            );
+
+          },
+          100
+        );
+
+      },
+      0
+    );
+  }
+
+
+  /*
+   * ==================================================
+   * DUPLICAR
+   * ==================================================
+   */
+
+  function duplicateSelected() {
+
+    if (
+      selected ===
+      null
+    ) {
+      return;
+    }
+
+
+    const element =
+      elements.find(
+        item =>
+          item.id ===
+          selected
+      );
+
+
+    if (
+      !element
+    ) {
+      return;
+    }
+
+
+    const copy = {
+
+      ...element,
+
+      id:
+        Date.now(),
+
+      x:
+        element.x +
+        5,
+
+      y:
+        element.y +
+        5
+
+    };
+
+
+    setElements(
+      prev => [
+        ...prev,
+        copy
+      ]
+    );
+
+
+    setSelected(
+      copy.id
+    );
+  }
+
+
+  /*
+   * ==================================================
+   * ELIMINAR ELEMENTO
+   * ==================================================
+   */
+
+  function deleteSelected() {
+
+    if (
+      selected ===
+      null
+    ) {
+      return;
+    }
+
+
+    setElements(
+      prev =>
+        prev.filter(
+          element =>
+            element.id !==
+            selected
+        )
+    );
+
+
+    setSelected(
+      null
+    );
+  }
+
+
+  /*
+   * ==================================================
+   * DATOS DE PRUEBA
+   * ==================================================
+   */
+
+  function updateLabel(
+    field:
+      keyof typeof labelData,
+    value:
+      string
+  ) {
+
+    setLabelData(
+      prev => ({
+
+        ...prev,
+
+        [field]:
+          value
+
+      })
+    );
   }
 
 
@@ -606,7 +1028,7 @@ export default function Templates() {
 
 
       {/* ==================================================
-          GESTIÓN DE PLANTILLAS
+          GESTIÓN
          ================================================== */}
 
       <Card
@@ -617,7 +1039,11 @@ export default function Templates() {
 
         <CardContent>
 
-          <Stack spacing={2}>
+          <Stack
+            spacing={
+              2
+            }
+          >
 
             <Typography
               variant="h6"
@@ -629,15 +1055,18 @@ export default function Templates() {
 
             <Stack
               direction={{
-                xs: "column",
-                md: "row"
+                xs:
+                  "column",
+
+                md:
+                  "row"
               }}
-              spacing={2}
+              spacing={
+                2
+              }
               flexWrap="wrap"
               useFlexGap
             >
-
-              {/* SELECCIONAR */}
 
               <TextField
                 select
@@ -645,19 +1074,24 @@ export default function Templates() {
                 value={
                   selectedTemplateId
                 }
-                onChange={(e) => {
+                onChange={(
+                  event
+                ) => {
 
                   const value =
                     Number(
-                      e.target.value
+                      event.target.value
                     );
+
 
                   handleSelectTemplate(
                     value
                   );
+
                 }}
                 sx={{
-                  minWidth: 280
+                  minWidth:
+                    280
                 }}
               >
 
@@ -681,8 +1115,6 @@ export default function Templates() {
               </TextField>
 
 
-              {/* NUEVA */}
-
               <Button
                 variant="outlined"
                 startIcon={
@@ -695,8 +1127,6 @@ export default function Templates() {
                 Nueva plantilla
               </Button>
 
-
-              {/* GUARDAR */}
 
               <Button
                 variant="contained"
@@ -714,7 +1144,23 @@ export default function Templates() {
               </Button>
 
 
-              {/* ELIMINAR */}
+              {isAmnon && (
+
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={
+                    <AutoFixHighIcon />
+                  }
+                  onClick={
+                    applyAmnonLayout
+                  }
+                >
+                  Aplicar diseño AMNON
+                </Button>
+
+              )}
+
 
               <Button
                 variant="outlined"
@@ -738,17 +1184,23 @@ export default function Templates() {
             <Divider />
 
 
-            {/* PLANTILLAS OFICIALES */}
-
             <Stack
               direction={{
-                xs: "column",
-                md: "row"
+                xs:
+                  "column",
+
+                md:
+                  "row"
               }}
-              spacing={2}
+              spacing={
+                2
+              }
               alignItems={{
-                xs: "stretch",
-                md: "center"
+                xs:
+                  "stretch",
+
+                md:
+                  "center"
               }}
             >
 
@@ -775,18 +1227,19 @@ export default function Templates() {
             </Stack>
 
 
-            {/* INFORMACIÓN */}
-
             {selectedTemplate && (
 
               <Typography
                 variant="body2"
                 color="text.secondary"
               >
+
                 Formato:{" "}
 
                 <strong>
-                  {selectedTemplate.labelFormat}
+                  {
+                    selectedTemplate.labelFormat
+                  }
                 </strong>
 
                 {" · "}
@@ -794,9 +1247,12 @@ export default function Templates() {
                 Fondo:{" "}
 
                 <strong>
-                  {selectedTemplate.backgroundImage ||
-                    "Sin fondo"}
+                  {
+                    selectedTemplate.backgroundImage ||
+                    "Sin fondo"
+                  }
                 </strong>
+
               </Typography>
 
             )}
@@ -835,7 +1291,9 @@ export default function Templates() {
 
             <Grid
               container
-              spacing={2}
+              spacing={
+                2
+              }
             >
 
               <Grid
@@ -844,22 +1302,23 @@ export default function Templates() {
                   md: 4
                 }}
               >
+
                 <TextField
                   label="Orden SAP"
                   value={
                     labelData.ORDER
                   }
-                  onChange={(e) =>
-                    setLabelData(
-                      prev => ({
-                        ...prev,
-                        ORDER:
-                          e.target.value
-                      })
+                  onChange={(
+                    event
+                  ) =>
+                    updateLabel(
+                      "ORDER",
+                      event.target.value
                     )
                   }
                   fullWidth
                 />
+
               </Grid>
 
 
@@ -869,22 +1328,23 @@ export default function Templates() {
                   md: 4
                 }}
               >
+
                 <TextField
                   label="SKU"
                   value={
                     labelData.SKU
                   }
-                  onChange={(e) =>
-                    setLabelData(
-                      prev => ({
-                        ...prev,
-                        SKU:
-                          e.target.value
-                      })
+                  onChange={(
+                    event
+                  ) =>
+                    updateLabel(
+                      "SKU",
+                      event.target.value
                     )
                   }
                   fullWidth
                 />
+
               </Grid>
 
 
@@ -894,22 +1354,53 @@ export default function Templates() {
                   md: 4
                 }}
               >
+
                 <TextField
-                  label="Descripción"
+                  label="Descripción inferior"
                   value={
                     labelData.DESCRIPTION
                   }
-                  onChange={(e) =>
-                    setLabelData(
-                      prev => ({
-                        ...prev,
-                        DESCRIPTION:
-                          e.target.value
-                      })
+                  onChange={(
+                    event
+                  ) =>
+                    updateLabel(
+                      "DESCRIPTION",
+                      event.target.value
                     )
                   }
                   fullWidth
                 />
+
+              </Grid>
+
+
+              <Grid
+                size={{
+                  xs: 12
+                }}
+              >
+
+                <TextField
+                  label="Texto superior (180°)"
+                  value={
+                    labelData.UPPER_TEXT
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    updateLabel(
+                      "UPPER_TEXT",
+                      event.target.value
+                    )
+                  }
+                  multiline
+                  minRows={
+                    5
+                  }
+                  fullWidth
+                  helperText="Dato de prueba. En Producción se genera automáticamente según la plantilla y las características del SKU."
+                />
+
               </Grid>
 
 
@@ -919,22 +1410,23 @@ export default function Templates() {
                   md: 4
                 }}
               >
+
                 <TextField
                   label="Código de barras"
                   value={
                     labelData.BARCODE
                   }
-                  onChange={(e) =>
-                    setLabelData(
-                      prev => ({
-                        ...prev,
-                        BARCODE:
-                          e.target.value
-                      })
+                  onChange={(
+                    event
+                  ) =>
+                    updateLabel(
+                      "BARCODE",
+                      event.target.value
                     )
                   }
                   fullWidth
                 />
+
               </Grid>
 
 
@@ -944,22 +1436,23 @@ export default function Templates() {
                   md: 4
                 }}
               >
+
                 <TextField
                   label="QR"
                   value={
                     labelData.QR
                   }
-                  onChange={(e) =>
-                    setLabelData(
-                      prev => ({
-                        ...prev,
-                        QR:
-                          e.target.value
-                      })
+                  onChange={(
+                    event
+                  ) =>
+                    updateLabel(
+                      "QR",
+                      event.target.value
                     )
                   }
                   fullWidth
                 />
+
               </Grid>
 
 
@@ -969,22 +1462,23 @@ export default function Templates() {
                   md: 4
                 }}
               >
+
                 <TextField
                   label="Fecha"
                   value={
                     labelData.DATE
                   }
-                  onChange={(e) =>
-                    setLabelData(
-                      prev => ({
-                        ...prev,
-                        DATE:
-                          e.target.value
-                      })
+                  onChange={(
+                    event
+                  ) =>
+                    updateLabel(
+                      "DATE",
+                      event.target.value
                     )
                   }
                   fullWidth
                 />
+
               </Grid>
 
 
@@ -994,22 +1488,23 @@ export default function Templates() {
                   md: 4
                 }}
               >
+
                 <TextField
                   label="Lote"
                   value={
                     labelData.LOT
                   }
-                  onChange={(e) =>
-                    setLabelData(
-                      prev => ({
-                        ...prev,
-                        LOT:
-                          e.target.value
-                      })
+                  onChange={(
+                    event
+                  ) =>
+                    updateLabel(
+                      "LOT",
+                      event.target.value
                     )
                   }
                   fullWidth
                 />
+
               </Grid>
 
 
@@ -1019,22 +1514,23 @@ export default function Templates() {
                   md: 4
                 }}
               >
+
                 <TextField
                   label="Bobina"
                   value={
                     labelData.COIL
                   }
-                  onChange={(e) =>
-                    setLabelData(
-                      prev => ({
-                        ...prev,
-                        COIL:
-                          e.target.value
-                      })
+                  onChange={(
+                    event
+                  ) =>
+                    updateLabel(
+                      "COIL",
+                      event.target.value
                     )
                   }
                   fullWidth
                 />
+
               </Grid>
 
 
@@ -1044,22 +1540,23 @@ export default function Templates() {
                   md: 4
                 }}
               >
+
                 <TextField
                   label="Rollos"
                   value={
                     labelData.ROLLS
                   }
-                  onChange={(e) =>
-                    setLabelData(
-                      prev => ({
-                        ...prev,
-                        ROLLS:
-                          e.target.value
-                      })
+                  onChange={(
+                    event
+                  ) =>
+                    updateLabel(
+                      "ROLLS",
+                      event.target.value
                     )
                   }
                   fullWidth
                 />
+
               </Grid>
 
             </Grid>
@@ -1072,64 +1569,245 @@ export default function Templates() {
 
 
       {/* ==================================================
-          EDITOR
+          DISEÑADOR
          ================================================== */}
 
       {selectedTemplate && (
 
-        <Grid
-          container
-          spacing={2}
-        >
+        <>
 
-          <Grid
-            size={{
-              xs: 12,
-              lg: 8
+          <Card
+            sx={{
+              mb: 2
             }}
           >
 
-            <Card>
+            <CardContent>
 
-              <CardContent>
+              <Stack
+                spacing={
+                  1
+                }
+              >
 
-                <Canvas
-                  addText={false}
-                  insertField=""
-                  zoom={100}
-                  backgroundImage={
-                    selectedTemplate.backgroundImage
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                >
+                  Diseñador
+                </Typography>
+
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  Los elementos dinámicos se colocan sobre la imagen base de la etiqueta.
+                </Typography>
+
+
+                <DesignerToolbar
+
+                  onSave={
+                    saveCurrentTemplate
                   }
-                  labelFormat={
-                    selectedTemplate.labelFormat
+
+                  onText={
+                    triggerText
                   }
+
+                  onOrder={() =>
+                    triggerField(
+                      "ORDER"
+                    )
+                  }
+
+                  onLot={() =>
+                    triggerField(
+                      "LOT"
+                    )
+                  }
+
+                  onCoil={() =>
+                    triggerField(
+                      "COIL"
+                    )
+                  }
+
+                  onSKU={() =>
+                    triggerField(
+                      "SKU"
+                    )
+                  }
+
+                  onDescription={() =>
+                    triggerField(
+                      "DESCRIPTION"
+                    )
+                  }
+
+                  onUpperText={() =>
+                    triggerField(
+                      "UPPER_TEXT"
+                    )
+                  }
+
+                  onBarcode={() =>
+                    triggerField(
+                      "BARCODE"
+                    )
+                  }
+
+                  onQR={() =>
+                    triggerField(
+                      "QR"
+                    )
+                  }
+
+                  onLogo={() =>
+                    triggerField(
+                      "LOGO"
+                    )
+                  }
+
+                  onDuplicate={
+                    duplicateSelected
+                  }
+
+                  onDelete={
+                    deleteSelected
+                  }
+
+                  onUndo={() => {}}
+
+                  onRedo={() => {}}
+
+                  onZoomIn={() =>
+                    setZoom(
+                      current =>
+                        Math.min(
+                          200,
+                          current +
+                          10
+                        )
+                    )
+                  }
+
+                  onZoomOut={() =>
+                    setZoom(
+                      current =>
+                        Math.max(
+                          50,
+                          current -
+                          10
+                        )
+                    )
+                  }
+
+                  canDelete={
+                    selected !==
+                    null
+                  }
+
                 />
 
-              </CardContent>
 
-            </Card>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  Zoom: {zoom}%
+                </Typography>
 
-          </Grid>
+              </Stack>
+
+            </CardContent>
+
+          </Card>
 
 
           <Grid
-            size={{
-              xs: 12,
-              lg: 4
-            }}
+            container
+            spacing={
+              2
+            }
           >
 
-            <PropertyPanel />
+            <Grid
+              size={{
+                xs: 12,
+                lg: 8
+              }}
+            >
+
+              <Card>
+
+                <CardContent>
+
+                  <Box
+                    sx={{
+                      overflow:
+                        "auto",
+
+                      backgroundColor:
+                        "#eeeeee",
+
+                      p:
+                        2
+                    }}
+                  >
+
+                    <Canvas
+                      addText={
+                        addText
+                      }
+
+                      insertField={
+                        insertField
+                      }
+
+                      zoom={
+                        zoom
+                      }
+
+                      backgroundImage={
+                        selectedTemplate.backgroundImage
+                      }
+
+                      labelFormat={
+                        selectedTemplate.labelFormat
+                      }
+                    />
+
+                  </Box>
+
+                </CardContent>
+
+              </Card>
+
+            </Grid>
+
+
+            <Grid
+              size={{
+                xs: 12,
+                lg: 4
+              }}
+            >
+
+              <PropertyPanel />
+
+            </Grid>
 
           </Grid>
 
-        </Grid>
+        </>
 
       )}
 
 
       {/* ==================================================
-          DIÁLOGO NUEVA PLANTILLA
+          NUEVA PLANTILLA
          ================================================== */}
 
       <Dialog
@@ -1137,7 +1815,9 @@ export default function Templates() {
           newTemplateOpen
         }
         onClose={() =>
-          setNewTemplateOpen(false)
+          setNewTemplateOpen(
+            false
+          )
         }
         fullWidth
         maxWidth="sm"
@@ -1151,7 +1831,9 @@ export default function Templates() {
         <DialogContent>
 
           <Stack
-            spacing={2}
+            spacing={
+              2
+            }
             sx={{
               mt: 1
             }}
@@ -1162,9 +1844,11 @@ export default function Templates() {
               value={
                 newTemplateName
               }
-              onChange={(e) =>
+              onChange={(
+                event
+              ) =>
                 setNewTemplateName(
-                  e.target.value
+                  event.target.value
                 )
               }
               placeholder="Ejemplo: NUEVO PRODUCTO"
@@ -1179,9 +1863,12 @@ export default function Templates() {
               value={
                 newTemplateFormat
               }
-              onChange={(e) =>
+              onChange={(
+                event
+              ) =>
                 setNewTemplateFormat(
-                  e.target.value as LabelFormat
+                  event.target.value as
+                    LabelFormat
                 )
               }
               fullWidth
@@ -1192,6 +1879,7 @@ export default function Templates() {
               >
                 Formato 1 — 80 × 285 mm
               </MenuItem>
+
 
               <MenuItem
                 value="FORMATO_2"
@@ -1207,32 +1895,17 @@ export default function Templates() {
               value={
                 newTemplateImage
               }
-              onChange={(e) =>
+              onChange={(
+                event
+              ) =>
                 setNewTemplateImage(
-                  e.target.value
+                  event.target.value
                 )
               }
               placeholder="ejemplo-formato1.png"
-              helperText="La imagen debe estar guardada en public/templates. Puedes escribir solo el nombre del archivo."
+              helperText="La imagen debe estar guardada en public/templates."
               fullWidth
             />
-
-
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
-              Ejemplo: si guardas la imagen como
-              {" "}
-              <strong>
-                public/templates/nuevo-producto.png
-              </strong>
-              , aquí puedes escribir simplemente
-              {" "}
-              <strong>
-                nuevo-producto.png
-              </strong>.
-            </Typography>
 
           </Stack>
 
@@ -1243,7 +1916,9 @@ export default function Templates() {
 
           <Button
             onClick={() =>
-              setNewTemplateOpen(false)
+              setNewTemplateOpen(
+                false
+              )
             }
           >
             Cancelar

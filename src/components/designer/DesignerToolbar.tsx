@@ -16,6 +16,11 @@ import ImageIcon from "@mui/icons-material/Image";
 import QrCode2Icon from "@mui/icons-material/QrCode2";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
+import NumbersIcon from "@mui/icons-material/Numbers";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
+import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
+import RotateLeftIcon from "@mui/icons-material/RotateLeft";
+
 
 interface Props {
 
@@ -23,9 +28,21 @@ interface Props {
 
   onText: () => void;
 
+  onOrder: () => void;
+
+  onLot: () => void;
+
+  onCoil: () => void;
+
   onSKU: () => void;
 
   onDescription: () => void;
+
+  /*
+   * TEXTO SUPERIOR
+   * Se utilizará para UPPER_TEXT
+   */
+  onUpperText: () => void;
 
   onBarcode: () => void;
 
@@ -49,15 +66,24 @@ interface Props {
 
 }
 
+
 export default function DesignerToolbar({
 
   onSave,
 
   onText,
 
+  onOrder,
+
+  onLot,
+
+  onCoil,
+
   onSKU,
 
   onDescription,
+
+  onUpperText,
 
   onBarcode,
 
@@ -84,163 +110,262 @@ export default function DesignerToolbar({
   return (
 
     <Paper
-
       sx={{
+        p: 1,
+        mb: 2,
 
-        p:1,
+        display: "flex",
 
-        mb:2,
+        gap: 1,
 
-        display:"flex",
+        alignItems: "center",
 
-        gap:1,
-
-        alignItems:"center"
-
+        flexWrap: "wrap"
       }}
-
     >
 
-      <Tooltip title="Guardar">
+      {/* GUARDAR */}
 
-        <IconButton onClick={onSave}>
+      <Tooltip title="Guardar plantilla">
 
-          <SaveIcon/>
-
+        <IconButton
+          onClick={onSave}
+        >
+          <SaveIcon />
         </IconButton>
 
       </Tooltip>
 
-      <Tooltip title="Texto">
 
-        <IconButton onClick={onText}>
+      <Divider
+        orientation="vertical"
+        flexItem
+      />
 
-          <TextFieldsIcon/>
 
+      {/* TEXTO LIBRE */}
+
+      <Tooltip title="Texto libre">
+
+        <IconButton
+          onClick={onText}
+        >
+          <TextFieldsIcon />
         </IconButton>
 
       </Tooltip>
+
+
+      {/* ORDEN SAP */}
+
+      <Tooltip title="Production Order">
+
+        <IconButton
+          onClick={onOrder}
+        >
+          <NumbersIcon />
+        </IconButton>
+
+      </Tooltip>
+
+
+      {/* LOTE */}
+
+      <Tooltip title="Lot Number">
+
+        <IconButton
+          onClick={onLot}
+        >
+          <Inventory2Icon />
+        </IconButton>
+
+      </Tooltip>
+
+
+      {/* BOBINA */}
+
+      <Tooltip title="Coil Number">
+
+        <IconButton
+          onClick={onCoil}
+        >
+          <ConfirmationNumberIcon />
+        </IconButton>
+
+      </Tooltip>
+
+
+      {/* SKU */}
 
       <Tooltip title="SKU">
 
-        <IconButton onClick={onSKU}>
-
-          <ViewWeekIcon/>
-
+        <IconButton
+          onClick={onSKU}
+        >
+          <ViewWeekIcon />
         </IconButton>
 
       </Tooltip>
 
-      <Tooltip title="Descripción">
 
-        <IconButton onClick={onDescription}>
+      {/* DESCRIPCIÓN INFERIOR */}
 
-          <TextFieldsIcon/>
+      <Tooltip title="Descripción inferior">
 
+        <IconButton
+          onClick={onDescription}
+        >
+          <TextFieldsIcon />
         </IconButton>
 
       </Tooltip>
 
-      <Tooltip title="Código barras">
 
-        <IconButton onClick={onBarcode}>
+      {/* TEXTO SUPERIOR */}
 
-          <ViewWeekIcon/>
+      <Tooltip title="Texto superior (180°)">
 
+        <IconButton
+          onClick={onUpperText}
+        >
+          <RotateLeftIcon />
         </IconButton>
 
       </Tooltip>
+
+
+      {/* CÓDIGO DE BARRAS */}
+
+      <Tooltip title="Código de barras">
+
+        <IconButton
+          onClick={onBarcode}
+        >
+          <ViewWeekIcon />
+        </IconButton>
+
+      </Tooltip>
+
+
+      {/* QR */}
 
       <Tooltip title="QR">
 
-        <IconButton onClick={onQR}>
-
-          <QrCode2Icon/>
-
+        <IconButton
+          onClick={onQR}
+        >
+          <QrCode2Icon />
         </IconButton>
 
       </Tooltip>
+
+
+      {/* LOGO */}
 
       <Tooltip title="Logo">
 
-        <IconButton onClick={onLogo}>
-
-          <ImageIcon/>
-
+        <IconButton
+          onClick={onLogo}
+        >
+          <ImageIcon />
         </IconButton>
 
       </Tooltip>
 
-      <Divider orientation="vertical" flexItem />
+
+      <Divider
+        orientation="vertical"
+        flexItem
+      />
+
+
+      {/* DUPLICAR */}
 
       <Tooltip title="Duplicar">
 
-        <IconButton onClick={onDuplicate}>
-
-          <ContentCopyIcon/>
-
+        <IconButton
+          onClick={onDuplicate}
+        >
+          <ContentCopyIcon />
         </IconButton>
 
       </Tooltip>
+
+
+      {/* ELIMINAR */}
 
       <Tooltip title="Eliminar">
 
         <IconButton
-
           color="error"
-
           disabled={!canDelete}
-
           onClick={onDelete}
-
         >
-
-          <DeleteIcon/>
-
+          <DeleteIcon />
         </IconButton>
 
       </Tooltip>
 
-      <Divider orientation="vertical" flexItem />
+
+      <Divider
+        orientation="vertical"
+        flexItem
+      />
+
+
+      {/* DESHACER */}
 
       <Tooltip title="Deshacer">
 
-        <IconButton onClick={onUndo}>
-
-          <UndoIcon/>
-
+        <IconButton
+          onClick={onUndo}
+        >
+          <UndoIcon />
         </IconButton>
 
       </Tooltip>
+
+
+      {/* REHACER */}
 
       <Tooltip title="Rehacer">
 
-        <IconButton onClick={onRedo}>
-
-          <RedoIcon/>
-
+        <IconButton
+          onClick={onRedo}
+        >
+          <RedoIcon />
         </IconButton>
 
       </Tooltip>
 
-      <Divider orientation="vertical" flexItem />
+
+      <Divider
+        orientation="vertical"
+        flexItem
+      />
+
+
+      {/* ZOOM - */}
 
       <Tooltip title="Zoom -">
 
-        <IconButton onClick={onZoomOut}>
-
-          <ZoomOutIcon/>
-
+        <IconButton
+          onClick={onZoomOut}
+        >
+          <ZoomOutIcon />
         </IconButton>
 
       </Tooltip>
 
+
+      {/* ZOOM + */}
+
       <Tooltip title="Zoom +">
 
-        <IconButton onClick={onZoomIn}>
-
-          <ZoomInIcon/>
-
+        <IconButton
+          onClick={onZoomIn}
+        >
+          <ZoomInIcon />
         </IconButton>
 
       </Tooltip>
@@ -248,5 +373,4 @@ export default function DesignerToolbar({
     </Paper>
 
   );
-
 }

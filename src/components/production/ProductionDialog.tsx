@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState
+} from "react";
 
 import {
   Dialog,
@@ -11,138 +14,274 @@ import {
   MenuItem
 } from "@mui/material";
 
-import { getProducts } from "../../services/ProductStorage";
-import { getTemplates } from "../../services/TemplateStorage";
+import type {
+  Product
+} from "../../models/Product";
+
+import {
+  getTemplates
+} from "../../services/TemplateStorage";
+
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSave: (order: any) => void;
-  editing?: any;
+  onSave: (product: Product) => void;
+  editing?: Product;
 }
 
-export default function ProductionDialog({
+
+const DIAMETERS = [
+  "16 mm",
+  "20 mm",
+  "22 mm",
+  "23 mm"
+];
+
+
+const THICKNESSES = [
+  "6 mil",
+  "8 mil",
+  "10 mil",
+  "12 mil",
+  "15 mil",
+  "18 mil",
+  "20 mil",
+  "25 mil",
+  "30 mil",
+  "35 mil",
+  "40 mil",
+  "43 mil",
+  "45 mil",
+  "47 mil"
+];
+
+
+const FLOWS = [
+  "0.6 l/h",
+  "0.95 l/h",
+  "1.0 l/h",
+  "1.1 l/h",
+  "1.4 l/h",
+  "1.6 l/h",
+  "2.0 l/h",
+  "2.2 l/h",
+  "3.5 l/h",
+  "3.8 l/h"
+];
+
+
+export default function ProductDialog({
   open,
   onClose,
   onSave,
   editing
 }: Props) {
 
-  const products = getProducts();
-  const templates = getTemplates();
+  const templates =
+    getTemplates();
 
-  const [order, setOrder] = useState("");
-  const [sku, setSku] = useState("");
-  const [product, setProduct] = useState("");
 
-  const [templateId, setTemplateId] = useState(0);
+  const [
+    sapCode,
+    setSapCode
+  ] = useState("");
 
-  const [rolls, setRolls] = useState("");
-  const [firstCoil, setFirstCoil] = useState("1");
-  const [printer, setPrinter] = useState("BA420");
+
+  const [
+    description,
+    setDescription
+  ] = useState("");
+
+
+  const [
+    diameter,
+    setDiameter
+  ] = useState("");
+
+
+  const [
+    thickness,
+    setThickness
+  ] = useState("");
+
+
+  const [
+    flow,
+    setFlow
+  ] = useState("");
+
+
+  const [
+    spacing,
+    setSpacing
+  ] = useState("");
+
+
+  const [
+    dripper,
+    setDripper
+  ] = useState("");
+
+
+  const [
+    templateId,
+    setTemplateId
+  ] = useState<number>(0);
+
+
+  /*
+   * ==================================================
+   * CARGAR PRODUCTO
+   * ==================================================
+   */
 
   useEffect(() => {
 
     if (editing) {
 
-      setOrder(editing.order ?? "");
-      setSku(editing.sku ?? "");
-      setProduct(editing.product ?? "");
+      setSapCode(
+        editing.sapCode
+      );
+
+      setDescription(
+        editing.description
+      );
+
+      setDiameter(
+        editing.diameter
+      );
+
+      setThickness(
+        editing.thickness
+      );
+
+      setFlow(
+        editing.flow
+      );
+
+      setSpacing(
+        editing.spacing
+      );
+
+      setDripper(
+        editing.dripper
+      );
 
       setTemplateId(
-        Number(editing.templateId ?? 0)
-      );
-
-      setRolls(
-        String(editing.rolls ?? "")
-      );
-
-      setFirstCoil(
-        String(editing.firstCoil ?? 1)
-      );
-
-      setPrinter(
-        editing.printer ?? "BA420"
+        editing.templateId
       );
 
     } else {
 
-      setOrder("");
-      setSku("");
-      setProduct("");
+      setSapCode("");
 
-      setTemplateId(
-        templates.length > 0
-          ? templates[0].id
-          : 0
-      );
+      setDescription("");
 
-      setRolls("");
-      setFirstCoil("1");
-      setPrinter("BA420");
+      setDiameter("");
+
+      setThickness("");
+
+      setFlow("");
+
+      setSpacing("");
+
+      setDripper("");
+
+      setTemplateId(0);
 
     }
 
-  }, [editing, open]);
+  }, [
+    editing,
+    open
+  ]);
 
-  function changeSKU(value: string) {
 
-    setSku(value);
-
-    const p = products.find(
-      x => x.sapCode === value
-    );
-
-    if (!p) {
-      return;
-    }
-
-    setProduct(
-      p.description
-    );
-
-    /*
-     * Al seleccionar el SKU proponemos
-     * su plantilla como plantilla inicial.
-     *
-     * El usuario puede cambiarla manualmente
-     * después.
-     */
-    setTemplateId(
-      Number(p.templateId ?? 0)
-    );
-
-  }
-
-  function changeTemplate(value: string) {
-
-    setTemplateId(
-      Number(value)
-    );
-
-  }
+  /*
+   * ==================================================
+   * GUARDAR
+   * ==================================================
+   */
 
   function save() {
 
-    if (!order.trim()) {
-      alert("Introduce la Orden SAP.");
+    const cleanSapCode =
+      sapCode.trim();
+
+    const cleanDescription =
+      description.trim();
+
+
+    if (!cleanSapCode) {
+
+      alert(
+        "Debes indicar el Código SAP."
+      );
+
       return;
     }
 
-    if (!sku) {
-      alert("Selecciona un SKU.");
+
+    if (!cleanDescription) {
+
+      alert(
+        "Debes indicar la descripción."
+      );
+
       return;
     }
+
+
+    if (!diameter) {
+
+      alert(
+        "Debes seleccionar el diámetro."
+      );
+
+      return;
+    }
+
+
+    if (!thickness) {
+
+      alert(
+        "Debes seleccionar el espesor."
+      );
+
+      return;
+    }
+
+
+    if (!flow) {
+
+      alert(
+        "Debes seleccionar el caudal."
+      );
+
+      return;
+    }
+
+
+    if (!spacing.trim()) {
+
+      alert(
+        "Debes indicar el espaciado."
+      );
+
+      return;
+    }
+
 
     if (!templateId) {
-      alert("Selecciona una plantilla.");
+
+      alert(
+        "Debes seleccionar una plantilla."
+      );
+
       return;
     }
 
-    if (!rolls || Number(rolls) <= 0) {
-      alert("Introduce el número de rollos.");
-      return;
-    }
 
     onSave({
 
@@ -150,227 +289,400 @@ export default function ProductionDialog({
         editing?.id ??
         Date.now(),
 
-      order,
+      sapCode:
+        cleanSapCode,
 
-      sku,
+      description:
+        cleanDescription,
 
-      product,
+      diameter,
 
-      templateId,
+      thickness,
 
-      rolls:
-        Number(rolls),
+      flow,
 
-      printed:
-        editing?.printed ??
-        0,
+      spacing:
+        spacing.trim(),
 
-      firstCoil:
-        Number(firstCoil),
+      dripper:
+        dripper.trim(),
 
-      printer,
-
-      status:
-        editing?.status ??
-        "ABIERTA"
+      templateId
 
     });
 
   }
 
+
+  /*
+   * ==================================================
+   * RENDER
+   * ==================================================
+   */
+
   return (
 
     <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
+      open={
+        open
+      }
+
+      onClose={
+        onClose
+      }
+
       fullWidth
+
+      maxWidth="md"
     >
 
       <DialogTitle>
-        {editing ? "Editar" : "Nueva"} Orden
+
+        {
+          editing
+            ? "Editar Producto"
+            : "Nuevo Producto"
+        }
+
       </DialogTitle>
+
 
       <DialogContent>
 
         <Grid
           container
           spacing={2}
-          mt={1}
+          sx={{
+            mt: 0.5
+          }}
         >
 
-          {/* ORDEN SAP */}
 
-          <Grid size={{ xs: 12, md: 6 }}>
+          {/* CÓDIGO SAP */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
 
             <TextField
-              fullWidth
-              label="Orden SAP"
-              value={order}
-              onChange={(e) =>
-                setOrder(e.target.value)
+              label="Código SAP"
+              value={
+                sapCode
               }
+              onChange={
+                event =>
+                  setSapCode(
+                    event.target.value
+                  )
+              }
+              fullWidth
             />
 
           </Grid>
 
-          {/* SKU */}
 
-          <Grid size={{ xs: 12, md: 6 }}>
+          {/* DESCRIPCIÓN */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
+            <TextField
+              label="Descripción"
+              value={
+                description
+              }
+              onChange={
+                event =>
+                  setDescription(
+                    event.target.value
+                  )
+              }
+              helperText="Descripción que aparecerá en la parte inferior de la etiqueta."
+              fullWidth
+            />
+
+          </Grid>
+
+
+          {/* DIÁMETRO */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
 
             <TextField
               select
-              fullWidth
-              label="SKU"
-              value={sku}
-              onChange={(e) =>
-                changeSKU(e.target.value)
+              label="Diámetro"
+              value={
+                diameter
               }
+              onChange={
+                event =>
+                  setDiameter(
+                    event.target.value
+                  )
+              }
+              fullWidth
             >
 
-              {products.map(p => (
+              {DIAMETERS.map(
+                value => (
 
-                <MenuItem
-                  key={p.id}
-                  value={p.sapCode}
-                >
+                  <MenuItem
+                    key={
+                      value
+                    }
+                    value={
+                      value
+                    }
+                  >
+                    {value}
+                  </MenuItem>
 
-                  {p.sapCode} - {p.description}
-
-                </MenuItem>
-
-              ))}
+                )
+              )}
 
             </TextField>
 
           </Grid>
 
-          {/* PRODUCTO */}
 
-          <Grid size={{ xs: 12, md: 6 }}>
+          {/* ESPESOR */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
 
             <TextField
+              select
+              label="Espesor"
+              value={
+                thickness
+              }
+              onChange={
+                event =>
+                  setThickness(
+                    event.target.value
+                  )
+              }
               fullWidth
-              label="Producto"
-              value={product}
-              InputProps={{
-                readOnly: true
-              }}
+            >
+
+              {THICKNESSES.map(
+                value => (
+
+                  <MenuItem
+                    key={
+                      value
+                    }
+                    value={
+                      value
+                    }
+                  >
+                    {value}
+                  </MenuItem>
+
+                )
+              )}
+
+            </TextField>
+
+          </Grid>
+
+
+          {/* CAUDAL */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
+            <TextField
+              select
+              label="Caudal"
+              value={
+                flow
+              }
+              onChange={
+                event =>
+                  setFlow(
+                    event.target.value
+                  )
+              }
+              fullWidth
+            >
+
+              {FLOWS.map(
+                value => (
+
+                  <MenuItem
+                    key={
+                      value
+                    }
+                    value={
+                      value
+                    }
+                  >
+                    {value}
+                  </MenuItem>
+
+                )
+              )}
+
+            </TextField>
+
+          </Grid>
+
+
+          {/* ESPACIADO */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
+            <TextField
+              label="Espaciado"
+              value={
+                spacing
+              }
+              onChange={
+                event =>
+                  setSpacing(
+                    event.target.value
+                  )
+              }
+              placeholder="Ejemplo: 75"
+              helperText="Indicar el espaciado en centímetros."
+              fullWidth
             />
 
           </Grid>
+
+
+          {/* TIPO DE GOTERO */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
+            <TextField
+              label="Tipo de gotero"
+              value={
+                dripper
+              }
+              onChange={
+                event =>
+                  setDripper(
+                    event.target.value
+                  )
+              }
+              fullWidth
+            />
+
+          </Grid>
+
 
           {/* PLANTILLA */}
 
-          <Grid size={{ xs: 12, md: 6 }}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
 
             <TextField
               select
-              fullWidth
               label="Plantilla"
-              value={templateId}
-              onChange={(e) =>
-                changeTemplate(e.target.value)
+              value={
+                templateId
               }
+              onChange={
+                event =>
+                  setTemplateId(
+                    Number(
+                      event.target.value
+                    )
+                  )
+              }
+              fullWidth
             >
 
-              {templates.map(template => (
+              <MenuItem
+                value={
+                  0
+                }
+              >
+                Seleccionar plantilla
+              </MenuItem>
 
-                <MenuItem
-                  key={template.id}
-                  value={template.id}
-                >
 
-                  {template.name}
+              {templates.map(
+                template => (
 
-                </MenuItem>
+                  <MenuItem
+                    key={
+                      template.id
+                    }
+                    value={
+                      template.id
+                    }
+                  >
+                    {template.name}
+                  </MenuItem>
 
-              ))}
+                )
+              )}
 
             </TextField>
 
           </Grid>
 
-          {/* ROLLOS */}
-
-          <Grid size={{ xs: 12, md: 4 }}>
-
-            <TextField
-              fullWidth
-              type="number"
-              label="Total Rollos"
-              value={rolls}
-              onChange={(e) =>
-                setRolls(e.target.value)
-              }
-              inputProps={{
-                min: 1
-              }}
-            />
-
-          </Grid>
-
-          {/* BOBINA INICIAL */}
-
-          <Grid size={{ xs: 12, md: 4 }}>
-
-            <TextField
-              fullWidth
-              type="number"
-              label="Bobina Inicial"
-              value={firstCoil}
-              onChange={(e) =>
-                setFirstCoil(e.target.value)
-              }
-              inputProps={{
-                min: 1
-              }}
-            />
-
-          </Grid>
-
-          {/* IMPRESORA */}
-
-          <Grid size={{ xs: 12, md: 4 }}>
-
-            <TextField
-              select
-              fullWidth
-              label="Impresora"
-              value={printer}
-              onChange={(e) =>
-                setPrinter(e.target.value)
-              }
-            >
-
-              <MenuItem value="BA420">
-                Toshiba BA420
-              </MenuItem>
-
-              <MenuItem value="BA400">
-                Toshiba BA400
-              </MenuItem>
-
-            </TextField>
-
-          </Grid>
 
         </Grid>
 
       </DialogContent>
 
+
       <DialogActions>
 
-        <Button onClick={onClose}>
-          Cancelar
+        <Button
+          onClick={
+            onClose
+          }
+        >
+          CANCELAR
         </Button>
+
 
         <Button
           variant="contained"
-          color="success"
-          onClick={save}
+          onClick={
+            save
+          }
         >
-          Guardar
+          GUARDAR
         </Button>
 
       </DialogActions>
@@ -378,5 +690,4 @@ export default function ProductionDialog({
     </Dialog>
 
   );
-
 }

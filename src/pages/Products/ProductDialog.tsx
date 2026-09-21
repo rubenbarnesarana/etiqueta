@@ -8,7 +8,8 @@ import {
   Button,
   Grid,
   TextField,
-  MenuItem
+  MenuItem,
+  Typography
 } from "@mui/material";
 
 import type { Product } from "../../models/Product";
@@ -17,12 +18,14 @@ import {
   getTemplates
 } from "../../services/TemplateStorage";
 
+
 interface Props {
   open: boolean;
   onClose: () => void;
   onSave: (product: Product) => void;
   editing?: Product;
 }
+
 
 export default function ProductDialog({
   open,
@@ -31,54 +34,175 @@ export default function ProductDialog({
   editing
 }: Props) {
 
-  const templates = getTemplates();
+  const templates =
+    getTemplates();
 
-  const [sapCode, setSapCode] = useState("");
-  const [description, setDescription] = useState("");
-  const [diameter, setDiameter] = useState("");
-  const [thickness, setThickness] = useState("");
-  const [flow, setFlow] = useState("");
-  const [spacing, setSpacing] = useState("");
-  const [dripper, setDripper] = useState("");
-  const [templateId, setTemplateId] = useState<number>(0);
+
+  const [sapCode, setSapCode] =
+    useState("");
+
+  const [description, setDescription] =
+    useState("");
+
+  /*
+   * Texto que aparecerá en la mitad
+   * superior de la etiqueta a 180°.
+   */
+  const [upperText, setUpperText] =
+    useState("");
+
+  const [diameter, setDiameter] =
+    useState("");
+
+  const [thickness, setThickness] =
+    useState("");
+
+  const [flow, setFlow] =
+    useState("");
+
+  const [spacing, setSpacing] =
+    useState("");
+
+  const [dripper, setDripper] =
+    useState("");
+
+  const [templateId, setTemplateId] =
+    useState<number>(0);
+
+
+  /*
+   * ==================================================
+   * CARGAR PRODUCTO
+   * ==================================================
+   */
 
   useEffect(() => {
 
     if (editing) {
 
-      setSapCode(editing.sapCode);
-      setDescription(editing.description);
-      setDiameter(editing.diameter);
-      setThickness(editing.thickness);
-      setFlow(editing.flow);
-      setSpacing(editing.spacing);
-      setDripper(editing.dripper);
-      setTemplateId(editing.templateId);
+      setSapCode(
+        editing.sapCode ?? ""
+      );
+
+      setDescription(
+        editing.description ?? ""
+      );
+
+      setUpperText(
+        editing.upperText ?? ""
+      );
+
+      setDiameter(
+        editing.diameter ?? ""
+      );
+
+      setThickness(
+        editing.thickness ?? ""
+      );
+
+      setFlow(
+        editing.flow ?? ""
+      );
+
+      setSpacing(
+        editing.spacing ?? ""
+      );
+
+      setDripper(
+        editing.dripper ?? ""
+      );
+
+      setTemplateId(
+        Number(
+          editing.templateId ?? 0
+        )
+      );
 
     } else {
 
       setSapCode("");
+
       setDescription("");
+
+      setUpperText("");
+
       setDiameter("");
+
       setThickness("");
+
       setFlow("");
+
       setSpacing("");
+
       setDripper("");
+
       setTemplateId(0);
 
     }
 
-  }, [editing, open]);
+  }, [
+    editing,
+    open
+  ]);
+
+
+  /*
+   * ==================================================
+   * GUARDAR PRODUCTO
+   * ==================================================
+   */
 
   function save() {
 
+    const cleanSapCode =
+      sapCode.trim();
+
+    const cleanDescription =
+      description.trim();
+
+
+    if (!cleanSapCode) {
+
+      alert(
+        "Introduce el Código SAP."
+      );
+
+      return;
+    }
+
+
+    if (!cleanDescription) {
+
+      alert(
+        "Introduce la descripción del producto."
+      );
+
+      return;
+    }
+
+
     onSave({
 
-      id: editing?.id ?? Date.now(),
+      id:
+        editing?.id ??
+        Date.now(),
 
-      sapCode,
+      sapCode:
+        cleanSapCode,
 
-      description,
+      /*
+       * DESCRIPCIÓN INFERIOR
+       */
+
+      description:
+        cleanDescription,
+
+      /*
+       * TEXTO SUPERIOR 180°
+       */
+
+      upperText:
+        upperText.trim(),
 
       diameter,
 
@@ -96,6 +220,13 @@ export default function ProductDialog({
 
   }
 
+
+  /*
+   * ==================================================
+   * RENDER
+   * ==================================================
+   */
+
   return (
 
     <Dialog
@@ -107,134 +238,393 @@ export default function ProductDialog({
 
       <DialogTitle>
 
-        {editing ? "Editar Producto" : "Nuevo Producto"}
+        {
+          editing
+            ? "Editar Producto"
+            : "Nuevo Producto"
+        }
 
       </DialogTitle>
 
+
       <DialogContent>
 
-        <Grid container spacing={2} sx={{ mt: 1 }}>
+        <Grid
+          container
+          spacing={2}
+          sx={{
+            mt: 1
+          }}
+        >
 
-          <Grid size={{ xs: 12, md: 6 }}>
+          {/* ============================================
+              CÓDIGO SAP
+             ============================================ */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
             <TextField
               fullWidth
               label="Código SAP"
               value={sapCode}
-              onChange={(e) => setSapCode(e.target.value)}
+              onChange={(event) =>
+                setSapCode(
+                  event.target.value
+                )
+              }
             />
+
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
+
+          {/* ============================================
+              DESCRIPCIÓN INFERIOR
+             ============================================ */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
             <TextField
               fullWidth
               label="Descripción"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(event) =>
+                setDescription(
+                  event.target.value
+                )
+              }
+              helperText="Descripción que aparecerá en la parte inferior de la etiqueta."
             />
+
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
+
+          {/* ============================================
+              TEXTO SUPERIOR 180°
+             ============================================ */}
+
+          <Grid
+            size={{
+              xs: 12
+            }}
+          >
+
+            <Typography
+              variant="subtitle2"
+              fontWeight="bold"
+              sx={{
+                mb: 1
+              }}
+            >
+              Texto superior de la etiqueta
+            </Typography>
+
+
+            <TextField
+              fullWidth
+              multiline
+              minRows={5}
+              maxRows={8}
+              label="Texto superior (180°)"
+              value={upperText}
+              onChange={(event) =>
+                setUpperText(
+                  event.target.value
+                )
+              }
+              placeholder={
+`AMNON PC AS 20/3.8
+50 CM R-300M 1,2MM
+Emitting Pipe
+Max Pressure 3,5 BAR
+ISO 9261`
+              }
+              helperText="Este texto aparecerá en la mitad superior de la etiqueta con orientación 180°. Respeta los saltos de línea."
+            />
+
+          </Grid>
+
+
+          {/* ============================================
+              DIÁMETRO
+             ============================================ */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
             <TextField
               fullWidth
               select
               label="Diámetro"
               value={diameter}
-              onChange={(e) => setDiameter(e.target.value)}
+              onChange={(event) =>
+                setDiameter(
+                  event.target.value
+                )
+              }
             >
-              <MenuItem value="16">16 mm</MenuItem>
-              <MenuItem value="17">17 mm</MenuItem>
-              <MenuItem value="20">20 mm</MenuItem>
-              <MenuItem value="22">22 mm</MenuItem>
-              <MenuItem value="25">25 mm</MenuItem>
+
+              <MenuItem value="16">
+                16 mm
+              </MenuItem>
+
+              <MenuItem value="17">
+                17 mm
+              </MenuItem>
+
+              <MenuItem value="20">
+                20 mm
+              </MenuItem>
+
+              <MenuItem value="22">
+                22 mm
+              </MenuItem>
+
+              <MenuItem value="25">
+                25 mm
+              </MenuItem>
+
             </TextField>
+
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
+
+          {/* ============================================
+              ESPESOR
+             ============================================ */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
             <TextField
               fullWidth
               select
               label="Espesor"
               value={thickness}
-              onChange={(e) => setThickness(e.target.value)}
+              onChange={(event) =>
+                setThickness(
+                  event.target.value
+                )
+              }
             >
-              {["6","8","10","12","13","15","18","25","35","40","43","45","47"].map(mil => (
-                <MenuItem key={mil} value={mil}>
-                  {mil} mil
-                </MenuItem>
-              ))}
+
+              {[
+                "6",
+                "8",
+                "10",
+                "12",
+                "13",
+                "15",
+                "18",
+                "25",
+                "35",
+                "40",
+                "43",
+                "45",
+                "47"
+              ].map(
+                mil => (
+
+                  <MenuItem
+                    key={mil}
+                    value={mil}
+                  >
+                    {mil} mil
+                  </MenuItem>
+
+                )
+              )}
+
             </TextField>
+
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
+
+          {/* ============================================
+              CAUDAL
+             ============================================ */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
             <TextField
               fullWidth
               select
               label="Caudal"
               value={flow}
-              onChange={(e) => setFlow(e.target.value)}
+              onChange={(event) =>
+                setFlow(
+                  event.target.value
+                )
+              }
             >
-              {["0.6","0.8","0.95","1.0","1.1","1.4","1.6","2.0","2.2","3.5","3.8","4.0"].map(f => (
-                <MenuItem key={f} value={f}>
-                  {f} l/h
-                </MenuItem>
-              ))}
+
+              {[
+                "0.6",
+                "0.8",
+                "0.95",
+                "1.0",
+                "1.1",
+                "1.4",
+                "1.6",
+                "2.0",
+                "2.2",
+                "3.5",
+                "3.8",
+                "4.0"
+              ].map(
+                flowValue => (
+
+                  <MenuItem
+                    key={flowValue}
+                    value={flowValue}
+                  >
+                    {flowValue} l/h
+                  </MenuItem>
+
+                )
+              )}
+
             </TextField>
+
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
+
+          {/* ============================================
+              ESPACIADO
+             ============================================ */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
             <TextField
               fullWidth
               label="Espaciado"
               value={spacing}
-              onChange={(e) => setSpacing(e.target.value)}
+              onChange={(event) =>
+                setSpacing(
+                  event.target.value
+                )
+              }
             />
+
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
+
+          {/* ============================================
+              TIPO DE GOTERO
+             ============================================ */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
             <TextField
               fullWidth
               label="Tipo de gotero"
               value={dripper}
-              onChange={(e) => setDripper(e.target.value)}
+              onChange={(event) =>
+                setDripper(
+                  event.target.value
+                )
+              }
             />
+
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
+
+          {/* ============================================
+              PLANTILLA
+             ============================================ */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
             <TextField
               fullWidth
               select
               label="Plantilla"
               value={templateId}
-              onChange={(e) => setTemplateId(Number(e.target.value))}
+              onChange={(event) =>
+                setTemplateId(
+                  Number(
+                    event.target.value
+                  )
+                )
+              }
             >
 
               <MenuItem value={0}>
                 Sin plantilla
               </MenuItem>
 
-              {templates.map(t => (
 
-                <MenuItem
-                  key={t.id}
-                  value={t.id}
-                >
-                  {t.name}
-                </MenuItem>
+              {templates.map(
+                template => (
 
-              ))}
+                  <MenuItem
+                    key={
+                      template.id
+                    }
+                    value={
+                      template.id
+                    }
+                  >
+                    {template.name}
+                  </MenuItem>
+
+                )
+              )}
 
             </TextField>
+
           </Grid>
 
         </Grid>
 
       </DialogContent>
 
+
       <DialogActions>
 
-        <Button onClick={onClose}>
+        <Button
+          onClick={onClose}
+        >
           Cancelar
         </Button>
+
 
         <Button
           variant="contained"
@@ -249,5 +639,4 @@ export default function ProductDialog({
     </Dialog>
 
   );
-
 }

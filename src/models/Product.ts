@@ -1,5 +1,4 @@
 export interface Product {
-
   id: number;
 
   sapCode: string;
@@ -17,5 +16,4 @@ export interface Product {
   dripper: string;
 
   templateId: number;
-
 }
