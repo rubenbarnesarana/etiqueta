@@ -10,10 +10,8 @@ import type {
 /*
  * ==================================================
  * CONVERSIÓN ESPESOR MIL -> MM
+ * FORMATO 1
  * ==================================================
- *
- * Solo mostramos equivalencia en mm
- * a partir de 35 mil.
  */
 
 const THICKNESS_MM:
@@ -30,6 +28,42 @@ const THICKNESS_MM:
 
 /*
  * ==================================================
+ * PRESIONES NOMINALES - FORMATO 2 / BOBINAS
+ * ==================================================
+ *
+ * La presión depende de:
+ *
+ * DIÁMETRO + ESPESOR
+ */
+
+const COIL_MAX_PRESSURE:
+  Record<string, string> = {
+
+  "16/6": "1",
+  "16/8": "1.2",
+  "16/10": "1.4",
+  "16/12": "1.5",
+  "16/13": "1.5",
+  "16/15": "1.8",
+  "16/35": "3",
+  "16/39": "3",
+
+  "17/18": "2.5",
+  "17/25": "3",
+  "17/35": "3",
+
+  "22/8": "1",
+  "22/10": "1.3",
+  "22/12": "1.4",
+  "22/13": "1.5",
+  "22/18": "2",
+  "22/25": "2.2"
+
+};
+
+
+/*
+ * ==================================================
  * OBTENER NÚMERO
  * ==================================================
  */
@@ -40,8 +74,7 @@ function getNumber(
 
   const match =
     String(
-      value ??
-      ""
+      value ?? ""
     )
       .replace(
         ",",
@@ -52,9 +85,7 @@ function getNumber(
       );
 
 
-  if (
-    !match
-  ) {
+  if (!match) {
     return null;
   }
 
@@ -70,6 +101,7 @@ function getNumber(
   )
     ? null
     : number;
+
 }
 
 
@@ -89,12 +121,12 @@ function cleanDiameter(
     );
 
 
-  return number ===
-    null
-      ? value.trim()
-      : String(
-          number
-        );
+  return number === null
+    ? value.trim()
+    : String(
+        number
+      );
+
 }
 
 
@@ -114,10 +146,7 @@ function cleanFlow(
     );
 
 
-  if (
-    number ===
-    null
-  ) {
+  if (number === null) {
     return value.trim();
   }
 
@@ -125,6 +154,7 @@ function cleanFlow(
   return String(
     number
   );
+
 }
 
 
@@ -141,6 +171,7 @@ function cleanThickness(
   return getNumber(
     value
   );
+
 }
 
 
@@ -148,14 +179,6 @@ function cleanThickness(
  * ==================================================
  * ESPACIADO
  * ==================================================
- *
- * 75   -> 75CM
- * 50   -> 50CM
- *
- * También admite datos antiguos:
- *
- * 0.75 -> 75CM
- * 0.50 -> 50CM
  */
 
 function formatSpacing(
@@ -168,10 +191,7 @@ function formatSpacing(
     );
 
 
-  if (
-    number ===
-    null
-  ) {
+  if (number === null) {
 
     return value
       .trim()
@@ -181,36 +201,68 @@ function formatSpacing(
 
 
   const centimeters =
-    number <=
-    2
-      ? number *
-        100
+    number <= 2
+      ? number * 100
       : number;
 
 
   const rounded =
     Math.round(
-      centimeters *
-      100
-    ) /
-    100;
+      centimeters * 100
+    ) / 100;
 
 
   return `${rounded}CM`;
+
 }
 
 
 /*
  * ==================================================
- * LONGITUD DEL ROLLO
+ * ESPACIADO SOLO NÚMERO
+ * FORMATO 2
  * ==================================================
- *
- * Admite:
- *
- * R-300M
- * R-500M
- * R - 500 M
- * R500M
+ */
+
+function getSpacingNumber(
+  value: string
+): string {
+
+  const number =
+    getNumber(
+      value
+    );
+
+
+  if (number === null) {
+    return "";
+  }
+
+
+  const centimeters =
+    number <= 2
+      ? number * 100
+      : number;
+
+
+  const rounded =
+    Math.round(
+      centimeters * 100
+    ) / 100;
+
+
+  return String(
+    rounded
+  );
+
+}
+
+
+/*
+ * ==================================================
+ * LONGITUD ROLLO
+ * FORMATO 1
+ * ==================================================
  */
 
 function getRollLength(
@@ -219,8 +271,7 @@ function getRollLength(
 
   const normalized =
     String(
-      description ??
-      ""
+      description ?? ""
     )
       .toUpperCase();
 
@@ -231,9 +282,7 @@ function getRollLength(
     );
 
 
-  if (
-    !match
-  ) {
+  if (!match) {
     return "";
   }
 
@@ -242,6 +291,98 @@ function getRollLength(
     ",",
     "."
   )}M`;
+
+}
+
+
+/*
+ * ==================================================
+ * LONGITUD BOBINA
+ * FORMATO 2
+ * ==================================================
+ *
+ * Admite por ejemplo:
+ *
+ * 2300m
+ * 2300 M
+ * B-2300M
+ * B2300M
+ *
+ * Evitamos confundir el diámetro/espesor
+ * con la longitud.
+ */
+
+function getCoilLength(
+  description: string
+): string {
+
+  const normalized =
+    String(
+      description ?? ""
+    )
+      .trim()
+      .toUpperCase();
+
+
+  /*
+   * Primero buscamos B-XXXXM.
+   */
+
+  const explicit =
+    normalized.match(
+      /\bB\s*-?\s*(\d+(?:[.,]\d+)?)\s*M\b/
+    );
+
+
+  if (explicit) {
+
+    return explicit[1]
+      .replace(
+        ",",
+        "."
+      );
+
+  }
+
+
+  /*
+   * Si no existe B-, buscamos una longitud
+   * terminada en M.
+   *
+   * Ejemplo:
+   *
+   * EXCEL 16/8/1.2/0.15 2300m
+   */
+
+  const matches =
+    [
+      ...normalized.matchAll(
+        /(\d+(?:[.,]\d+)?)\s*M\b/g
+      )
+    ];
+
+
+  if (
+    matches.length === 0
+  ) {
+
+    return "";
+
+  }
+
+
+  const last =
+    matches[
+      matches.length - 1
+    ];
+
+
+  return last[1]
+    .replace(
+      ",",
+      "."
+    );
+
 }
 
 
@@ -257,8 +398,7 @@ function getTemplateFamily(
 
   const name =
     String(
-      templateName ??
-      ""
+      templateName ?? ""
     )
       .trim()
       .toUpperCase();
@@ -269,7 +409,9 @@ function getTemplateFamily(
       "NAAN PC MAX"
     )
   ) {
+
     return "NAAN PC MAX";
+
   }
 
 
@@ -278,7 +420,9 @@ function getTemplateFamily(
       "NAAN PC"
     )
   ) {
+
     return "NAAN PC";
+
   }
 
 
@@ -287,7 +431,9 @@ function getTemplateFamily(
       "AMNON"
     )
   ) {
+
     return "AMNON";
+
   }
 
 
@@ -299,7 +445,9 @@ function getTemplateFamily(
       "TOPDRIP"
     )
   ) {
+
     return "TOPDRIP";
+
   }
 
 
@@ -308,7 +456,9 @@ function getTemplateFamily(
       "TIFDRIP"
     )
   ) {
+
     return "TIFDRIP";
+
   }
 
 
@@ -320,7 +470,45 @@ function getTemplateFamily(
       "TURBOEXCEL"
     )
   ) {
+
     return "TURBO EXCEL";
+
+  }
+
+
+  if (
+    name.includes(
+      "CHAPIN"
+    )
+  ) {
+
+    return "CHAPIN";
+
+  }
+
+
+  if (
+    name.includes(
+      "TAL DRIP"
+    ) ||
+    name.includes(
+      "TALDRIP"
+    )
+  ) {
+
+    return "TAL DRIP GEN2";
+
+  }
+
+
+  if (
+    name.includes(
+      "D900"
+    )
+  ) {
+
+    return "D900";
+
   }
 
 
@@ -329,7 +517,9 @@ function getTemplateFamily(
       "MICROTUBE"
     )
   ) {
+
     return "MICROTUBE";
+
   }
 
 
@@ -338,11 +528,14 @@ function getTemplateFamily(
       "BLIND PIPE"
     )
   ) {
+
     return "BLIND PIPE";
+
   }
 
 
   return name;
+
 }
 
 
@@ -358,8 +551,7 @@ function getRegulationType(
 
   const normalized =
     String(
-      description ??
-      ""
+      description ?? ""
     )
       .trim()
       .toUpperCase();
@@ -370,7 +562,9 @@ function getRegulationType(
       normalized
     )
   ) {
+
     return "AS";
+
   }
 
 
@@ -379,17 +573,21 @@ function getRegulationType(
       normalized
     )
   ) {
+
     return "ND";
+
   }
 
 
   return null;
+
 }
 
 
 /*
  * ==================================================
  * PREFIJO TEXTO SUPERIOR
+ * FORMATO 1
  * ==================================================
  */
 
@@ -410,10 +608,6 @@ function getProductPrefix(
     );
 
 
-  /*
-   * AMNON
-   */
-
   if (
     family ===
     "AMNON"
@@ -423,7 +617,9 @@ function getProductPrefix(
       regulation ===
       "AS"
     ) {
+
       return "AMNON PC AS";
+
     }
 
 
@@ -431,17 +627,16 @@ function getProductPrefix(
       regulation ===
       "ND"
     ) {
+
       return "AMNON PC ND";
+
     }
 
 
     return "AMNON";
+
   }
 
-
-  /*
-   * TOPDRIP
-   */
 
   if (
     family ===
@@ -452,48 +647,27 @@ function getProductPrefix(
       regulation ===
       "AS"
     ) {
+
       return "TOPDRIP PC AS";
+
     }
 
 
     return "TOPDRIP";
+
   }
 
 
-  /*
-   * RESTO
-   */
-
   return family;
+
 }
 
 
 /*
  * ==================================================
  * DESCRIPCIÓN INFERIOR
+ * FORMATO 1
  * ==================================================
- *
- * Esta es la descripción que aparecerá
- * debajo del código de barras.
- *
- * NO modificamos la descripción guardada
- * en Productos.
- *
- *
- * AMNON:
- *
- * AMNON PC AS 16/40/2.2/0.75 R-500M
- *
- * pasa a:
- *
- * AS 16/40/2.2/0.75 R-500M
- *
- *
- * AMNON PC ND ...
- *
- * pasa a:
- *
- * ND ...
  */
 
 export function generateBottomDescription(
@@ -503,8 +677,7 @@ export function generateBottomDescription(
 
   let description =
     String(
-      product.description ??
-      ""
+      product.description ?? ""
     )
       .trim()
       .replace(
@@ -519,21 +692,10 @@ export function generateBottomDescription(
     );
 
 
-  /*
-   * ==================================================
-   * AMNON
-   * ==================================================
-   */
-
   if (
     family ===
     "AMNON"
   ) {
-
-    /*
-     * AMNON PC AS ...
-     * -> AS ...
-     */
 
     description =
       description.replace(
@@ -542,13 +704,6 @@ export function generateBottomDescription(
       );
 
 
-    /*
-     * Por compatibilidad:
-     *
-     * AMNON AS ...
-     * -> AS ...
-     */
-
     description =
       description.replace(
         /^AMNON\s+(AS|ND)\s+/i,
@@ -556,29 +711,10 @@ export function generateBottomDescription(
       );
 
 
-    /*
-     * Si ya era:
-     *
-     * AS ...
-     * ND ...
-     *
-     * no hacemos nada.
-     */
-
     return description;
+
   }
 
-
-  /*
-   * ==================================================
-   * TOPDRIP
-   * ==================================================
-   *
-   * TOPDRIP PC AS ...
-   * TOP DRIP PC AS ...
-   *
-   * -> AS ...
-   */
 
   if (
     family ===
@@ -600,26 +736,20 @@ export function generateBottomDescription(
 
 
     return description;
+
   }
 
 
-  /*
-   * Para las demás familias todavía
-   * conservamos la descripción completa
-   * hasta definir sus reglas.
-   */
-
   return description;
+
 }
 
 
 /*
  * ==================================================
  * PRESIÓN MÁXIMA
+ * FORMATO 1
  * ==================================================
- *
- * 35 mil       -> 3 BAR
- * 40 mil o más -> 3.5 BAR
  */
 
 function getMaxPressure(
@@ -629,10 +759,8 @@ function getMaxPressure(
 ): string {
 
   if (
-    thickness !==
-      null &&
-    thickness >=
-      40
+    thickness !== null &&
+    thickness >= 40
   ) {
 
     return "3.5 BAR";
@@ -641,25 +769,23 @@ function getMaxPressure(
 
 
   return "3 BAR";
+
 }
 
 
 /*
  * ==================================================
- * SEGUNDA LÍNEA TEXTO SUPERIOR
+ * SEGUNDA LÍNEA
+ * FORMATO 1
  * ==================================================
  */
 
 function buildSecondLine(
-  spacing:
-    string,
-
+  spacing: string,
   thickness:
     number |
     null,
-
-  rollLength:
-    string
+  rollLength: string
 ): string {
 
   const parts:
@@ -677,17 +803,9 @@ function buildSecondLine(
   }
 
 
-  /*
-   * EQUIVALENCIA MM
-   *
-   * Solo desde 35 mil.
-   */
-
   if (
-    thickness !==
-      null &&
-    thickness >=
-      35
+    thickness !== null &&
+    thickness >= 35
   ) {
 
     const mm =
@@ -723,21 +841,20 @@ function buildSecondLine(
   return parts.join(
     " "
   );
+
 }
 
 
 /*
  * ==================================================
  * GENERAR TEXTO SUPERIOR
+ * FORMATO 1
  * ==================================================
  */
 
 export function generateUpperText(
-  product:
-    Product,
-
-  template:
-    Template
+  product: Product,
+  template: Template
 ): string {
 
   const prefix =
@@ -777,22 +894,10 @@ export function generateUpperText(
     );
 
 
-  /*
-   * PRIMERA LÍNEA
-   *
-   * AMNON PC AS 16/2.2
-   */
-
   const firstLine =
     `${prefix} ${diameter}/${flow}`
       .trim();
 
-
-  /*
-   * SEGUNDA LÍNEA
-   *
-   * 75CM E-1MM R-500M
-   */
 
   const secondLine =
     buildSecondLine(
@@ -823,11 +928,507 @@ export function generateUpperText(
   ]
     .filter(
       line =>
-        line
-          .trim() !==
-        ""
+        line.trim() !== ""
     )
     .join(
       "\n"
     );
+
+}
+
+
+/*
+ * ==================================================
+ * DESCRIPCIÓN PRINCIPAL
+ * FORMATO 2 / BOBINAS
+ * ==================================================
+ *
+ * Se muestra la descripción del SKU
+ * exactamente como está guardada en Productos.
+ */
+
+export function generateCoilDescription(
+  product: Product
+): string {
+
+  return String(
+    product.description ?? ""
+  )
+    .trim()
+    .replace(
+      /\s+/g,
+      " "
+    );
+
+}
+
+
+/*
+ * ==================================================
+ * PRESIÓN NOMINAL
+ * FORMATO 2 / BOBINAS
+ * ==================================================
+ */
+
+export function getCoilMaxPressure(
+  product: Product
+): string {
+
+  const diameter =
+    getNumber(
+      product.diameter
+    );
+
+
+  const thickness =
+    getNumber(
+      product.thickness
+    );
+
+
+  if (
+    diameter === null ||
+    thickness === null
+  ) {
+
+    return "";
+
+  }
+
+
+  const key =
+    `${diameter}/${thickness}`;
+
+
+  return (
+    COIL_MAX_PRESSURE[
+      key
+    ] ?? ""
+  );
+
+}
+
+
+/*
+ * ==================================================
+ * PRESIÓN DE TRABAJO DEL CAUDAL
+ * FORMATO 2
+ * ==================================================
+ *
+ * CHAPIN -> 0.7 Bar
+ * RESTO  -> 1 Bar
+ */
+
+function getCoilFlowPressure(
+  template: Template,
+  product: Product
+): string {
+
+  const templateName =
+    String(
+      template.name ?? ""
+    )
+      .toUpperCase();
+
+
+  const description =
+    String(
+      product.description ?? ""
+    )
+      .toUpperCase();
+
+
+  const dripper =
+    String(
+      product.dripper ?? ""
+    )
+      .toUpperCase();
+
+
+  if (
+    templateName.includes(
+      "CHAPIN"
+    ) ||
+    description.includes(
+      "CHAPIN"
+    ) ||
+    dripper.includes(
+      "CHAPIN"
+    )
+  ) {
+
+    return "0.7";
+
+  }
+
+
+  return "1";
+
+}
+
+
+/*
+ * ==================================================
+ * NOMBRE TÉCNICO DEL PRODUCTO
+ * FORMATO 2
+ * ==================================================
+ */
+
+function getCoilProductName(
+  product: Product,
+  template: Template
+): string {
+
+  const family =
+    getTemplateFamily(
+      template.name
+    );
+
+
+  /*
+   * TURBO EXCEL
+   *
+   * En la zona técnica usamos EXCEL.
+   */
+
+  if (
+    family ===
+    "TURBO EXCEL"
+  ) {
+
+    return "EXCEL";
+
+  }
+
+
+  /*
+   * CHAPIN STF
+   */
+
+  if (
+    family ===
+    "CHAPIN"
+  ) {
+
+    return "CHAPIN";
+
+  }
+
+
+  /*
+   * TOP DRIP
+   */
+
+  if (
+    family ===
+    "TOPDRIP"
+  ) {
+
+    return "TOPDRIP";
+
+  }
+
+
+  /*
+   * TAL DRIP
+   */
+
+  if (
+    family ===
+    "TAL DRIP GEN2"
+  ) {
+
+    return "TAL DRIP";
+
+  }
+
+
+  /*
+   * D900
+   */
+
+  if (
+    family ===
+    "D900"
+  ) {
+
+    return "D900";
+
+  }
+
+
+  /*
+   * AMNON
+   */
+
+  if (
+    family ===
+    "AMNON"
+  ) {
+
+    return "AMNON";
+
+  }
+
+
+  /*
+   * Si no conocemos la familia,
+   * utilizamos el tipo de gotero.
+   */
+
+  const dripper =
+    String(
+      product.dripper ?? ""
+    )
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    dripper
+  ) {
+
+    return dripper;
+
+  }
+
+
+  return family;
+
+}
+
+
+/*
+ * ==================================================
+ * BLOQUE TÉCNICO
+ * FORMATO 2 / BOBINAS
+ * ==================================================
+ *
+ * Ejemplo:
+ *
+ * EXCEL 16/8 MIL 15 CM
+ * 1.2 L/H at 1 Bar - B-2300M
+ * EMITTING PIPE ISO 9261
+ * Max Pressure 1.2 Bar
+ */
+
+export function generateCoilTechnicalText(
+  product: Product,
+  template: Template
+): string {
+
+  const productName =
+    getCoilProductName(
+      product,
+      template
+    );
+
+
+  const diameter =
+    cleanDiameter(
+      product.diameter
+    );
+
+
+  const thickness =
+    cleanThickness(
+      product.thickness
+    );
+
+
+  const flow =
+    cleanFlow(
+      product.flow
+    );
+
+
+  const spacing =
+    getSpacingNumber(
+      product.spacing
+    );
+
+
+  const coilLength =
+    getCoilLength(
+      product.description
+    );
+
+
+  const flowPressure =
+    getCoilFlowPressure(
+      template,
+      product
+    );
+
+
+  const maxPressure =
+    getCoilMaxPressure(
+      product
+    );
+
+
+  /*
+   * PRIMERA LÍNEA
+   */
+
+  const firstLineParts:
+    string[] = [];
+
+
+  if (
+    productName
+  ) {
+
+    firstLineParts.push(
+      productName
+    );
+
+  }
+
+
+  if (
+    diameter
+  ) {
+
+    if (
+      thickness !== null
+    ) {
+
+      firstLineParts.push(
+        `${diameter}/${thickness} MIL`
+      );
+
+    } else {
+
+      firstLineParts.push(
+        diameter
+      );
+
+    }
+
+  }
+
+
+  if (
+    spacing
+  ) {
+
+    firstLineParts.push(
+      `${spacing} CM`
+    );
+
+  }
+
+
+  const firstLine =
+    firstLineParts.join(
+      " "
+    );
+
+
+  /*
+   * SEGUNDA LÍNEA
+   */
+
+  const secondLineParts:
+    string[] = [];
+
+
+  if (
+    flow
+  ) {
+
+    secondLineParts.push(
+      `${flow} L/H at ${flowPressure} Bar`
+    );
+
+  }
+
+
+  if (
+    coilLength
+  ) {
+
+    secondLineParts.push(
+      `B-${coilLength}M`
+    );
+
+  }
+
+
+  const secondLine =
+    secondLineParts.join(
+      " - "
+    );
+
+
+  /*
+   * RESULTADO
+   */
+
+  return [
+
+    firstLine,
+
+    secondLine,
+
+    "EMITTING PIPE ISO 9261",
+
+    maxPressure
+      ? `Max Pressure ${maxPressure} Bar`
+      : "Max Pressure"
+
+  ]
+    .filter(
+      line =>
+        line.trim() !== ""
+    )
+    .join(
+      "\n"
+    );
+
+}
+
+
+/*
+ * ==================================================
+ * TEXTO FIJO INFERIOR IZQUIERDO
+ * FORMATO 2
+ * ==================================================
+ *
+ * El año cambia automáticamente.
+ */
+
+export function generateCoilLegalText():
+  string {
+
+  const year =
+    new Date()
+      .getFullYear();
+
+
+  return [
+    "Non reusable and non-compensated emitting pipe.",
+    "Operation at low pressure: regular.",
+    `Year:${year}`
+  ]
+    .join(
+      "\n"
+    );
+
+}
+
+
+/*
+ * ==================================================
+ * ORIGEN / PLANTA
+ * FORMATO 2
+ * ==================================================
+ */
+
+export function generateCoilOriginText():
+  string {
+
+  return "MADE IN SPAIN     QI02";
+
 }

@@ -1,934 +1,283 @@
-import { useRef, useState } from "react";
+import type {
+  ReactNode
+} from "react";
 
 import {
   Box,
   Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Grid,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Autocomplete
+  Typography
 } from "@mui/material";
 
-import LabelPreview from "../../components/print/LabelPreview";
-
-import type {
-  ProductionOrder
-} from "../../services/OrderStorage";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 
 import {
-  findOrder,
-  getOrders
-} from "../../services/OrderStorage";
-
-import {
-  printLabel
-} from "../../services/PrintService";
-
-import type {
-  DesignerElement
-} from "../../components/designer/DesignerTypes";
+  useNavigate
+} from "react-router-dom";
 
 
 export default function Operator() {
 
-  const [orderNumber, setOrderNumber] =
-    useState("");
+  const navigate =
+    useNavigate();
 
-  const [order, setOrder] =
-    useState<ProductionOrder | null>(null);
-
-  const [error, setError] =
-    useState("");
-
-  const [previewOpen, setPreviewOpen] =
-    useState(false);
-
-  const [finishedOpen, setFinishedOpen] =
-    useState(false);
-
-  const [label, setLabel] =
-    useState<DesignerElement[]>([]);
-
-  const [backgroundImage, setBackgroundImage] =
-    useState<string | undefined>();
-
-  const [labelFormat, setLabelFormat] =
-    useState<
-      "FORMATO_1" |
-      "FORMATO_2"
-    >("FORMATO_1");
-
-  const [labelData, setLabelData] =
-    useState<any>();
-
-  const [autocompleteOpen, setAutocompleteOpen] =
-    useState(false);
-
-  const orderInputRef =
-    useRef<HTMLInputElement | null>(null);
-
-
-  //--------------------------------------------------
-  // ULTIMAS ORDENES
-  //--------------------------------------------------
-
-  const orders =
-    getOrders();
-
-  const orderHistory =
-    [...orders]
-      .sort(
-        (a, b) =>
-          b.id - a.id
-      )
-      .map(
-        order =>
-          order.order
-      );
-
-
-  //--------------------------------------------------
-  // ENFOCAR CAMPO ORDEN
-  //--------------------------------------------------
-
-  function focusOrderInput() {
-
-    setTimeout(() => {
-
-      orderInputRef.current?.focus();
-
-      orderInputRef.current?.select();
-
-    }, 100);
-
-  }
-
-
-  //--------------------------------------------------
-  // CARGAR ORDEN
-  //--------------------------------------------------
-
-  function loadOrder() {
-
-    const number =
-      orderNumber.trim();
-
-
-    if (!number) {
-
-      setError(
-        "Introduce una orden de producción"
-      );
-
-      focusOrderInput();
-
-      return;
-
-    }
-
-
-    const productionOrder =
-      findOrder(number);
-
-
-    if (!productionOrder) {
-
-      setError(
-        "Orden no encontrada"
-      );
-
-      setOrder(null);
-
-      focusOrderInput();
-
-      return;
-
-    }
-
-
-    setError("");
-
-    setOrder(
-      productionOrder
-    );
-
-    setAutocompleteOpen(false);
-
-  }
-
-
-  //--------------------------------------------------
-  // IMPRIMIR
-  //--------------------------------------------------
-
-  function printCurrentLabel() {
-
-    if (!order) return;
-
-
-    const result =
-      printLabel(order);
-
-
-    if (!result.success) {
-
-      alert(
-        result.message
-      );
-
-      focusOrderInput();
-
-      return;
-
-    }
-
-
-    //------------------------------------------------
-    // ELEMENTOS DINÁMICOS
-    //------------------------------------------------
-
-    setLabel(
-      result.label ?? []
-    );
-
-
-    //------------------------------------------------
-    // IMAGEN DE PLANTILLA
-    //------------------------------------------------
-
-    setBackgroundImage(
-      result.backgroundImage
-    );
-
-
-    //------------------------------------------------
-    // FORMATO
-    //------------------------------------------------
-
-    setLabelFormat(
-      result.labelFormat ??
-      "FORMATO_1"
-    );
-
-
-    //------------------------------------------------
-    // DATOS
-    //------------------------------------------------
-
-    setLabelData(
-      result.labelData
-    );
-
-
-    //------------------------------------------------
-    // ABRIR PREVIEW
-    //------------------------------------------------
-
-    setPreviewOpen(
-      true
-    );
-
-
-    //------------------------------------------------
-    // ACTUALIZAR ORDEN
-    //------------------------------------------------
-
-    const updated =
-      findOrder(
-        order.order
-      );
-
-
-    if (updated) {
-
-      setOrder(
-        updated
-      );
-
-    }
-
-
-    //------------------------------------------------
-    // CERRAR VISTA PREVIA
-    //------------------------------------------------
-
-    setTimeout(() => {
-
-      setPreviewOpen(
-        false
-      );
-
-      setOrderNumber("");
-
-      setOrder(null);
-
-      focusOrderInput();
-
-
-      //------------------------------------------------
-      // ULTIMA ETIQUETA
-      //------------------------------------------------
-
-      if (
-        result.finished
-      ) {
-
-        setFinishedOpen(
-          true
-        );
-
-      }
-
-    }, 2000);
-
-  }
-
-
-  //--------------------------------------------------
-  // REIMPRIMIR
-  //--------------------------------------------------
-
-  function repeatLabel() {
-
-    if (!order) return;
-
-
-    const coil =
-      prompt(
-        "¿Qué bobina desea reimprimir?"
-      );
-
-
-    if (!coil) return;
-
-
-    alert(
-      "Reimpresión de la bobina " +
-      coil
-    );
-
-
-    focusOrderInput();
-
-  }
-
-
-  //--------------------------------------------------
-  // PENDIENTES
-  //--------------------------------------------------
-
-  const pending =
-    order
-      ? Math.max(
-          0,
-          order.rolls -
-          order.printed
-        )
-      : 0;
-
-
-  //--------------------------------------------------
-  // ORDEN FINALIZADA
-  //--------------------------------------------------
-
-  const finished =
-    order?.status ===
-    "FINALIZADA";
-
-
-  //--------------------------------------------------
-  // PROXIMA BOBINA
-  //--------------------------------------------------
-
-  const nextCoil =
-    order &&
-    pending > 0
-
-      ? order.firstCoil +
-        order.printed
-
-      : null;
-
-
-  //--------------------------------------------------
-  // PANTALLA
-  //--------------------------------------------------
 
   return (
 
-    <Box>
+    <Box
+      sx={{
+        minHeight:
+          "calc(100vh - 128px)",
 
-      {/* TITULO */}
+        display: "flex",
+
+        flexDirection:
+          "column",
+
+        alignItems:
+          "center",
+
+        justifyContent:
+          "center",
+
+        py: 4
+      }}
+    >
+
+      {/* =============================================
+          LOGO RIVULIS
+          ============================================= */}
+
+      <Box
+        component="img"
+        src="/images/rivulis-logo.png"
+        alt="Rivulis"
+        sx={{
+          width: "100%",
+          maxWidth: 360,
+          maxHeight: 150,
+          objectFit: "contain",
+          mb: 2
+        }}
+      />
+
+
+      {/* =============================================
+          TÍTULO
+          ============================================= */}
 
       <Typography
-        variant="h4"
-        fontWeight="bold"
-        mb={3}
+        variant="h3"
+        fontWeight={700}
+        sx={{
+          color: "#0B7A3B",
+          textAlign: "center",
+          mb: 5
+        }}
       >
 
-        👷 Operario
+        PROGRAMA ETIQUETAS
 
       </Typography>
 
 
-      {/* CARGAR ORDEN */}
+      {/* =============================================
+          OPCIONES
+          ============================================= */}
 
-      <Card>
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: 620,
 
-        <CardContent>
+          display: "grid",
 
-          <Grid
-            container
-            spacing={2}
-          >
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, 1fr)"
+          },
 
-            <Grid
-              size={{
-                xs: 12,
-                md: 8
-              }}
-            >
+          gap: 2.5
+        }}
+      >
 
-              <Autocomplete
-                freeSolo
-                open={
-                  autocompleteOpen
-                }
-                onOpen={() =>
-                  setAutocompleteOpen(
-                    true
-                  )
-                }
-                onClose={() =>
-                  setAutocompleteOpen(
-                    false
-                  )
-                }
-                options={
-                  orderHistory
-                }
-                value={
-                  orderNumber
-                }
-                inputValue={
-                  orderNumber
-                }
-                onInputChange={(
-                  _event,
-                  value
-                ) => {
+        {/* PLANIFICACIÓN */}
 
-                  setOrderNumber(
-                    value
-                  );
-
-                  if (error) {
-
-                    setError("");
-
-                  }
-
-                }}
-                renderInput={
-                  (params) => (
-
-                    <TextField
-                      {...params}
-                      inputRef={
-                        orderInputRef
-                      }
-                      fullWidth
-                      label="Orden de Producción"
-                      placeholder="Introduce la orden"
-                      onKeyDown={
-                        (e) => {
-
-                          if (
-                            e.key === " " ||
-                            e.code === "Space"
-                          ) {
-
-                            e.preventDefault();
-
-                            setAutocompleteOpen(
-                              true
-                            );
-
-                            return;
-
-                          }
-
-
-                          if (
-                            e.key === "Enter"
-                          ) {
-
-                            e.preventDefault();
-
-                            loadOrder();
-
-                          }
-
-                        }
-                      }
-                    />
-
-                  )
-                }
-              />
-
-            </Grid>
-
-
-            <Grid
-              size={{
-                xs: 12,
-                md: 4
-              }}
-            >
-
-              <Button
-                variant="contained"
-                fullWidth
-                sx={{
-                  height: "56px"
-                }}
-                onClick={
-                  loadOrder
-                }
-              >
-
-                CARGAR ORDEN
-
-              </Button>
-
-            </Grid>
-
-          </Grid>
-
-
-          {/* ERROR */}
-
-          {error && (
-
-            <Alert
-              severity="error"
+        <OperatorCard
+          title="Planificación"
+          description="Seleccionar una orden de producción planificada"
+          icon={
+            <CalendarMonthIcon
               sx={{
-                mt: 2
+                fontSize: 52
               }}
-            >
-
-              {error}
-
-            </Alert>
-
-          )}
-
-        </CardContent>
-
-      </Card>
-
-
-      {/* INFORMACION DE LA ORDEN */}
-
-      {order && (
-
-        <Box mt={3}>
-
-          <Card>
-
-            <CardContent>
-
-              <Grid
-                container
-                spacing={3}
-              >
-
-                {/* DATOS DE LA ORDEN */}
-
-                <Grid
-                  size={{
-                    xs: 12,
-                    md: 8
-                  }}
-                >
-
-                  <Typography>
-                    <b>SKU:</b>{" "}
-                    {order.sku}
-                  </Typography>
-
-
-                  <Typography>
-                    <b>Producto:</b>{" "}
-                    {order.product}
-                  </Typography>
-
-
-                  <Typography>
-                    <b>Plantilla:</b>{" "}
-                    {order.templateId}
-                  </Typography>
-
-
-                  <Typography>
-                    <b>Impresora:</b>{" "}
-                    {order.printer}
-                  </Typography>
-
-
-                  <Typography>
-                    <b>Estado:</b>{" "}
-                    {order.status}
-                  </Typography>
-
-                </Grid>
-
-
-                {/* CONTADORES */}
-
-                <Grid
-                  size={{
-                    xs: 12,
-                    md: 4
-                  }}
-                >
-
-                  <Card
-                    sx={{
-                      backgroundColor:
-                        "#0B7A3B",
-                      color: "white",
-                      textAlign:
-                        "center",
-                      p: 2,
-                      borderRadius: 2
-                    }}
-                  >
-
-                    <Typography
-                      variant="h5"
-                      fontWeight="bold"
-                    >
-
-                      TOTAL
-
-                    </Typography>
-
-
-                    <Typography
-                      sx={{
-                        fontSize: 82,
-                        fontWeight: 700,
-                        lineHeight: 1
-                      }}
-                    >
-
-                      {order.rolls}
-
-                    </Typography>
-
-
-                    <Typography
-                      sx={{
-                        mt: 1,
-                        fontSize: 22
-                      }}
-                    >
-
-                      Impresos:{" "}
-                      {order.printed}
-
-                    </Typography>
-
-
-                    <Typography
-                      sx={{
-                        mt: 2,
-                        fontSize: 18
-                      }}
-                    >
-
-                      Pendientes
-
-                    </Typography>
-
-
-                    <Typography
-                      sx={{
-                        fontSize: 58,
-                        fontWeight: 400,
-                        lineHeight: 1,
-                        color:
-                          pending === 0
-                            ? "#4CAF50"
-                            : "#FF2B2B"
-                      }}
-                    >
-
-                      {pending}
-
-                    </Typography>
-
-                  </Card>
-
-
-                  {/* PROXIMA BOBINA */}
-
-                  <Card
-                    sx={{
-                      mt: 2,
-                      p: 2,
-                      textAlign:
-                        "center",
-                      borderRadius: 2,
-                      border:
-                        "2px solid #1976D2",
-                      backgroundColor:
-                        "#FFFFFF"
-                    }}
-                  >
-
-                    <Typography
-                      sx={{
-                        fontSize: 17,
-                        fontWeight: 600,
-                        color:
-                          "#555"
-                      }}
-                    >
-
-                      Próxima bobina
-
-                    </Typography>
-
-
-                    {nextCoil !== null ? (
-
-                      <Typography
-                        sx={{
-                          mt: 0.5,
-                          fontSize: 58,
-                          fontWeight: 700,
-                          lineHeight: 1,
-                          color:
-                            "#1976D2"
-                        }}
-                      >
-
-                        {nextCoil}
-
-                      </Typography>
-
-                    ) : (
-
-                      <Typography
-                        sx={{
-                          mt: 1,
-                          fontSize: 24,
-                          fontWeight: 700,
-                          color:
-                            "#4CAF50"
-                        }}
-                      >
-
-                        FINALIZADA
-
-                      </Typography>
-
-                    )}
-
-                  </Card>
-
-                </Grid>
-
-              </Grid>
-
-
-              {/* BOTONES */}
-
-              <Box
-                display="flex"
-                gap={2}
-                mt={4}
-              >
-
-                <Button
-                  variant="contained"
-                  color="success"
-                  size="large"
-                  disabled={
-                    finished
-                  }
-                  onClick={
-                    printCurrentLabel
-                  }
-                >
-
-                  🖨 Imprimir
-
-                </Button>
-
-
-                <Button
-                  variant="outlined"
-                  size="large"
-                  onClick={
-                    repeatLabel
-                  }
-                >
-
-                  🔁 Repetir etiqueta
-
-                </Button>
-
-              </Box>
-
-            </CardContent>
-
-          </Card>
-
-        </Box>
-
-      )}
-
-
-      {/* =========================================
-          VISTA PREVIA REAL DE LA PLANTILLA
-          ========================================= */}
-
-      <Dialog
-        open={
-          previewOpen
-        }
-        onClose={() =>
-          setPreviewOpen(
-            false
-          )
-        }
-        maxWidth="lg"
-      >
-
-        <DialogTitle>
-
-          Vista previa de etiqueta
-
-        </DialogTitle>
-
-
-        <DialogContent>
-
-          <LabelPreview
-
-            elements={
-              label
-            }
-
-            backgroundImage={
-              backgroundImage
-            }
-
-            labelFormat={
-              labelFormat
-            }
-
-            labelData={
-              labelData
-            }
-
-          />
-
-        </DialogContent>
-
-      </Dialog>
-
-
-      {/* =========================================
-          PEDIDO FINALIZADO
-          ========================================= */}
-
-      <Dialog
-        open={
-          finishedOpen
-        }
-        onClose={() =>
-          setFinishedOpen(
-            false
-          )
-        }
-      >
-
-        <DialogTitle>
-
-          ✅ Pedido finalizado
-
-        </DialogTitle>
-
-
-        <DialogContent>
-
-          <Typography>
-
-            Se ha impreso la última
-            etiqueta de esta orden
-            de producción.
-
-          </Typography>
-
-
-          <Typography
-            mt={2}
-            fontWeight="bold"
-          >
-
-            Total de bobinas impresas:
-
-            {" "}
-
-            {order?.printed}
-
-          </Typography>
-
-
-          <Typography
-            mt={2}
-          >
-
-            Ya no es posible imprimir
-            más etiquetas para esta orden.
-
-          </Typography>
-
-        </DialogContent>
-
-
-        <DialogActions>
-
-          <Button
-            variant="contained"
-            onClick={() =>
-              setFinishedOpen(
-                false
+            />
+          }
+          onClick={
+            () =>
+              navigate(
+                "/operator/planning"
               )
-            }
-          >
+          }
+        />
 
-            Aceptar
 
-          </Button>
+        {/* CARGAR ORDEN */}
 
-        </DialogActions>
+        <OperatorCard
+          title="Cargar Orden"
+          description="Introducir una orden de producción manualmente"
+          icon={
+            <PrecisionManufacturingIcon
+              sx={{
+                fontSize: 52
+              }}
+            />
+          }
+          onClick={
+            () =>
+              navigate(
+                "/operator/load"
+              )
+          }
+        />
 
-      </Dialog>
+      </Box>
+
+
+      {/* =============================================
+          PIE
+          ============================================= */}
+
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{
+          mt: 5
+        }}
+      >
+
+        Rivulis Irrigation · QI02
+
+      </Typography>
 
     </Box>
+
+  );
+
+}
+
+
+/*
+ * ==================================================
+ * TARJETA
+ * ==================================================
+ */
+
+function OperatorCard({
+  title,
+  description,
+  icon,
+  onClick
+}: {
+  title: string;
+  description: string;
+  icon: ReactNode;
+  onClick: () => void;
+}) {
+
+  return (
+
+    <Card
+      onClick={
+        onClick
+      }
+      elevation={0}
+      sx={{
+        minHeight: 210,
+
+        p: 3,
+
+        display: "flex",
+
+        flexDirection:
+          "column",
+
+        alignItems:
+          "center",
+
+        justifyContent:
+          "center",
+
+        textAlign:
+          "center",
+
+        cursor:
+          "pointer",
+
+        border:
+          "1px solid #E0E0E0",
+
+        borderRadius: 3,
+
+        transition:
+          "all 0.2s ease",
+
+        "&:hover": {
+
+          transform:
+            "translateY(-4px)",
+
+          boxShadow:
+            "0 8px 24px rgba(0,0,0,0.10)",
+
+          borderColor:
+            "#0B7A3B",
+
+          backgroundColor:
+            "#F7FBF8"
+        }
+      }}
+    >
+
+      <Box
+        sx={{
+          color:
+            "#0B7A3B",
+
+          mb: 2
+        }}
+      >
+
+        {icon}
+
+      </Box>
+
+
+      <Typography
+        variant="h5"
+        fontWeight={700}
+      >
+
+        {title}
+
+      </Typography>
+
+
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{
+          mt: 1,
+          maxWidth: 220
+        }}
+      >
+
+        {description}
+
+      </Typography>
+
+    </Card>
 
   );
 

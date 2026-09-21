@@ -1,4 +1,12 @@
-import { Link } from "react-router-dom";
+import {
+  useEffect,
+  useState
+} from "react";
+
+import {
+  Link,
+  useLocation
+} from "react-router-dom";
 
 import {
   AppBar,
@@ -14,58 +22,160 @@ import {
   Divider
 } from "@mui/material";
 
-import DashboardIcon from "@mui/icons-material/Dashboard";
+import HomeIcon from "@mui/icons-material/Home";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 import PrintIcon from "@mui/icons-material/Print";
 import LabelIcon from "@mui/icons-material/Label";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PersonIcon from "@mui/icons-material/Person";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 import AppRoutes from "../routes/AppRoutes";
+
 import Operator from "../pages/Operator/Operator";
-import { useAuth } from "../auth/AuthContext";
+import OperatorPlanning from "../pages/Operator/OperatorPlanning";
+import OperatorLoad from "../pages/Operator/OperatorLoad";
+import OrderPrint from "../pages/Operator/OrderPrint";
+
+import {
+  useAuth
+} from "../auth/AuthContext";
+
 
 const drawerWidth = 250;
 
+
 export default function MainLayout() {
 
-  const { user, logout } = useAuth();
+  const {
+    user,
+    logout
+  } = useAuth();
 
-  const isOperator = user?.role === "operator";
+
+  const location =
+    useLocation();
+
+
+  const isOperator =
+    user?.role === "operator";
+
+
+  /*
+   * ==================================================
+   * FECHA Y HORA
+   * ==================================================
+   */
+
+  const [
+    currentDate,
+    setCurrentDate
+  ] = useState(
+    new Date()
+  );
+
+
+  useEffect(() => {
+
+    const timer =
+      window.setInterval(
+        () => {
+
+          setCurrentDate(
+            new Date()
+          );
+
+        },
+        1000
+      );
+
+
+    return () => {
+
+      window.clearInterval(
+        timer
+      );
+
+    };
+
+  }, []);
+
+
+  const dateText =
+    currentDate.toLocaleDateString(
+      "es-ES",
+      {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+      }
+    );
+
+
+  const timeText =
+    currentDate.toLocaleTimeString(
+      "es-ES",
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      }
+    );
+
+
+  /*
+   * ==================================================
+   * MENÚ ADMINISTRADOR
+   * ==================================================
+   */
 
   const menu = [
 
     {
-      text: "Dashboard",
+      text: "Inicio",
       path: "/",
-      icon: <DashboardIcon />
+      icon: <HomeIcon />
     },
+
+    {
+      text: "Planificación",
+      path: "/planning",
+      icon: <CalendarMonthIcon />
+    },
+
     {
       text: "Productos",
       path: "/products",
       icon: <Inventory2Icon />
     },
+
     {
       text: "Producción",
       path: "/production",
       icon: <PrecisionManufacturingIcon />
     },
+
     {
       text: "Imprimir Orden",
-      path: "/operator",
+      path: "/operator/load",
       icon: <PrintIcon />
     },
+
     {
       text: "Plantillas",
       path: "/templates",
       icon: <LabelIcon />
     },
+
     {
       text: "Impresoras",
       path: "/printers",
       icon: <PrintIcon />
     },
+
     {
       text: "Configuración",
       path: "/settings",
@@ -74,64 +184,386 @@ export default function MainLayout() {
 
   ];
 
+
+  /*
+   * ==================================================
+   * CONTENIDO OPERARIO
+   * ==================================================
+   */
+
+  function renderOperatorPage() {
+
+    if (
+      location.pathname ===
+      "/operator/print"
+    ) {
+
+      return (
+        <OrderPrint />
+      );
+
+    }
+
+
+    if (
+      location.pathname ===
+      "/operator/planning"
+    ) {
+
+      return (
+        <OperatorPlanning />
+      );
+
+    }
+
+
+    if (
+      location.pathname ===
+      "/operator/load"
+    ) {
+
+      return (
+        <OperatorLoad />
+      );
+
+    }
+
+
+    return (
+      <Operator />
+    );
+
+  }
+
+
+  /*
+   * ==================================================
+   * MENÚ SELECCIONADO ADMIN
+   * ==================================================
+   */
+
+  function isMenuSelected(
+    path: string
+  ) {
+
+    if (
+      path === "/"
+    ) {
+
+      return (
+        location.pathname === "/"
+      );
+
+    }
+
+
+    if (
+      path === "/operator/load"
+    ) {
+
+      return (
+        location.pathname ===
+          "/operator/load"
+        ||
+        location.pathname ===
+          "/operator/print"
+      );
+
+    }
+
+
+    return (
+      location.pathname.startsWith(
+        path
+      )
+    );
+
+  }
+
+
   return (
 
-    <Box sx={{ display: "flex" }}>
+    <Box
+      sx={{
+        display: "flex"
+      }}
+    >
+
+      {/* =============================================
+          BARRA SUPERIOR
+          ============================================= */}
 
       <AppBar
         position="fixed"
         elevation={2}
         sx={{
-          backgroundColor: "#0B7A3B",
+          backgroundColor:
+            "#0B7A3B",
+
           zIndex: 1300
         }}
       >
 
-        <Toolbar>
+        <Toolbar
+          sx={{
+            minHeight: {
+              xs: 64,
+              md: 68
+            },
 
-          <Typography
-            variant="h5"
-            fontWeight="bold"
-            sx={{ flexGrow: 1 }}
+            gap: 2
+          }}
+        >
+
+          {/* =========================================
+              MARCA
+              ========================================= */}
+
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              flexShrink: 0
+            }}
           >
 
-            ETIQUETA
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
 
-          </Typography>
+                px: 1.4,
+                py: 0.6,
 
-          <PersonIcon sx={{ mr: 1 }} />
+                borderRadius: 1.5,
 
-          <Typography mr={3}>
+                backgroundColor:
+                  "rgba(255,255,255,0.12)"
+              }}
+            >
 
-            {user?.fullName}
+              <Typography
+                sx={{
+                  color: "#FFFFFF",
+                  fontSize: 24,
+                  fontWeight: 800,
+                  lineHeight: 1,
+                  letterSpacing: "-0.5px"
+                }}
+              >
 
-          </Typography>
+                Rivulis
 
-          <Button
-            color="inherit"
-            onClick={logout}
+              </Typography>
+
+            </Box>
+
+
+            <Box>
+
+              <Typography
+                sx={{
+                  color: "#FFFFFF",
+                  fontSize: 16,
+                  fontWeight: 700,
+                  lineHeight: 1.2
+                }}
+              >
+
+                Programa Etiquetas
+
+              </Typography>
+
+
+              <Typography
+                sx={{
+                  color:
+                    "rgba(255,255,255,0.75)",
+
+                  fontSize: 11,
+
+                  lineHeight: 1.2,
+
+                  mt: 0.3
+                }}
+              >
+
+                Rivulis Irrigation · QI02
+
+              </Typography>
+
+            </Box>
+
+          </Box>
+
+
+          {/* =========================================
+              FECHA Y HORA
+              ========================================= */}
+
+          <Box
+            sx={{
+              flexGrow: 1,
+
+              display: {
+                xs: "none",
+                md: "flex"
+              },
+
+              justifyContent: "center",
+
+              alignItems: "center",
+
+              gap: 1
+            }}
           >
 
-            SALIR
+            <AccessTimeIcon
+              sx={{
+                fontSize: 20,
 
-          </Button>
+                color:
+                  "rgba(255,255,255,0.85)"
+              }}
+            />
+
+
+            <Typography
+              sx={{
+                color: "#FFFFFF",
+
+                fontSize: 14,
+
+                fontWeight: 500,
+
+                textTransform:
+                  "capitalize"
+              }}
+            >
+
+              {dateText}
+
+              {" · "}
+
+              <Box
+                component="span"
+                sx={{
+                  fontWeight: 700
+                }}
+              >
+
+                {timeText}
+
+              </Box>
+
+            </Typography>
+
+          </Box>
+
+
+          {/* =========================================
+              USUARIO
+              ========================================= */}
+
+          <Box
+            sx={{
+              display: "flex",
+
+              alignItems: "center",
+
+              gap: 1,
+
+              ml: "auto",
+
+              flexShrink: 0
+            }}
+          >
+
+            <PersonIcon
+              sx={{
+                fontSize: 21
+              }}
+            />
+
+
+            <Typography
+              sx={{
+                fontWeight: 600,
+
+                display: {
+                  xs: "none",
+                  sm: "block"
+                }
+              }}
+            >
+
+              {user?.fullName}
+
+            </Typography>
+
+
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{
+                mx: 1,
+
+                borderColor:
+                  "rgba(255,255,255,0.30)"
+              }}
+            />
+
+
+            <Button
+              color="inherit"
+              onClick={
+                logout
+              }
+              sx={{
+                fontWeight: 700
+              }}
+            >
+
+              SALIR
+
+            </Button>
+
+          </Box>
 
         </Toolbar>
 
       </AppBar>
+
+
+      {/* =============================================
+          MENÚ LATERAL ADMINISTRADOR
+          ============================================= */}
 
       {!isOperator && (
 
         <Drawer
           variant="permanent"
           sx={{
-            width: drawerWidth,
+            width:
+              drawerWidth,
+
             flexShrink: 0,
+
             "& .MuiDrawer-paper": {
-              width: drawerWidth,
-              boxSizing: "border-box",
-              borderRight: "1px solid #E0E0E0",
-              backgroundColor: "#FFFFFF"
+
+              width:
+                drawerWidth,
+
+              boxSizing:
+                "border-box",
+
+              borderRight:
+                "1px solid #E0E0E0",
+
+              backgroundColor:
+                "#FFFFFF"
             }
           }}
         >
@@ -140,40 +572,101 @@ export default function MainLayout() {
 
           <Divider />
 
-          <List sx={{ mt: 1 }}>
 
-            {menu.map((item) => (
+          <List
+            sx={{
+              mt: 1
+            }}
+          >
 
-              <ListItemButton
-                key={item.text}
-                component={Link}
-                to={item.path}
-                sx={{
-                  mx: 1,
-                  my: 0.5,
-                  borderRadius: 2,
-                  "&:hover": {
-                    backgroundColor: "#E8F5E9"
-                  }
-                }}
-              >
+            {menu.map(
+              item => {
 
-                <ListItemIcon
-                  sx={{
-                    color: "#0B7A3B",
-                    minWidth: 42
-                  }}
-                >
+                const selected =
+                  isMenuSelected(
+                    item.path
+                  );
 
-                  {item.icon}
 
-                </ListItemIcon>
+                return (
 
-                <ListItemText primary={item.text} />
+                  <ListItemButton
+                    key={
+                      item.text
+                    }
+                    component={
+                      Link
+                    }
+                    to={
+                      item.path
+                    }
+                    selected={
+                      selected
+                    }
+                    sx={{
+                      mx: 1,
 
-              </ListItemButton>
+                      my: 0.5,
 
-            ))}
+                      borderRadius: 2,
+
+                      "&:hover": {
+                        backgroundColor:
+                          "#E8F5E9"
+                      },
+
+                      "&.Mui-selected": {
+
+                        backgroundColor:
+                          "#E8F5E9",
+
+                        color:
+                          "#0B7A3B",
+
+                        "&:hover": {
+
+                          backgroundColor:
+                            "#DDEFE2"
+
+                        }
+
+                      }
+                    }}
+                  >
+
+                    <ListItemIcon
+                      sx={{
+                        color:
+                          "#0B7A3B",
+
+                        minWidth:
+                          42
+                      }}
+                    >
+
+                      {item.icon}
+
+                    </ListItemIcon>
+
+
+                    <ListItemText
+                      primary={
+                        item.text
+                      }
+                      primaryTypographyProps={{
+                        fontWeight:
+                          selected
+                            ? 700
+                            : 400
+                      }}
+                    />
+
+                  </ListItemButton>
+
+                );
+
+              }
+            )}
 
           </List>
 
@@ -181,19 +674,36 @@ export default function MainLayout() {
 
       )}
 
+
+      {/* =============================================
+          CONTENIDO
+          ============================================= */}
+
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          backgroundColor: "#F5F7FA",
-          minHeight: "100vh",
-          p: 4
+
+          backgroundColor:
+            "#F5F7FA",
+
+          minHeight:
+            "100vh",
+
+          p: {
+            xs: 2,
+            md: 4
+          }
         }}
       >
 
         <Toolbar />
 
-        {isOperator ? <Operator /> : <AppRoutes />}
+
+        {isOperator
+          ? renderOperatorPage()
+          : <AppRoutes />
+        }
 
       </Box>
 

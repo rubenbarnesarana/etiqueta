@@ -35,7 +35,11 @@ import {
 
 import {
   generateUpperText,
-  generateBottomDescription
+  generateBottomDescription,
+  generateCoilDescription,
+  generateCoilTechnicalText,
+  generateCoilLegalText,
+  generateCoilOriginText
 } from "../../services/LabelTextGenerator";
 
 import {
@@ -221,11 +225,6 @@ export default function ProductionManageDialog({
       currentPrinted;
 
 
-    /*
-     * Si ya se ha terminado la orden,
-     * no mostramos un Coil inexistente.
-     */
-
     if (
       currentPrinted >=
       Number(
@@ -285,7 +284,9 @@ export default function ProductionManageDialog({
   function loadLabel() {
 
     /*
+     * ==================================================
      * PLANTILLA
+     * ==================================================
      */
 
     const template =
@@ -303,11 +304,14 @@ export default function ProductionManageDialog({
       );
 
       return;
+
     }
 
 
     /*
+     * ==================================================
      * PRODUCTO
+     * ==================================================
      */
 
     const product =
@@ -325,41 +329,123 @@ export default function ProductionManageDialog({
       );
 
       return;
+
     }
 
 
     /*
      * ==================================================
-     * TEXTO SUPERIOR AUTOMÁTICO
+     * FORMATO 1
+     * ROLLOS
      * ==================================================
      */
 
-    const upperText =
-      generateUpperText(
-        product,
-        template
-      );
+    let upperText =
+      "";
+
+    let bottomDescription =
+      "";
 
 
     /*
      * ==================================================
-     * DESCRIPCIÓN INFERIOR AUTOMÁTICA
+     * FORMATO 2
+     * BOBINAS
      * ==================================================
-     *
-     * Ejemplo:
-     *
-     * Producto:
-     * AMNON PC AS 16/40/2.2/0.75 R-500M
-     *
-     * Etiqueta:
-     * AS 16/40/2.2/0.75 R-500M
      */
 
-    const bottomDescription =
-      generateBottomDescription(
-        product,
-        template
-      );
+    let coilDescription =
+      "";
+
+    let coilTechnical =
+      "";
+
+    let coilLegal =
+      "";
+
+    let coilOrigin =
+      "";
+
+
+    /*
+     * ==================================================
+     * GENERAR DATOS SEGÚN FORMATO
+     * ==================================================
+     */
+
+    if (
+      template.labelFormat ===
+      "FORMATO_2"
+    ) {
+
+      /*
+       * DESCRIPCIÓN ORIGINAL DEL SKU
+       */
+
+      coilDescription =
+        generateCoilDescription(
+          product
+        );
+
+
+      /*
+       * INFORMACIÓN TÉCNICA AUTOMÁTICA
+       *
+       * Ejemplo:
+       *
+       * EXCEL 16/8 MIL 15 CM
+       * 1.2 L/H at 1 Bar - B-2300M
+       * EMITTING PIPE ISO 9261
+       * Max Pressure 1.2 Bar
+       */
+
+      coilTechnical =
+        generateCoilTechnicalText(
+          product,
+          template
+        );
+
+
+      /*
+       * TEXTO LEGAL
+       *
+       * El año se genera automáticamente.
+       */
+
+      coilLegal =
+        generateCoilLegalText();
+
+
+      /*
+       * MADE IN SPAIN / QI02
+       */
+
+      coilOrigin =
+        generateCoilOriginText();
+
+    } else {
+
+      /*
+       * ==================================================
+       * FORMATO 1
+       * MANTENEMOS LA LÓGICA EXISTENTE
+       * ==================================================
+       */
+
+      upperText =
+        generateUpperText(
+          product,
+          template
+        );
+
+
+      bottomDescription =
+        generateBottomDescription(
+          product,
+          template
+        );
+
+    }
 
 
     /*
@@ -406,7 +492,9 @@ export default function ProductionManageDialog({
 
 
         /*
+         * ==================================================
          * PRODUCTION ORDER
+         * ==================================================
          */
 
         ORDER:
@@ -416,7 +504,9 @@ export default function ProductionManageDialog({
 
 
         /*
+         * ==================================================
          * LOT NUMBER
+         * ==================================================
          */
 
         LOT:
@@ -427,7 +517,9 @@ export default function ProductionManageDialog({
 
 
         /*
+         * ==================================================
          * COIL NUMBER
+         * ==================================================
          */
 
         COIL:
@@ -437,7 +529,9 @@ export default function ProductionManageDialog({
 
 
         /*
+         * ==================================================
          * SKU
+         * ==================================================
          */
 
         SKU:
@@ -447,28 +541,43 @@ export default function ProductionManageDialog({
 
 
         /*
-         * DESCRIPCIÓN INFERIOR
-         *
-         * Ya no utilizamos directamente
-         * product.description.
+         * ==================================================
+         * FORMATO 1
+         * ==================================================
          */
 
         DESCRIPTION:
           bottomDescription,
-
-
-        /*
-         * TEXTO SUPERIOR
-         */
 
         UPPER_TEXT:
           upperText,
 
 
         /*
-         * CÓDIGO DE BARRAS
+         * ==================================================
+         * FORMATO 2
+         * ==================================================
+         */
+
+        COIL_DESCRIPTION:
+          coilDescription,
+
+        COIL_TECHNICAL:
+          coilTechnical,
+
+        COIL_LEGAL:
+          coilLegal,
+
+        COIL_ORIGIN:
+          coilOrigin,
+
+
+        /*
+         * ==================================================
+         * BARCODE
+         * ==================================================
          *
-         * El valor es siempre el SKU.
+         * El barcode siempre utiliza el SKU.
          */
 
         BARCODE:
@@ -478,7 +587,9 @@ export default function ProductionManageDialog({
 
 
         /*
+         * ==================================================
          * QR
+         * ==================================================
          */
 
         QR:
@@ -488,7 +599,9 @@ export default function ProductionManageDialog({
 
 
         /*
-         * TOTAL ROLLOS
+         * ==================================================
+         * TOTAL ROLLOS / BOBINAS
+         * ==================================================
          */
 
         ROLLS:
@@ -503,6 +616,7 @@ export default function ProductionManageDialog({
     setShowPreview(
       true
     );
+
   }
 
 
@@ -552,6 +666,7 @@ export default function ProductionManageDialog({
     onSaved?.();
 
     onClose();
+
   }
 
 
@@ -607,6 +722,7 @@ export default function ProductionManageDialog({
 
 
     onSaved?.();
+
   }
 
 
@@ -628,6 +744,7 @@ export default function ProductionManageDialog({
       );
 
       return;
+
     }
 
 
@@ -635,10 +752,6 @@ export default function ProductionManageDialog({
       firstCoil +
       safePrinted;
 
-
-    /*
-     * Coil 9999 SÍ se puede imprimir.
-     */
 
     if (
       currentCoil >
@@ -650,6 +763,7 @@ export default function ProductionManageDialog({
       );
 
       return;
+
     }
 
 
@@ -687,7 +801,9 @@ export default function ProductionManageDialog({
 
 
     /*
+     * ==================================================
      * PREPARAR SIGUIENTE COIL
+     * ==================================================
      */
 
     if (
@@ -724,6 +840,7 @@ export default function ProductionManageDialog({
 
 
     onSaved?.();
+
   }
 
 
@@ -894,7 +1011,7 @@ export default function ProductionManageDialog({
 
 
           <TextField
-            label="Total de rollos"
+            label="Total de rollos / bobinas"
             value={
               totalRolls
             }
@@ -904,7 +1021,7 @@ export default function ProductionManageDialog({
 
 
           <TextField
-            label="Rollos impresos"
+            label="Etiquetas impresas"
             type="number"
             value={
               printed
@@ -942,7 +1059,7 @@ export default function ProductionManageDialog({
 
 
           <TextField
-            label="Rollos pendientes"
+            label="Etiquetas pendientes"
             value={
               pending
             }
@@ -1071,7 +1188,10 @@ export default function ProductionManageDialog({
                       "flex-start",
 
                     minHeight:
-                      "400px"
+                      labelFormat ===
+                      "FORMATO_2"
+                        ? "320px"
+                        : "400px"
                   }}
                 >
 
@@ -1083,7 +1203,10 @@ export default function ProductionManageDialog({
                     insertField=""
 
                     zoom={
-                      70
+                      labelFormat ===
+                      "FORMATO_2"
+                        ? 65
+                        : 70
                     }
 
                     backgroundImage={
@@ -1266,4 +1389,5 @@ export default function ProductionManageDialog({
     </Dialog>
 
   );
+
 }

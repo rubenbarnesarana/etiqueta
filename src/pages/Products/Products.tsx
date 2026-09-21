@@ -14,6 +14,7 @@ import {
 import { DataGrid } from "@mui/x-data-grid";
 import type { GridColDef } from "@mui/x-data-grid";
 
+import Inventory2Icon from "@mui/icons-material/Inventory2";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
@@ -38,6 +39,7 @@ import {
   removeAssignment
 } from "../../services/ProductTemplateStorage";
 
+
 export default function Products() {
 
   const [products, setProducts] =
@@ -55,6 +57,7 @@ export default function Products() {
   const [templateRefresh, setTemplateRefresh] =
     useState(0);
 
+
   //--------------------------------------------------
   // CARGAR PRODUCTOS
   //--------------------------------------------------
@@ -65,6 +68,7 @@ export default function Products() {
 
   }, []);
 
+
   function loadProducts() {
 
     setProducts(
@@ -72,6 +76,7 @@ export default function Products() {
     );
 
   }
+
 
   //--------------------------------------------------
   // NUEVO PRODUCTO
@@ -84,6 +89,7 @@ export default function Products() {
     setOpenDialog(true);
 
   }
+
 
   //--------------------------------------------------
   // EDITAR PRODUCTO
@@ -98,6 +104,7 @@ export default function Products() {
     setOpenDialog(true);
 
   }
+
 
   //--------------------------------------------------
   // GUARDAR PRODUCTO
@@ -117,6 +124,7 @@ export default function Products() {
 
     }
 
+
     loadProducts();
 
     setEditing(undefined);
@@ -128,6 +136,7 @@ export default function Products() {
     );
 
   }
+
 
   //--------------------------------------------------
   // ELIMINAR PRODUCTO
@@ -147,12 +156,14 @@ export default function Products() {
 
     }
 
+
     const product =
       products.find(
         item =>
           Number(item.id) ===
           Number(id)
       );
+
 
     if (product) {
 
@@ -161,6 +172,7 @@ export default function Products() {
       );
 
     }
+
 
     removeProduct(id);
 
@@ -172,6 +184,7 @@ export default function Products() {
 
   }
 
+
   //--------------------------------------------------
   // PLANTILLAS
   //--------------------------------------------------
@@ -181,6 +194,7 @@ export default function Products() {
       () => getTemplates(),
       [templateRefresh]
     );
+
 
   //--------------------------------------------------
   // CAMBIAR PLANTILLA
@@ -204,11 +218,13 @@ export default function Products() {
 
     }
 
+
     setTemplateRefresh(
       refresh => refresh + 1
     );
 
   }
+
 
   //--------------------------------------------------
   // FILAS
@@ -225,9 +241,11 @@ export default function Products() {
               product.sapCode
             );
 
+
           const productTemplateId =
             assignedTemplateId ??
             product.templateId;
+
 
           const template =
             templates.find(
@@ -235,6 +253,7 @@ export default function Products() {
                 Number(item.id) ===
                 Number(productTemplateId)
             );
+
 
           return {
 
@@ -257,6 +276,7 @@ export default function Products() {
       templateRefresh
     ]);
 
+
   //--------------------------------------------------
   // FILTRAR
   //--------------------------------------------------
@@ -269,11 +289,13 @@ export default function Products() {
           .toLowerCase()
           .trim();
 
+
       if (!value) {
 
         return rows;
 
       }
+
 
       return rows.filter(
         product =>
@@ -294,6 +316,7 @@ export default function Products() {
       rows,
       search
     ]);
+
 
   //--------------------------------------------------
   // COLUMNAS
@@ -344,6 +367,7 @@ export default function Products() {
       flex: 1.3
     },
 
+
     //------------------------------------------------
     // PLANTILLA
     //------------------------------------------------
@@ -364,12 +388,14 @@ export default function Products() {
             params.row.sapCode
           );
 
+
         const current =
           params.row.assignedTemplateId
             ? String(
                 params.row.assignedTemplateId
               )
             : "";
+
 
         return (
 
@@ -395,6 +421,7 @@ export default function Products() {
             <MenuItem value="">
               Sin plantilla
             </MenuItem>
+
 
             {templates
               .filter(
@@ -428,6 +455,7 @@ export default function Products() {
 
     },
 
+
     //------------------------------------------------
     // ACCIONES
     //------------------------------------------------
@@ -459,6 +487,7 @@ export default function Products() {
 
           </Button>
 
+
           <Button
             color="error"
             onClick={() =>
@@ -480,6 +509,7 @@ export default function Products() {
 
   ];
 
+
   //--------------------------------------------------
   // PANTALLA
   //--------------------------------------------------
@@ -488,37 +518,89 @@ export default function Products() {
 
     <Box>
 
-      {/* CABECERA */}
+      {/* =============================================
+          CABECERA
+          ============================================= */}
 
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
+      <Box
+        sx={{
+          mb: 3,
+
+          display: "flex",
+
+          alignItems: "center",
+
+          justifyContent: "space-between",
+
+          gap: 2,
+
+          flexWrap: "wrap"
+        }}
       >
 
-        <Typography
-          variant="h4"
-          fontWeight="bold"
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2
+          }}
         >
 
-          Productos
+          <Inventory2Icon
+            sx={{
+              fontSize: 46,
+              color: "#0B7A3B"
+            }}
+          />
 
-        </Typography>
+
+          <Box>
+
+            <Typography
+              variant="h4"
+              fontWeight={700}
+            >
+
+              Productos
+
+            </Typography>
+
+
+            <Typography
+              color="text.secondary"
+              sx={{
+                mt: 0.5
+              }}
+            >
+
+              Gestión de productos y asignación de plantillas
+
+            </Typography>
+
+          </Box>
+
+        </Box>
+
 
         <Button
           variant="contained"
           color="success"
           onClick={newProduct}
+          sx={{
+            fontWeight: 700
+          }}
         >
 
           Nuevo producto
 
         </Button>
 
-      </Stack>
+      </Box>
 
-      {/* BUSCADOR */}
+
+      {/* =============================================
+          BUSCADOR
+          ============================================= */}
 
       <Card
         sx={{
@@ -543,7 +625,10 @@ export default function Products() {
 
       </Card>
 
-      {/* TABLA */}
+
+      {/* =============================================
+          TABLA
+          ============================================= */}
 
       <Card>
 
@@ -594,7 +679,10 @@ export default function Products() {
 
       </Card>
 
-      {/* DIALOGO PRODUCTO */}
+
+      {/* =============================================
+          DIÁLOGO PRODUCTO
+          ============================================= */}
 
       <ProductDialog
 

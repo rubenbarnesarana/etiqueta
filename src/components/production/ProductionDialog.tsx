@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useState
 } from "react";
 
@@ -11,12 +12,23 @@ import {
   Button,
   Grid,
   TextField,
-  MenuItem
+  MenuItem,
+  Alert,
+  Typography,
+  Box
 } from "@mui/material";
+
+import type {
+  ProductionOrder
+} from "../../services/OrderStorage";
 
 import type {
   Product
 } from "../../models/Product";
+
+import {
+  getProducts
+} from "../../services/ProductStorage";
 
 import {
   getTemplates
@@ -24,103 +36,151 @@ import {
 
 
 interface Props {
+
   open: boolean;
+
   onClose: () => void;
-  onSave: (product: Product) => void;
-  editing?: Product;
+
+  onSave: (
+    order: ProductionOrder
+  ) => void;
+
+  editing?: ProductionOrder;
+
 }
 
 
-const DIAMETERS = [
-  "16 mm",
-  "20 mm",
-  "22 mm",
-  "23 mm"
+/*
+ * ==================================================
+ * LÍNEAS DE PRODUCCIÓN
+ * ==================================================
+ */
+
+const PRODUCTION_LINES = [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8
 ];
 
 
-const THICKNESSES = [
-  "6 mil",
-  "8 mil",
-  "10 mil",
-  "12 mil",
-  "15 mil",
-  "18 mil",
-  "20 mil",
-  "25 mil",
-  "30 mil",
-  "35 mil",
-  "40 mil",
-  "43 mil",
-  "45 mil",
-  "47 mil"
-];
+/*
+ * ==================================================
+ * GENERAR LOTE AUTOMÁTICO
+ * ==================================================
+ *
+ * Formato:
+ *
+ * AAMMDD
+ *
+ * Ejemplo:
+ *
+ * 21/09/2026 -> 260921
+ *
+ * Se utiliza la fecha LOCAL del ordenador.
+ * ==================================================
+ */
+
+function getTodayLot(): string {
+
+  const today =
+    new Date();
 
 
-const FLOWS = [
-  "0.6 l/h",
-  "0.95 l/h",
-  "1.0 l/h",
-  "1.1 l/h",
-  "1.4 l/h",
-  "1.6 l/h",
-  "2.0 l/h",
-  "2.2 l/h",
-  "3.5 l/h",
-  "3.8 l/h"
-];
+  const year =
+    String(
+      today.getFullYear()
+    ).slice(-2);
 
 
-export default function ProductDialog({
+  const month =
+    String(
+      today.getMonth() + 1
+    ).padStart(
+      2,
+      "0"
+    );
+
+
+  const day =
+    String(
+      today.getDate()
+    ).padStart(
+      2,
+      "0"
+    );
+
+
+  return (
+    year +
+    month +
+    day
+  );
+
+}
+
+
+export default function ProductionDialog({
   open,
   onClose,
   onSave,
   editing
 }: Props) {
 
+
+  /*
+   * ==================================================
+   * DATOS
+   * ==================================================
+   */
+
+  const products =
+    useMemo(
+      () => getProducts(),
+      [open]
+    );
+
+
   const templates =
-    getTemplates();
+    useMemo(
+      () => getTemplates(),
+      [open]
+    );
 
+
+  /*
+   * ==================================================
+   * ESTADOS
+   * ==================================================
+   */
 
   const [
-    sapCode,
-    setSapCode
+    order,
+    setOrder
   ] = useState("");
 
 
   const [
-    description,
-    setDescription
+    lot,
+    setLot
+  ] = useState(
+    getTodayLot()
+  );
+
+
+  const [
+    sku,
+    setSku
   ] = useState("");
 
 
   const [
-    diameter,
-    setDiameter
-  ] = useState("");
-
-
-  const [
-    thickness,
-    setThickness
-  ] = useState("");
-
-
-  const [
-    flow,
-    setFlow
-  ] = useState("");
-
-
-  const [
-    spacing,
-    setSpacing
-  ] = useState("");
-
-
-  const [
-    dripper,
-    setDripper
+    productName,
+    setProductName
   ] = useState("");
 
 
@@ -130,72 +190,249 @@ export default function ProductDialog({
   ] = useState<number>(0);
 
 
+  const [
+    rolls,
+    setRolls
+  ] = useState<number>(1);
+
+
+  const [
+    firstCoil,
+    setFirstCoil
+  ] = useState<number>(1);
+
+
+  const [
+    printer,
+    setPrinter
+  ] = useState(
+    "Toshiba BA420"
+  );
+
+
   /*
    * ==================================================
-   * CARGAR PRODUCTO
+   * LÍNEA DE PRODUCCIÓN
+   * ==================================================
+   */
+
+  const [
+    productionLine,
+    setProductionLine
+  ] = useState<number>(0);
+
+
+  /*
+   * ==================================================
+   * PRODUCTO SELECCIONADO
+   * ==================================================
+   */
+
+  const selectedProduct:
+    Product | undefined =
+      products.find(
+        product =>
+          product.sapCode === sku
+      );
+
+
+  /*
+   * ==================================================
+   * PLANTILLA SELECCIONADA
+   * ==================================================
+   */
+
+  const selectedTemplate =
+    templates.find(
+      template =>
+        Number(
+          template.id
+        ) ===
+        Number(
+          templateId
+        )
+    );
+
+
+  /*
+   * ==================================================
+   * CARGAR ORDEN
    * ==================================================
    */
 
   useEffect(() => {
 
-    if (editing) {
+    if (!open) {
 
-      setSapCode(
-        editing.sapCode
-      );
-
-      setDescription(
-        editing.description
-      );
-
-      setDiameter(
-        editing.diameter
-      );
-
-      setThickness(
-        editing.thickness
-      );
-
-      setFlow(
-        editing.flow
-      );
-
-      setSpacing(
-        editing.spacing
-      );
-
-      setDripper(
-        editing.dripper
-      );
-
-      setTemplateId(
-        editing.templateId
-      );
-
-    } else {
-
-      setSapCode("");
-
-      setDescription("");
-
-      setDiameter("");
-
-      setThickness("");
-
-      setFlow("");
-
-      setSpacing("");
-
-      setDripper("");
-
-      setTemplateId(0);
+      return;
 
     }
+
+
+    /*
+     * ==================================================
+     * EDITAR ORDEN EXISTENTE
+     * ==================================================
+     */
+
+    if (editing) {
+
+      setOrder(
+        editing.order ?? ""
+      );
+
+
+      setLot(
+        editing.lot ??
+        getTodayLot()
+      );
+
+
+      setSku(
+        editing.sku ?? ""
+      );
+
+
+      setProductName(
+        editing.product ?? ""
+      );
+
+
+      setTemplateId(
+        Number(
+          editing.templateId ?? 0
+        )
+      );
+
+
+      setRolls(
+        Number(
+          editing.rolls ?? 1
+        )
+      );
+
+
+      setFirstCoil(
+        Number(
+          editing.firstCoil ?? 1
+        )
+      );
+
+
+      setPrinter(
+        editing.printer ||
+        "Toshiba BA420"
+      );
+
+
+      setProductionLine(
+        Number(
+          editing.productionLine ?? 0
+        )
+      );
+
+
+      return;
+
+    }
+
+
+    /*
+     * ==================================================
+     * NUEVA ORDEN
+     * ==================================================
+     */
+
+    setOrder("");
+
+
+    setLot(
+      getTodayLot()
+    );
+
+
+    setSku("");
+
+
+    setProductName("");
+
+
+    setTemplateId(0);
+
+
+    setRolls(1);
+
+
+    setFirstCoil(1);
+
+
+    setPrinter(
+      "Toshiba BA420"
+    );
+
+
+    /*
+     * No seleccionamos una línea automáticamente.
+     *
+     * El usuario debe indicar expresamente
+     * dónde se va a fabricar la orden.
+     */
+
+    setProductionLine(0);
 
   }, [
     editing,
     open
   ]);
+
+
+  /*
+   * ==================================================
+   * CAMBIO DE SKU
+   * ==================================================
+   */
+
+  function handleSkuChange(
+    value: string
+  ) {
+
+    setSku(
+      value
+    );
+
+
+    const product =
+      products.find(
+        item =>
+          item.sapCode === value
+      );
+
+
+    if (!product) {
+
+      setProductName("");
+
+
+      setTemplateId(0);
+
+
+      return;
+
+    }
+
+
+    setProductName(
+      product.description
+    );
+
+
+    setTemplateId(
+      Number(
+        product.templateId
+      )
+    );
+
+  }
 
 
   /*
@@ -206,82 +443,160 @@ export default function ProductDialog({
 
   function save() {
 
-    const cleanSapCode =
-      sapCode.trim();
-
-    const cleanDescription =
-      description.trim();
+    const cleanOrder =
+      order.trim();
 
 
-    if (!cleanSapCode) {
+    const cleanLot =
+      lot.trim();
+
+
+    const cleanSku =
+      sku.trim();
+
+
+    /*
+     * ==================================================
+     * VALIDACIONES
+     * ==================================================
+     */
+
+    if (!cleanOrder) {
 
       alert(
-        "Debes indicar el Código SAP."
+        "Debes indicar la Orden SAP."
       );
 
+
       return;
+
     }
 
 
-    if (!cleanDescription) {
+    if (!cleanLot) {
 
       alert(
-        "Debes indicar la descripción."
+        "No se ha podido generar el lote."
       );
 
+
       return;
+
     }
 
 
-    if (!diameter) {
+    if (!cleanSku) {
 
       alert(
-        "Debes seleccionar el diámetro."
+        "Debes seleccionar un SKU."
       );
 
+
       return;
+
     }
 
 
-    if (!thickness) {
+    if (!selectedProduct) {
 
       alert(
-        "Debes seleccionar el espesor."
+        "El SKU seleccionado no existe en Productos."
       );
 
-      return;
-    }
-
-
-    if (!flow) {
-
-      alert(
-        "Debes seleccionar el caudal."
-      );
 
       return;
-    }
 
-
-    if (!spacing.trim()) {
-
-      alert(
-        "Debes indicar el espaciado."
-      );
-
-      return;
     }
 
 
     if (!templateId) {
 
       alert(
-        "Debes seleccionar una plantilla."
+        "El producto no tiene una plantilla asignada."
       );
 
+
       return;
+
     }
 
+
+    /*
+     * LÍNEA OBLIGATORIA
+     */
+
+    if (
+      productionLine < 1 ||
+      productionLine > 8
+    ) {
+
+      alert(
+        "Debes seleccionar una línea de producción."
+      );
+
+
+      return;
+
+    }
+
+
+    if (
+      !Number.isFinite(
+        rolls
+      ) ||
+      rolls < 1
+    ) {
+
+      alert(
+        "El número de rollos debe ser mayor que 0."
+      );
+
+
+      return;
+
+    }
+
+
+    if (
+      !Number.isFinite(
+        firstCoil
+      ) ||
+      firstCoil < 1 ||
+      firstCoil > 9999
+    ) {
+
+      alert(
+        "La primera bobina debe estar entre 1 y 9999."
+      );
+
+
+      return;
+
+    }
+
+
+    if (
+      firstCoil +
+      rolls -
+      1 >
+      9999
+    ) {
+
+      alert(
+        "La numeración de bobinas supera el máximo 9999."
+      );
+
+
+      return;
+
+    }
+
+
+    /*
+     * ==================================================
+     * GUARDAR ORDEN
+     * ==================================================
+     */
 
     onSave({
 
@@ -289,25 +604,69 @@ export default function ProductDialog({
         editing?.id ??
         Date.now(),
 
-      sapCode:
-        cleanSapCode,
+      order:
+        cleanOrder,
 
-      description:
-        cleanDescription,
+      lot:
+        cleanLot,
 
-      diameter,
+      sku:
+        cleanSku,
 
-      thickness,
+      product:
+        selectedProduct.description,
 
-      flow,
+      templateId:
+        Number(
+          templateId
+        ),
 
-      spacing:
-        spacing.trim(),
+      rolls:
+        Math.floor(
+          Number(
+            rolls
+          )
+        ),
 
-      dripper:
-        dripper.trim(),
+      firstCoil:
+        Math.floor(
+          Number(
+            firstCoil
+          )
+        ),
 
-      templateId
+      printer:
+        printer.trim() ||
+        "Toshiba BA420",
+
+      /*
+       * PLANIFICACIÓN
+       */
+
+      productionLine:
+        productionLine,
+
+      /*
+       * Si estamos editando conservamos
+       * la posición actual.
+       *
+       * Si es nueva, ponemos 0 y
+       * OrderStorage la colocará
+       * automáticamente al final
+       * de la línea seleccionada.
+       */
+
+      planningPosition:
+        editing?.planningPosition ??
+        0,
+
+      status:
+        editing?.status ??
+        "ABIERTA",
+
+      printed:
+        editing?.printed ??
+        0
 
     });
 
@@ -340,8 +699,8 @@ export default function ProductDialog({
 
         {
           editing
-            ? "Editar Producto"
-            : "Nuevo Producto"
+            ? "Editar Orden de Producción"
+            : "Nueva Orden de Producción"
         }
 
       </DialogTitle>
@@ -358,7 +717,7 @@ export default function ProductDialog({
         >
 
 
-          {/* CÓDIGO SAP */}
+          {/* ORDEN SAP */}
 
           <Grid
             size={{
@@ -368,23 +727,25 @@ export default function ProductDialog({
           >
 
             <TextField
-              label="Código SAP"
+              label="Orden SAP"
               value={
-                sapCode
+                order
               }
               onChange={
                 event =>
-                  setSapCode(
+                  setOrder(
                     event.target.value
                   )
               }
+              placeholder="Ejemplo: 8900005103"
               fullWidth
+              autoFocus
             />
 
           </Grid>
 
 
-          {/* DESCRIPCIÓN */}
+          {/* LOTE AUTOMÁTICO */}
 
           <Grid
             size={{
@@ -394,24 +755,23 @@ export default function ProductDialog({
           >
 
             <TextField
-              label="Descripción"
+              label="Lote"
               value={
-                description
+                lot
               }
-              onChange={
-                event =>
-                  setDescription(
-                    event.target.value
-                  )
-              }
-              helperText="Descripción que aparecerá en la parte inferior de la etiqueta."
               fullWidth
+              helperText="Generado automáticamente con la fecha de hoy."
+              slotProps={{
+                input: {
+                  readOnly: true
+                }
+              }}
             />
 
           </Grid>
 
 
-          {/* DIÁMETRO */}
+          {/* SKU */}
 
           <Grid
             size={{
@@ -422,31 +782,43 @@ export default function ProductDialog({
 
             <TextField
               select
-              label="Diámetro"
+              label="SKU"
               value={
-                diameter
+                sku
               }
               onChange={
                 event =>
-                  setDiameter(
+                  handleSkuChange(
                     event.target.value
                   )
               }
               fullWidth
             >
 
-              {DIAMETERS.map(
-                value => (
+              <MenuItem
+                value=""
+              >
+                Seleccionar producto
+              </MenuItem>
+
+
+              {products.map(
+                product => (
 
                   <MenuItem
                     key={
-                      value
+                      product.id
                     }
+
                     value={
-                      value
+                      product.sapCode
                     }
                   >
-                    {value}
+
+                    {product.sapCode}
+                    {" - "}
+                    {product.description}
+
                   </MenuItem>
 
                 )
@@ -457,7 +829,32 @@ export default function ProductDialog({
           </Grid>
 
 
-          {/* ESPESOR */}
+          {/* PRODUCTO */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
+            <TextField
+              label="Producto"
+              value={
+                productName
+              }
+              fullWidth
+              slotProps={{
+                input: {
+                  readOnly: true
+                }
+              }}
+            />
+
+          </Grid>
+
+
+          {/* LÍNEA DE PRODUCCIÓN */}
 
           <Grid
             size={{
@@ -468,137 +865,51 @@ export default function ProductDialog({
 
             <TextField
               select
-              label="Espesor"
+              label="Línea de producción"
               value={
-                thickness
+                productionLine
               }
               onChange={
                 event =>
-                  setThickness(
-                    event.target.value
+                  setProductionLine(
+                    Number(
+                      event.target.value
+                    )
                   )
               }
               fullWidth
+              required
+              helperText="La orden se añadirá a la planificación de esta línea."
             >
 
-              {THICKNESSES.map(
-                value => (
+              <MenuItem
+                value={0}
+              >
+                Seleccionar línea
+              </MenuItem>
+
+
+              {PRODUCTION_LINES.map(
+                line => (
 
                   <MenuItem
                     key={
-                      value
+                      line
                     }
+
                     value={
-                      value
+                      line
                     }
                   >
-                    {value}
+
+                    Línea {line}
+
                   </MenuItem>
 
                 )
               )}
 
             </TextField>
-
-          </Grid>
-
-
-          {/* CAUDAL */}
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}
-          >
-
-            <TextField
-              select
-              label="Caudal"
-              value={
-                flow
-              }
-              onChange={
-                event =>
-                  setFlow(
-                    event.target.value
-                  )
-              }
-              fullWidth
-            >
-
-              {FLOWS.map(
-                value => (
-
-                  <MenuItem
-                    key={
-                      value
-                    }
-                    value={
-                      value
-                    }
-                  >
-                    {value}
-                  </MenuItem>
-
-                )
-              )}
-
-            </TextField>
-
-          </Grid>
-
-
-          {/* ESPACIADO */}
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}
-          >
-
-            <TextField
-              label="Espaciado"
-              value={
-                spacing
-              }
-              onChange={
-                event =>
-                  setSpacing(
-                    event.target.value
-                  )
-              }
-              placeholder="Ejemplo: 75"
-              helperText="Indicar el espaciado en centímetros."
-              fullWidth
-            />
-
-          </Grid>
-
-
-          {/* TIPO DE GOTERO */}
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}
-          >
-
-            <TextField
-              label="Tipo de gotero"
-              value={
-                dripper
-              }
-              onChange={
-                event =>
-                  setDripper(
-                    event.target.value
-                  )
-              }
-              fullWidth
-            />
 
           </Grid>
 
@@ -613,51 +924,224 @@ export default function ProductDialog({
           >
 
             <TextField
-              select
               label="Plantilla"
               value={
-                templateId
+                selectedTemplate?.name ??
+                ""
+              }
+              fullWidth
+              slotProps={{
+                input: {
+                  readOnly: true
+                }
+              }}
+              helperText="Se obtiene automáticamente del producto."
+            />
+
+          </Grid>
+
+
+          {/* NÚMERO DE ROLLOS */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
+            <TextField
+              label="Número de rollos / bobinas"
+              type="number"
+              value={
+                rolls
               }
               onChange={
                 event =>
-                  setTemplateId(
+                  setRolls(
                     Number(
                       event.target.value
                     )
                   )
               }
-              fullWidth
-            >
-
-              <MenuItem
-                value={
-                  0
+              slotProps={{
+                htmlInput: {
+                  min: 1,
+                  max: 9999
                 }
-              >
-                Seleccionar plantilla
-              </MenuItem>
-
-
-              {templates.map(
-                template => (
-
-                  <MenuItem
-                    key={
-                      template.id
-                    }
-                    value={
-                      template.id
-                    }
-                  >
-                    {template.name}
-                  </MenuItem>
-
-                )
-              )}
-
-            </TextField>
+              }}
+              fullWidth
+            />
 
           </Grid>
+
+
+          {/* PRIMERA BOBINA */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
+            <TextField
+              label="Primera bobina"
+              type="number"
+              value={
+                firstCoil
+              }
+              onChange={
+                event =>
+                  setFirstCoil(
+                    Number(
+                      event.target.value
+                    )
+                  )
+              }
+              slotProps={{
+                htmlInput: {
+                  min: 1,
+                  max: 9999
+                }
+              }}
+              helperText="La numeración continuará automáticamente."
+              fullWidth
+            />
+
+          </Grid>
+
+
+          {/* IMPRESORA */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
+            <TextField
+              label="Impresora"
+              value={
+                printer
+              }
+              onChange={
+                event =>
+                  setPrinter(
+                    event.target.value
+                  )
+              }
+              fullWidth
+            />
+
+          </Grid>
+
+
+          {/* POSICIÓN ACTUAL */}
+
+          {editing &&
+            productionLine > 0 && (
+
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6
+                }}
+              >
+
+                <TextField
+                  label="Posición en planificación"
+                  value={
+                    editing.planningPosition > 0
+                      ? editing.planningPosition
+                      : "Sin planificar"
+                  }
+                  fullWidth
+                  slotProps={{
+                    input: {
+                      readOnly: true
+                    }
+                  }}
+                  helperText="El orden se modificará desde la pantalla Planificación."
+                />
+
+              </Grid>
+
+            )}
+
+
+          {/* INFORMACIÓN DEL PRODUCTO */}
+
+          {selectedProduct && (
+
+            <Grid
+              size={{
+                xs: 12
+              }}
+            >
+
+              <Alert
+                severity={
+                  selectedTemplate
+                    ? "success"
+                    : "warning"
+                }
+              >
+
+                <Box>
+
+                  <Typography
+                    fontWeight={700}
+                  >
+
+                    {selectedProduct.sapCode}
+
+                    {" — "}
+
+                    {selectedProduct.description}
+
+                  </Typography>
+
+
+                  <Typography
+                    variant="body2"
+                  >
+
+                    Plantilla:{" "}
+
+                    {
+                      selectedTemplate?.name ??
+                      "Sin plantilla"
+                    }
+
+                  </Typography>
+
+
+                  {productionLine > 0 && (
+
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        mt: 0.5,
+                        fontWeight: 700
+                      }}
+                    >
+
+                      Línea de producción:{" "}
+                      {productionLine}
+
+                    </Typography>
+
+                  )}
+
+                </Box>
+
+              </Alert>
+
+            </Grid>
+
+          )}
 
 
         </Grid>
@@ -678,11 +1162,18 @@ export default function ProductDialog({
 
         <Button
           variant="contained"
+          color="success"
           onClick={
             save
           }
         >
-          GUARDAR
+
+          {
+            editing
+              ? "GUARDAR CAMBIOS"
+              : "CREAR ORDEN"
+          }
+
         </Button>
 
       </DialogActions>
@@ -690,4 +1181,5 @@ export default function ProductDialog({
     </Dialog>
 
   );
+
 }

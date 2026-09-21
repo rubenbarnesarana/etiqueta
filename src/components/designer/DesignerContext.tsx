@@ -22,12 +22,54 @@ export interface LabelData {
   DESCRIPTION: string;
 
   /*
-   * TEXTO SUPERIOR DE LA ETIQUETA
-   *
-   * Se genera automáticamente en producción.
-   * En la plantilla se mostrará a 180°.
+   * TEXTO SUPERIOR
+   * FORMATO 1 / ROLLOS
    */
   UPPER_TEXT: string;
+
+
+  /*
+   * ==================================================
+   * CAMPOS FORMATO 2 / BOBINAS
+   * ==================================================
+   */
+
+  /*
+   * Descripción original del SKU.
+   *
+   * Ejemplo:
+   * EXCEL 16/8/1.2/0.15 2300m
+   */
+  COIL_DESCRIPTION: string;
+
+
+  /*
+   * Información técnica automática.
+   *
+   * Ejemplo:
+   *
+   * EXCEL 16/8 MIL 15 CM
+   * 1.2 L/H at 1 Bar - B-2300M
+   * EMITTING PIPE ISO 9261
+   * Max Pressure 1.2 Bar
+   */
+  COIL_TECHNICAL: string;
+
+
+  /*
+   * Texto legal / técnico fijo.
+   *
+   * El año se genera automáticamente
+   * en Producción.
+   */
+  COIL_LEGAL: string;
+
+
+  /*
+   * Origen y planta.
+   */
+  COIL_ORIGIN: string;
+
 
   BARCODE: string;
 
@@ -176,22 +218,13 @@ export function DesignerProvider({
    * DATOS DE PRUEBA DEL DISEÑADOR
    * ==================================================
    *
-   * Estos datos solamente sirven para
-   * poder diseñar y colocar los campos
-   * sobre la plantilla.
+   * Estos datos sirven únicamente para
+   * visualizar los campos mientras se
+   * diseña una plantilla.
    *
    * En Producción serán sustituidos
-   * automáticamente por los datos reales.
-   *
-   * IMPORTANTE:
-   *
-   * COIL = 1
-   *
-   * El contador de etiquetas impresas
-   * comienza en 0.
-   *
-   * Pero la primera etiqueta que se
-   * imprime es siempre Coil Number 1.
+   * automáticamente por los datos reales
+   * de la orden y del SKU.
    */
 
   const [
@@ -201,23 +234,30 @@ export function DesignerProvider({
     useState<LabelData>({
 
       /*
+       * ==================================================
        * PRODUCTION ORDER
+       * ==================================================
        */
 
       ORDER:
-        "89000051042",
+        "89000050967",
 
 
       /*
+       * ==================================================
        * SKU
+       * ==================================================
        */
 
       SKU:
-        "101089504",
+        "101090266",
 
 
       /*
+       * ==================================================
+       * FORMATO 1
        * DESCRIPCIÓN INFERIOR
+       * ==================================================
        */
 
       DESCRIPTION:
@@ -225,13 +265,10 @@ export function DesignerProvider({
 
 
       /*
+       * ==================================================
+       * FORMATO 1
        * TEXTO SUPERIOR
-       *
-       * Este es solamente un ejemplo
-       * para diseñar la plantilla AMNON.
-       *
-       * En producción se generará
-       * automáticamente.
+       * ==================================================
        */
 
       UPPER_TEXT:
@@ -239,45 +276,96 @@ export function DesignerProvider({
 
 
       /*
+       * ==================================================
+       * FORMATO 2
+       * DESCRIPCIÓN SKU
+       * ==================================================
+       */
+
+      COIL_DESCRIPTION:
+        "EXCEL 16/8/1.2/0.15 2300m",
+
+
+      /*
+       * ==================================================
+       * FORMATO 2
+       * INFORMACIÓN TÉCNICA
+       * ==================================================
+       */
+
+      COIL_TECHNICAL:
+        "EXCEL 16/8 MIL 15 CM\n1.2 L/H at 1 Bar - B-2300M\nEMITTING PIPE ISO 9261\nMax Pressure 1.2 Bar",
+
+
+      /*
+       * ==================================================
+       * FORMATO 2
+       * TEXTO LEGAL
+       * ==================================================
+       */
+
+      COIL_LEGAL:
+        "Non reusable and non-compensated emitting pipe.\nOperation at low pressure: regular.\nYear:2026",
+
+
+      /*
+       * ==================================================
+       * FORMATO 2
+       * ORIGEN / PLANTA
+       * ==================================================
+       */
+
+      COIL_ORIGIN:
+        "MADE IN SPAIN     QI02",
+
+
+      /*
+       * ==================================================
        * CÓDIGO DE BARRAS
+       * ==================================================
        */
 
       BARCODE:
-        "101089504",
+        "101090266",
 
 
       /*
+       * ==================================================
        * QR
+       * ==================================================
        */
 
       QR:
-        "101089504",
+        "101090266",
 
 
       /*
+       * ==================================================
        * FECHA
+       * ==================================================
        */
 
       DATE:
-        "300726",
+        "210926",
 
 
       /*
+       * ==================================================
        * LOT NUMBER
+       * ==================================================
        *
-       * Solo es un dato de prueba.
-       * En producción se genera
-       * automáticamente.
+       * En producción será la fecha del día
+       * generada automáticamente.
        */
 
       LOT:
-        "260918",
+        "260921",
 
 
       /*
+       * ==================================================
        * COIL NUMBER
-       *
-       * Primera etiqueta = 1
+       * ==================================================
        */
 
       COIL:
@@ -285,7 +373,9 @@ export function DesignerProvider({
 
 
       /*
-       * TOTAL ROLLOS
+       * ==================================================
+       * TOTAL ROLLOS / BOBINAS
+       * ==================================================
        */
 
       ROLLS:

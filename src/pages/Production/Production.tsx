@@ -19,6 +19,7 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SettingsIcon from "@mui/icons-material/Settings";
+import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 
 import ProductionDialog from "../../components/production/ProductionDialog";
 import ProductionManageDialog from "../../components/production/ProductionManageDialog";
@@ -37,6 +38,7 @@ import {
   getTemplates
 } from "../../services/TemplateStorage";
 
+
 export default function Production() {
 
   const [orders, setOrders] =
@@ -51,130 +53,284 @@ export default function Production() {
   const [managing, setManaging] =
     useState<ProductionOrder | undefined>();
 
+
+  //--------------------------------------------------
+  // CARGAR ÓRDENES
+  //--------------------------------------------------
+
   useEffect(() => {
 
     loadOrders();
 
   }, []);
 
+
   function loadOrders() {
 
-    setOrders(getOrders());
+    setOrders(
+      getOrders()
+    );
 
   }
 
-  function saveOrder(order: ProductionOrder) {
 
-    const all = getOrders();
+  //--------------------------------------------------
+  // GUARDAR ORDEN
+  //--------------------------------------------------
+
+  function saveOrder(
+    order: ProductionOrder
+  ) {
+
+    const all =
+      getOrders();
+
 
     const index =
       all.findIndex(
-        x => Number(x.id) === Number(order.id)
+        x =>
+          Number(x.id) ===
+          Number(order.id)
       );
+
 
     if (index >= 0) {
 
-      all[index] = order;
+      all[index] =
+        order;
 
     } else {
 
-      all.push(order);
+      all.push(
+        order
+      );
 
     }
 
-    saveOrders(all);
+
+    saveOrders(
+      all
+    );
+
 
     loadOrders();
 
-    setOpenDialog(false);
+    setOpenDialog(
+      false
+    );
 
-    setEditing(undefined);
+    setEditing(
+      undefined
+    );
 
-    setManaging(undefined);
+    setManaging(
+      undefined
+    );
 
   }
+
+
+  //--------------------------------------------------
+  // NUEVA ORDEN
+  //--------------------------------------------------
 
   function newOrder() {
 
-    setEditing(undefined);
+    setEditing(
+      undefined
+    );
 
-    setOpenDialog(true);
-
-  }
-
-  function editOrder(order: ProductionOrder) {
-
-    setEditing(order);
-
-    setOpenDialog(true);
+    setOpenDialog(
+      true
+    );
 
   }
 
-  function manageOrder(order: ProductionOrder) {
 
-    setManaging(order);
+  //--------------------------------------------------
+  // EDITAR ORDEN
+  //--------------------------------------------------
+
+  function editOrder(
+    order: ProductionOrder
+  ) {
+
+    setEditing(
+      order
+    );
+
+    setOpenDialog(
+      true
+    );
 
   }
 
-  function removeOrder(id: number) {
 
-    if (!window.confirm("¿Eliminar esta orden?")) {
+  //--------------------------------------------------
+  // GESTIONAR ORDEN
+  //--------------------------------------------------
+
+  function manageOrder(
+    order: ProductionOrder
+  ) {
+
+    setManaging(
+      order
+    );
+
+  }
+
+
+  //--------------------------------------------------
+  // ELIMINAR ORDEN
+  //--------------------------------------------------
+
+  function removeOrder(
+    id: number
+  ) {
+
+    if (
+      !window.confirm(
+        "¿Eliminar esta orden?"
+      )
+    ) {
+
       return;
+
     }
 
-    deleteOrder(id);
+
+    deleteOrder(
+      id
+    );
+
 
     loadOrders();
 
   }
+
+
+  //--------------------------------------------------
+  // NOMBRE PLANTILLA
+  //--------------------------------------------------
 
   function getTemplateName(
     templateId: number
   ): string {
 
-    const templates = getTemplates();
+    const templates =
+      getTemplates();
+
 
     const template =
       templates.find(
-        t => Number(t.id) === Number(templateId)
+        t =>
+          Number(t.id) ===
+          Number(templateId)
       );
 
-    return template?.name ?? "-";
+
+    return (
+      template?.name ??
+      "-"
+    );
 
   }
+
+
+  //--------------------------------------------------
+  // PANTALLA
+  //--------------------------------------------------
 
   return (
 
     <Box>
 
-      {/* CABECERA */}
+      {/* =============================================
+          CABECERA
+          ============================================= */}
 
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        sx={{ mb: 3 }}
+      <Box
+        sx={{
+          mb: 3,
+
+          display: "flex",
+
+          alignItems: "center",
+
+          justifyContent: "space-between",
+
+          gap: 2,
+
+          flexWrap: "wrap"
+        }}
       >
 
-        <Typography
-          variant="h4"
-          fontWeight="bold"
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2
+          }}
         >
-          🏭 Producción
-        </Typography>
+
+          <PrecisionManufacturingIcon
+            sx={{
+              fontSize: 46,
+              color: "#0B7A3B"
+            }}
+          />
+
+
+          <Box>
+
+            <Typography
+              variant="h4"
+              fontWeight={700}
+            >
+
+              Producción
+
+            </Typography>
+
+
+            <Typography
+              color="text.secondary"
+              sx={{
+                mt: 0.5
+              }}
+            >
+
+              Gestión de órdenes de producción
+
+            </Typography>
+
+          </Box>
+
+        </Box>
+
 
         <Button
           variant="contained"
           color="success"
-          onClick={newOrder}
+          onClick={
+            newOrder
+          }
+          sx={{
+            fontWeight: 700
+          }}
         >
+
           + Nueva Orden
+
         </Button>
 
-      </Stack>
+      </Box>
 
 
-      {/* TABLA */}
+      {/* =============================================
+          TABLA
+          ============================================= */}
 
       <Card>
 
@@ -190,35 +346,53 @@ export default function Production() {
                   Orden SAP
                 </TableCell>
 
+
                 <TableCell>
                   SKU
                 </TableCell>
+
 
                 <TableCell>
                   Producto
                 </TableCell>
 
+
                 <TableCell>
                   Plantilla
                 </TableCell>
 
-                <TableCell align="center">
+
+                <TableCell
+                  align="center"
+                >
                   Rollos
                 </TableCell>
 
-                <TableCell align="center">
+
+                <TableCell
+                  align="center"
+                >
                   Impresos
                 </TableCell>
 
-                <TableCell align="center">
+
+                <TableCell
+                  align="center"
+                >
                   Pendientes
                 </TableCell>
 
-                <TableCell align="center">
+
+                <TableCell
+                  align="center"
+                >
                   Estado
                 </TableCell>
 
-                <TableCell align="center">
+
+                <TableCell
+                  align="center"
+                >
                   Acciones
                 </TableCell>
 
@@ -229,7 +403,9 @@ export default function Production() {
 
             <TableBody>
 
-              {/* SIN ORDENES */}
+              {/* =====================================
+                  SIN ÓRDENES
+                  ===================================== */}
 
               {orders.length === 0 && (
 
@@ -239,7 +415,9 @@ export default function Production() {
                     colSpan={9}
                     align="center"
                   >
+
                     No existen órdenes.
+
                   </TableCell>
 
                 </TableRow>
@@ -247,121 +425,179 @@ export default function Production() {
               )}
 
 
-              {/* ORDENES */}
+              {/* =====================================
+                  ÓRDENES
+                  ===================================== */}
 
-              {orders.map(order => (
+              {orders.map(
+                order => (
 
-                <TableRow
-                  key={order.id}
-                  hover
-                >
+                  <TableRow
+                    key={
+                      order.id
+                    }
+                    hover
+                  >
 
-                  <TableCell>
-                    {order.order}
-                  </TableCell>
+                    {/* ORDEN */}
 
+                    <TableCell>
 
-                  <TableCell>
-                    {order.sku}
-                  </TableCell>
+                      {order.order}
 
-
-                  <TableCell>
-                    {order.product}
-                  </TableCell>
-
-
-                  {/* PLANTILLA */}
-
-                  <TableCell>
-
-                    {getTemplateName(
-                      order.templateId
-                    )}
-
-                  </TableCell>
+                    </TableCell>
 
 
-                  {/* ROLLOS */}
+                    {/* SKU */}
 
-                  <TableCell align="center">
-                    {order.rolls}
-                  </TableCell>
+                    <TableCell>
 
+                      {order.sku}
 
-                  {/* IMPRESOS */}
-
-                  <TableCell align="center">
-                    {order.printed}
-                  </TableCell>
+                    </TableCell>
 
 
-                  {/* PENDIENTES */}
+                    {/* PRODUCTO */}
 
-                  <TableCell align="center">
+                    <TableCell>
 
-                    {Math.max(
-                      0,
-                      order.rolls - order.printed
-                    )}
+                      {order.product}
 
-                  </TableCell>
+                    </TableCell>
 
 
-                  {/* ESTADO */}
+                    {/* PLANTILLA */}
 
-                  <TableCell align="center">
+                    <TableCell>
 
-                    <Chip
-                      color={
-                        order.status === "ABIERTA"
-                          ? "success"
-                          : "default"
-                      }
-                      label={order.status}
-                    />
+                      {getTemplateName(
+                        order.templateId
+                      )}
 
-                  </TableCell>
+                    </TableCell>
 
 
-                  {/* ACCIONES */}
+                    {/* ROLLOS */}
 
-                  <TableCell align="center">
-
-                    <IconButton
-                      color="primary"
-                      onClick={() =>
-                        editOrder(order)
-                      }
+                    <TableCell
+                      align="center"
                     >
-                      <EditIcon />
-                    </IconButton>
+
+                      {order.rolls}
+
+                    </TableCell>
 
 
-                    <IconButton
-                      color="secondary"
-                      onClick={() =>
-                        manageOrder(order)
-                      }
+                    {/* IMPRESOS */}
+
+                    <TableCell
+                      align="center"
                     >
-                      <SettingsIcon />
-                    </IconButton>
+
+                      {order.printed}
+
+                    </TableCell>
 
 
-                    <IconButton
-                      color="error"
-                      onClick={() =>
-                        removeOrder(order.id)
-                      }
+                    {/* PENDIENTES */}
+
+                    <TableCell
+                      align="center"
                     >
-                      <DeleteIcon />
-                    </IconButton>
 
-                  </TableCell>
+                      {Math.max(
+                        0,
+                        order.rolls -
+                        order.printed
+                      )}
 
-                </TableRow>
+                    </TableCell>
 
-              ))}
+
+                    {/* ESTADO */}
+
+                    <TableCell
+                      align="center"
+                    >
+
+                      <Chip
+                        color={
+                          order.status ===
+                          "ABIERTA"
+                            ? "success"
+                            : "default"
+                        }
+                        label={
+                          order.status
+                        }
+                      />
+
+                    </TableCell>
+
+
+                    {/* ACCIONES */}
+
+                    <TableCell
+                      align="center"
+                    >
+
+                      <Stack
+                        direction="row"
+                        justifyContent="center"
+                      >
+
+                        <IconButton
+                          color="primary"
+                          onClick={
+                            () =>
+                              editOrder(
+                                order
+                              )
+                          }
+                        >
+
+                          <EditIcon />
+
+                        </IconButton>
+
+
+                        <IconButton
+                          color="secondary"
+                          onClick={
+                            () =>
+                              manageOrder(
+                                order
+                              )
+                          }
+                        >
+
+                          <SettingsIcon />
+
+                        </IconButton>
+
+
+                        <IconButton
+                          color="error"
+                          onClick={
+                            () =>
+                              removeOrder(
+                                order.id
+                              )
+                          }
+                        >
+
+                          <DeleteIcon />
+
+                        </IconButton>
+
+                      </Stack>
+
+                    </TableCell>
+
+                  </TableRow>
+
+                )
+              )}
 
             </TableBody>
 
@@ -372,35 +608,56 @@ export default function Production() {
       </Card>
 
 
-      {/* NUEVA / EDITAR ORDEN */}
+      {/* =============================================
+          NUEVA / EDITAR ORDEN
+          ============================================= */}
 
       <ProductionDialog
-        open={openDialog}
-        editing={editing}
-
+        open={
+          openDialog
+        }
+        editing={
+          editing
+        }
         onClose={() => {
 
-          setOpenDialog(false);
+          setOpenDialog(
+            false
+          );
 
-          setEditing(undefined);
+          setEditing(
+            undefined
+          );
 
         }}
-
-        onSave={saveOrder}
+        onSave={
+          saveOrder
+        }
       />
 
 
-      {/* GESTIONAR ORDEN */}
+      {/* =============================================
+          GESTIONAR ORDEN
+          ============================================= */}
 
       <ProductionManageDialog
-        open={Boolean(managing)}
-        order={managing}
-
-        onClose={() =>
-          setManaging(undefined)
+        open={
+          Boolean(
+            managing
+          )
         }
-
-        onSave={saveOrder}
+        order={
+          managing
+        }
+        onClose={
+          () =>
+            setManaging(
+              undefined
+            )
+        }
+        onSave={
+          saveOrder
+        }
       />
 
     </Box>

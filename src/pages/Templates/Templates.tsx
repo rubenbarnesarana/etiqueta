@@ -12,7 +12,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Divider
+  Divider,
+  Chip
 } from "@mui/material";
 
 import SaveIcon from "@mui/icons-material/Save";
@@ -38,6 +39,7 @@ import {
   getCurrentTemplate,
   clearCurrentTemplate,
   applyAmnonFormat1Layout,
+  applyOfficialFormat2Layout,
   type Template,
   type LabelFormat
 } from "../../services/TemplateStorage";
@@ -49,56 +51,155 @@ import {
 
 /*
  * ==================================================
- * PLANTILLAS OFICIALES FORMATO 1 - ROLLOS
+ * PLANTILLAS OFICIALES FORMATO 1
+ * ROLLOS
  * 80 x 285 mm
  * ==================================================
  */
 
 const ROLL_TEMPLATES = [
+
   {
-    name: "AMNON",
-    image: "/templates/amnon-formato1.png"
+    name:
+      "AMNON",
+
+    image:
+      "/templates/amnon-formato1.png"
   },
+
   {
-    name: "BLIND PIPE",
-    image: "/templates/lisa-formato1.png"
+    name:
+      "BLIND PIPE",
+
+    image:
+      "/templates/lisa-formato1.png"
   },
+
   {
-    name: "MICROTUBE",
-    image: "/templates/microtuborollos-formato1.png"
+    name:
+      "MICROTUBE",
+
+    image:
+      "/templates/microtuborollos-formato1.png"
   },
+
   {
-    name: "NAAN PC",
-    image: "/templates/naanpc-formato1.png"
+    name:
+      "NAAN PC",
+
+    image:
+      "/templates/naanpc-formato1.png"
   },
+
   {
-    name: "NAAN PC MAX",
-    image: "/templates/naanpcmax-formato1.png"
+    name:
+      "NAAN PC MAX",
+
+    image:
+      "/templates/naanpcmax-formato1.png"
   },
+
   {
-    name: "TIFDRIP +",
-    image: "/templates/tifdrip+-formato1.png"
+    name:
+      "TIFDRIP +",
+
+    image:
+      "/templates/tifdrip+-formato1.png"
   },
+
   {
-    name: "TOP DRIP",
-    image: "/templates/topdrip-formato1.png"
+    name:
+      "TOP DRIP",
+
+    image:
+      "/templates/topdrip-formato1.png"
   },
+
   {
-    name: "TURBO EXCEL",
-    image: "/templates/turboexcelrollos-formato1.png"
+    name:
+      "TURBO EXCEL",
+
+    image:
+      "/templates/turboexcelrollos-formato1.png"
   }
+
+];
+
+
+/*
+ * ==================================================
+ * PLANTILLAS OFICIALES FORMATO 2
+ * BOBINAS
+ * 240 x 110 mm
+ * ==================================================
+ */
+
+const COIL_TEMPLATES = [
+
+  {
+    name:
+      "AMNON BOBINAS",
+
+    image:
+      "/templates/formato2/amnon-formato2.png"
+  },
+
+  {
+    name:
+      "CHAPIN STF BOBINAS",
+
+    image:
+      "/templates/formato2/chapin-stf-formato2.png"
+  },
+
+  {
+    name:
+      "D900 BOBINAS",
+
+    image:
+      "/templates/formato2/d900-formato2.png"
+  },
+
+  {
+    name:
+      "TAL DRIP GEN2 BOBINAS",
+
+    image:
+      "/templates/formato2/taldrip-gen2-formato2.png"
+  },
+
+  {
+    name:
+      "TOP DRIP BOBINAS",
+
+    image:
+      "/templates/formato2/topdrip-formato2.png"
+  },
+
+  {
+    name:
+      "TURBO EXCEL BOBINAS",
+
+    image:
+      "/templates/formato2/turboexcel-formato2.png"
+  }
+
 ];
 
 
 export default function Templates() {
 
   const {
+
     elements,
     setElements,
+
     selected,
     setSelected,
+
     labelData,
     setLabelData
+
   } = useDesigner();
 
 
@@ -111,7 +212,8 @@ export default function Templates() {
   const [
     templates,
     setTemplates
-  ] = useState<Template[]>([]);
+  ] =
+    useState<Template[]>([]);
 
 
   const [
@@ -130,19 +232,22 @@ export default function Templates() {
   const [
     addText,
     setAddText
-  ] = useState(false);
+  ] =
+    useState(false);
 
 
   const [
     insertField,
     setInsertField
-  ] = useState("");
+  ] =
+    useState("");
 
 
   const [
     zoom,
     setZoom
-  ] = useState(100);
+  ] =
+    useState(100);
 
 
   /*
@@ -154,13 +259,15 @@ export default function Templates() {
   const [
     newTemplateOpen,
     setNewTemplateOpen
-  ] = useState(false);
+  ] =
+    useState(false);
 
 
   const [
     newTemplateName,
     setNewTemplateName
-  ] = useState("");
+  ] =
+    useState("");
 
 
   const [
@@ -175,7 +282,8 @@ export default function Templates() {
   const [
     newTemplateImage,
     setNewTemplateImage
-  ] = useState("");
+  ] =
+    useState("");
 
 
   /*
@@ -197,11 +305,23 @@ export default function Templates() {
     null;
 
 
-  const isAmnon =
+  const selectedName =
     selectedTemplate?.name
       .trim()
-      .toUpperCase() ===
-    "AMNON";
+      .toUpperCase() ??
+    "";
+
+
+  const isAmnonFormat1 =
+    selectedTemplate?.labelFormat ===
+      "FORMATO_1" &&
+    selectedName ===
+      "AMNON";
+
+
+  const isFormat2 =
+    selectedTemplate?.labelFormat ===
+    "FORMATO_2";
 
 
   /*
@@ -255,7 +375,9 @@ export default function Templates() {
         );
 
 
-      if (template) {
+      if (
+        template
+      ) {
 
         setElements(
           template.elements.map(
@@ -296,7 +418,9 @@ export default function Templates() {
       );
 
 
-    if (!template) {
+    if (
+      !template
+    ) {
       return;
     }
 
@@ -323,6 +447,7 @@ export default function Templates() {
         })
       )
     );
+
   }
 
 
@@ -369,12 +494,13 @@ export default function Templates() {
     alert(
       `Plantilla "${selectedTemplate.name}" guardada correctamente.`
     );
+
   }
 
 
   /*
    * ==================================================
-   * APLICAR DISEÑO OFICIAL AMNON
+   * APLICAR DISEÑO AMNON FORMATO 1
    * ==================================================
    */
 
@@ -388,23 +514,21 @@ export default function Templates() {
 
 
     if (
-      selectedTemplate.name
-        .trim()
-        .toUpperCase() !==
-      "AMNON"
+      !isAmnonFormat1
     ) {
 
       alert(
-        "Este diseño solo se puede aplicar a la plantilla AMNON."
+        "Este diseño solo se puede aplicar a AMNON Formato 1."
       );
 
       return;
+
     }
 
 
     const confirmed =
       window.confirm(
-        "Se sustituirán los elementos dinámicos actuales de AMNON por la distribución automática.\n\nEl fondo de la plantilla se mantendrá como AMNON Formato 1.\n\n¿Continuar?"
+        "Se sustituirán los elementos dinámicos actuales de AMNON por la distribución automática.\n\n¿Continuar?"
       );
 
 
@@ -430,6 +554,7 @@ export default function Templates() {
       );
 
       return;
+
     }
 
 
@@ -447,12 +572,8 @@ export default function Templates() {
     );
 
 
-    const refreshed =
-      getTemplates();
-
-
     setTemplates(
-      refreshed
+      getTemplates()
     );
 
 
@@ -467,8 +588,106 @@ export default function Templates() {
 
 
     alert(
-      "Diseño AMNON aplicado correctamente."
+      "Diseño AMNON Formato 1 aplicado correctamente."
     );
+
+  }
+
+
+  /*
+   * ==================================================
+   * APLICAR DISEÑO AUTOMÁTICO FORMATO 2
+   * ==================================================
+   */
+
+  function applyFormat2Layout() {
+
+    if (
+      !selectedTemplate
+    ) {
+      return;
+    }
+
+
+    if (
+      selectedTemplate.labelFormat !==
+      "FORMATO_2"
+    ) {
+
+      alert(
+        "La plantilla seleccionada no pertenece al Formato 2."
+      );
+
+      return;
+
+    }
+
+
+    const confirmed =
+      window.confirm(
+        `Se aplicará la distribución automática de bobinas a "${selectedTemplate.name}".\n\nLos elementos dinámicos actuales serán sustituidos.\n\n¿Continuar?`
+      );
+
+
+    if (
+      !confirmed
+    ) {
+      return;
+    }
+
+
+    const updated =
+      applyOfficialFormat2Layout(
+        selectedTemplate.id
+      );
+
+
+    if (
+      !updated
+    ) {
+
+      alert(
+        "No se ha podido identificar el diseño oficial para esta plantilla."
+      );
+
+      return;
+
+    }
+
+
+    setElements(
+      updated.elements.map(
+        element => ({
+          ...element
+        })
+      )
+    );
+
+
+    setSelected(
+      null
+    );
+
+
+    setTemplates(
+      getTemplates()
+    );
+
+
+    setSelectedTemplateId(
+      updated.id
+    );
+
+
+    setCurrentTemplate(
+      updated.id
+    );
+
+
+    alert(
+      `Diseño de bobinas aplicado correctamente a "${updated.name}".`
+    );
+
   }
 
 
@@ -508,12 +727,8 @@ export default function Templates() {
     clearCurrentTemplate();
 
 
-    const updated =
-      getTemplates();
-
-
     setTemplates(
-      updated
+      getTemplates()
     );
 
 
@@ -528,12 +743,13 @@ export default function Templates() {
     setSelected(
       null
     );
+
   }
 
 
   /*
    * ==================================================
-   * ABRIR NUEVA PLANTILLA
+   * NUEVA PLANTILLA
    * ==================================================
    */
 
@@ -557,14 +773,9 @@ export default function Templates() {
     setNewTemplateOpen(
       true
     );
+
   }
 
-
-  /*
-   * ==================================================
-   * CREAR NUEVA PLANTILLA
-   * ==================================================
-   */
 
   function createNewTemplate() {
 
@@ -582,6 +793,7 @@ export default function Templates() {
       );
 
       return;
+
     }
 
 
@@ -604,6 +816,7 @@ export default function Templates() {
       );
 
       return;
+
     }
 
 
@@ -650,12 +863,8 @@ export default function Templates() {
     );
 
 
-    const updated =
-      getTemplates();
-
-
     setTemplates(
-      updated
+      getTemplates()
     );
 
 
@@ -680,12 +889,13 @@ export default function Templates() {
     setNewTemplateOpen(
       false
     );
+
   }
 
 
   /*
    * ==================================================
-   * CREAR / ACTUALIZAR PLANTILLAS OFICIALES
+   * CREAR / ACTUALIZAR FORMATO 1
    * ==================================================
    */
 
@@ -759,6 +969,7 @@ export default function Templates() {
           addTemplate(
             newTemplate
           );
+
         }
 
 
@@ -778,27 +989,131 @@ export default function Templates() {
     );
 
 
-    const amnon =
+    alert(
+      "Plantillas oficiales de rollos actualizadas."
+    );
+
+  }
+
+
+  /*
+   * ==================================================
+   * CREAR / ACTUALIZAR FORMATO 2
+   * ==================================================
+   */
+
+  function createAllCoilTemplates() {
+
+    let currentTemplates =
+      getTemplates();
+
+
+    COIL_TEMPLATES.forEach(
+      (
+        coilTemplate,
+        index
+      ) => {
+
+        const existing =
+          currentTemplates.find(
+            template =>
+              template.name
+                .trim()
+                .toUpperCase() ===
+              coilTemplate.name
+                .trim()
+                .toUpperCase()
+          );
+
+
+        if (
+          existing
+        ) {
+
+          updateTemplate({
+
+            ...existing,
+
+            labelFormat:
+              "FORMATO_2",
+
+            backgroundImage:
+              coilTemplate.image
+
+          });
+
+        } else {
+
+          const newTemplate:
+            Template = {
+
+            id:
+              Date.now() +
+              100000 +
+              index +
+              Math.floor(
+                Math.random() *
+                100000
+              ),
+
+            name:
+              coilTemplate.name,
+
+            labelFormat:
+              "FORMATO_2",
+
+            backgroundImage:
+              coilTemplate.image,
+
+            elements: []
+
+          };
+
+
+          addTemplate(
+            newTemplate
+          );
+
+        }
+
+
+        currentTemplates =
+          getTemplates();
+
+      }
+    );
+
+
+    const updated =
+      getTemplates();
+
+
+    setTemplates(
+      updated
+    );
+
+
+    const firstCoilTemplate =
       updated.find(
         template =>
           template.name
             .trim()
             .toUpperCase() ===
-          "AMNON"
+          "AMNON BOBINAS"
       );
 
 
     if (
-      amnon
+      firstCoilTemplate
     ) {
 
       setSelectedTemplateId(
-        amnon.id
+        firstCoilTemplate.id
       );
 
 
       setCurrentTemplate(
-        amnon.id
+        firstCoilTemplate.id
       );
 
 
@@ -808,7 +1123,7 @@ export default function Templates() {
 
 
       setElements(
-        amnon.elements.map(
+        firstCoilTemplate.elements.map(
           element => ({
             ...element
           })
@@ -816,12 +1131,18 @@ export default function Templates() {
       );
 
     }
+
+
+    alert(
+      "Plantillas oficiales de bobinas creadas / actualizadas correctamente."
+    );
+
   }
 
 
   /*
    * ==================================================
-   * AÑADIR TEXTO LIBRE
+   * AÑADIR TEXTO
    * ==================================================
    */
 
@@ -842,6 +1163,7 @@ export default function Templates() {
       },
       100
     );
+
   }
 
 
@@ -882,6 +1204,7 @@ export default function Templates() {
       },
       0
     );
+
   }
 
 
@@ -945,6 +1268,7 @@ export default function Templates() {
     setSelected(
       copy.id
     );
+
   }
 
 
@@ -977,6 +1301,7 @@ export default function Templates() {
     setSelected(
       null
     );
+
   }
 
 
@@ -1003,6 +1328,7 @@ export default function Templates() {
 
       })
     );
+
   }
 
 
@@ -1026,10 +1352,6 @@ export default function Templates() {
         Plantillas
       </Typography>
 
-
-      {/* ==================================================
-          GESTIÓN
-         ================================================== */}
 
       <Card
         sx={{
@@ -1078,20 +1400,16 @@ export default function Templates() {
                   event
                 ) => {
 
-                  const value =
+                  handleSelectTemplate(
                     Number(
                       event.target.value
-                    );
-
-
-                  handleSelectTemplate(
-                    value
+                    )
                   );
 
                 }}
                 sx={{
                   minWidth:
-                    280
+                    300
                 }}
               >
 
@@ -1106,7 +1424,18 @@ export default function Templates() {
                         template.id
                       }
                     >
+
                       {template.name}
+
+                      {" — "}
+
+                      {
+                        template.labelFormat ===
+                        "FORMATO_2"
+                          ? "Bobinas"
+                          : "Rollos"
+                      }
+
                     </MenuItem>
 
                   )
@@ -1144,7 +1473,7 @@ export default function Templates() {
               </Button>
 
 
-              {isAmnon && (
+              {isAmnonFormat1 && (
 
                 <Button
                   variant="contained"
@@ -1157,6 +1486,24 @@ export default function Templates() {
                   }
                 >
                   Aplicar diseño AMNON
+                </Button>
+
+              )}
+
+
+              {isFormat2 && (
+
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={
+                    <AutoFixHighIcon />
+                  }
+                  onClick={
+                    applyFormat2Layout
+                  }
+                >
+                  Aplicar diseño bobinas
                 </Button>
 
               )}
@@ -1195,17 +1542,12 @@ export default function Templates() {
               spacing={
                 2
               }
-              alignItems={{
-                xs:
-                  "stretch",
-
-                md:
-                  "center"
-              }}
+              flexWrap="wrap"
+              useFlexGap
             >
 
               <Button
-                variant="text"
+                variant="outlined"
                 startIcon={
                   <AddIcon />
                 }
@@ -1213,47 +1555,70 @@ export default function Templates() {
                   createAllRollTemplates
                 }
               >
-                Crear / actualizar plantillas de rollos
+                Crear / actualizar rollos
               </Button>
 
 
-              <Typography
-                variant="caption"
-                color="text.secondary"
+              <Button
+                variant="contained"
+                startIcon={
+                  <AddIcon />
+                }
+                onClick={
+                  createAllCoilTemplates
+                }
               >
-                Mantiene las plantillas oficiales de rollos y conserva los elementos que ya hayas diseñado.
-              </Typography>
+                Crear / actualizar bobinas
+              </Button>
 
             </Stack>
 
 
             {selectedTemplate && (
 
-              <Typography
-                variant="body2"
-                color="text.secondary"
+              <Stack
+                direction="row"
+                spacing={
+                  1
+                }
+                alignItems="center"
+                flexWrap="wrap"
+                useFlexGap
               >
 
-                Formato:{" "}
-
-                <strong>
-                  {
-                    selectedTemplate.labelFormat
+                <Chip
+                  label={
+                    selectedTemplate.labelFormat ===
+                    "FORMATO_2"
+                      ? "FORMATO 2 · BOBINAS · 240 × 110 mm"
+                      : "FORMATO 1 · ROLLOS · 80 × 285 mm"
                   }
-                </strong>
-
-                {" · "}
-
-                Fondo:{" "}
-
-                <strong>
-                  {
-                    selectedTemplate.backgroundImage ||
-                    "Sin fondo"
+                  color={
+                    selectedTemplate.labelFormat ===
+                    "FORMATO_2"
+                      ? "secondary"
+                      : "primary"
                   }
-                </strong>
+                />
 
-              </Typography>
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
+
+                  Fondo:{" "}
+
+                  <strong>
+                    {
+                      selectedTemplate.backgroundImage ||
+                      "Sin fondo"
+                    }
+                  </strong>
+
+                </Typography>
+
+              </Stack>
 
             )}
 
@@ -1295,6 +1660,10 @@ export default function Templates() {
                 2
               }
             >
+
+              {/* ==================================================
+                  DATOS COMUNES
+                 ================================================== */}
 
               <Grid
                 size={{
@@ -1348,61 +1717,205 @@ export default function Templates() {
               </Grid>
 
 
-              <Grid
-                size={{
-                  xs: 12,
-                  md: 4
-                }}
-              >
+              {/* ==================================================
+                  FORMATO 1 / ROLLOS
+                 ================================================== */}
 
-                <TextField
-                  label="Descripción inferior"
-                  value={
-                    labelData.DESCRIPTION
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    updateLabel(
-                      "DESCRIPTION",
-                      event.target.value
-                    )
-                  }
-                  fullWidth
-                />
+              {!isFormat2 && (
 
-              </Grid>
+                <>
+
+                  <Grid
+                    size={{
+                      xs: 12,
+                      md: 4
+                    }}
+                  >
+
+                    <TextField
+                      label="Descripción"
+                      value={
+                        labelData.DESCRIPTION
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateLabel(
+                          "DESCRIPTION",
+                          event.target.value
+                        )
+                      }
+                      fullWidth
+                    />
+
+                  </Grid>
 
 
-              <Grid
-                size={{
-                  xs: 12
-                }}
-              >
+                  <Grid
+                    size={{
+                      xs: 12
+                    }}
+                  >
 
-                <TextField
-                  label="Texto superior (180°)"
-                  value={
-                    labelData.UPPER_TEXT
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    updateLabel(
-                      "UPPER_TEXT",
-                      event.target.value
-                    )
-                  }
-                  multiline
-                  minRows={
-                    5
-                  }
-                  fullWidth
-                  helperText="Dato de prueba. En Producción se genera automáticamente según la plantilla y las características del SKU."
-                />
+                    <TextField
+                      label="Texto superior (180°)"
+                      value={
+                        labelData.UPPER_TEXT
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateLabel(
+                          "UPPER_TEXT",
+                          event.target.value
+                        )
+                      }
+                      multiline
+                      minRows={
+                        5
+                      }
+                      fullWidth
+                      helperText="En Producción se genera automáticamente según la plantilla y las características del SKU."
+                    />
 
-              </Grid>
+                  </Grid>
 
+                </>
+
+              )}
+
+
+              {/* ==================================================
+                  FORMATO 2 / BOBINAS
+                 ================================================== */}
+
+              {isFormat2 && (
+
+                <>
+
+                  <Grid
+                    size={{
+                      xs: 12,
+                      md: 4
+                    }}
+                  >
+
+                    <TextField
+                      label="Descripción SKU"
+                      value={
+                        labelData.COIL_DESCRIPTION
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateLabel(
+                          "COIL_DESCRIPTION",
+                          event.target.value
+                        )
+                      }
+                      fullWidth
+                    />
+
+                  </Grid>
+
+
+                  <Grid
+                    size={{
+                      xs: 12
+                    }}
+                  >
+
+                    <TextField
+                      label="Información técnica de bobina"
+                      value={
+                        labelData.COIL_TECHNICAL
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateLabel(
+                          "COIL_TECHNICAL",
+                          event.target.value
+                        )
+                      }
+                      multiline
+                      minRows={
+                        4
+                      }
+                      fullWidth
+                      helperText="En Producción se genera automáticamente a partir de los datos del SKU."
+                    />
+
+                  </Grid>
+
+
+                  <Grid
+                    size={{
+                      xs: 12,
+                      md: 7
+                    }}
+                  >
+
+                    <TextField
+                      label="Texto técnico inferior"
+                      value={
+                        labelData.COIL_LEGAL
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateLabel(
+                          "COIL_LEGAL",
+                          event.target.value
+                        )
+                      }
+                      multiline
+                      minRows={
+                        3
+                      }
+                      fullWidth
+                    />
+
+                  </Grid>
+
+
+                  <Grid
+                    size={{
+                      xs: 12,
+                      md: 5
+                    }}
+                  >
+
+                    <TextField
+                      label="Origen / planta"
+                      value={
+                        labelData.COIL_ORIGIN
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateLabel(
+                          "COIL_ORIGIN",
+                          event.target.value
+                        )
+                      }
+                      multiline
+                      minRows={
+                        3
+                      }
+                      fullWidth
+                    />
+
+                  </Grid>
+
+                </>
+
+              )}
+
+
+              {/* ==================================================
+                  DATOS COMUNES
+                 ================================================== */}
 
               <Grid
                 size={{
@@ -1542,7 +2055,7 @@ export default function Templates() {
               >
 
                 <TextField
-                  label="Rollos"
+                  label="Rollos / bobinas"
                   value={
                     labelData.ROLLS
                   }
@@ -1642,13 +2155,17 @@ export default function Templates() {
 
                   onDescription={() =>
                     triggerField(
-                      "DESCRIPTION"
+                      isFormat2
+                        ? "COIL_DESCRIPTION"
+                        : "DESCRIPTION"
                     )
                   }
 
                   onUpperText={() =>
                     triggerField(
-                      "UPPER_TEXT"
+                      isFormat2
+                        ? "COIL_TECHNICAL"
+                        : "UPPER_TEXT"
                     )
                   }
 
@@ -1877,14 +2394,14 @@ export default function Templates() {
               <MenuItem
                 value="FORMATO_1"
               >
-                Formato 1 — 80 × 285 mm
+                Formato 1 — Rollos — 80 × 285 mm
               </MenuItem>
 
 
               <MenuItem
                 value="FORMATO_2"
               >
-                Formato 2 — 110 × 240 mm
+                Formato 2 — Bobinas — 240 × 110 mm
               </MenuItem>
 
             </TextField>
@@ -1902,8 +2419,8 @@ export default function Templates() {
                   event.target.value
                 )
               }
-              placeholder="ejemplo-formato1.png"
-              helperText="La imagen debe estar guardada en public/templates."
+              placeholder="formato2/ejemplo-formato2.png"
+              helperText="La imagen debe estar guardada dentro de public/templates."
               fullWidth
             />
 
@@ -1942,5 +2459,7 @@ export default function Templates() {
       </Dialog>
 
     </Box>
+
   );
+
 }

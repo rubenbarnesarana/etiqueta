@@ -26,6 +26,12 @@ interface CanvasProps {
 }
 
 
+/*
+ * ==================================================
+ * FORMATOS FÍSICOS
+ * ==================================================
+ */
+
 const FORMATS = {
 
   FORMATO_1: {
@@ -34,12 +40,18 @@ const FORMATS = {
   },
 
   FORMATO_2: {
-    width: 110,
-    height: 240
+    width: 240,
+    height: 110
   }
 
 };
 
+
+/*
+ * ==================================================
+ * DEFAULTS FORMATO 1
+ * ==================================================
+ */
 
 const FORMAT_1_DEFAULTS: Record<
   string,
@@ -121,6 +133,145 @@ const FORMAT_1_DEFAULTS: Record<
     y: 232,
     width: 24,
     height: 24
+  }
+
+};
+
+
+/*
+ * ==================================================
+ * DEFAULTS FORMATO 2
+ * BOBINAS - 240 x 110 mm
+ * ==================================================
+ */
+
+const FORMAT_2_DEFAULTS: Record<
+  string,
+  {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation?: number;
+    fontSize?: number;
+    fontWeight?: number;
+  }
+> = {
+
+  /*
+   * Descripción original del SKU
+   */
+
+  COIL_DESCRIPTION: {
+    x: 7,
+    y: 9,
+    width: 108,
+    height: 10,
+    rotation: 0,
+    fontSize: 14,
+    fontWeight: 700
+  },
+
+
+  /*
+   * Bloque técnico
+   */
+
+  COIL_TECHNICAL: {
+    x: 7,
+    y: 20,
+    width: 108,
+    height: 36,
+    rotation: 0,
+    fontSize: 12,
+    fontWeight: 600
+  },
+
+
+  /*
+   * Texto inferior izquierdo
+   */
+
+  COIL_LEGAL: {
+    x: 7,
+    y: 57,
+    width: 62,
+    height: 15,
+    rotation: 0,
+    fontSize: 6,
+    fontWeight: 400
+  },
+
+
+  /*
+   * MADE IN SPAIN / QI02
+   */
+
+  COIL_ORIGIN: {
+    x: 69,
+    y: 62,
+    width: 46,
+    height: 8,
+    rotation: 0,
+    fontSize: 7,
+    fontWeight: 600
+  },
+
+
+  ORDER: {
+    x: 7,
+    y: 80,
+    width: 39,
+    height: 14,
+    rotation: 0,
+    fontSize: 12,
+    fontWeight: 700
+  },
+
+  LOT: {
+    x: 48,
+    y: 80,
+    width: 34,
+    height: 14,
+    rotation: 0,
+    fontSize: 12,
+    fontWeight: 700
+  },
+
+  COIL: {
+    x: 84,
+    y: 80,
+    width: 31,
+    height: 14,
+    rotation: 0,
+    fontSize: 13,
+    fontWeight: 700
+  },
+
+  BARCODE: {
+    x: 143,
+    y: 69,
+    width: 70,
+    height: 25,
+    rotation: 0
+  },
+
+  SKU: {
+    x: 143,
+    y: 94,
+    width: 70,
+    height: 8,
+    rotation: 0,
+    fontSize: 11,
+    fontWeight: 600
+  },
+
+  QR: {
+    x: 190,
+    y: 70,
+    width: 25,
+    height: 25,
+    rotation: 0
   }
 
 };
@@ -259,29 +410,6 @@ const CODE128_PATTERNS = [
  * ==================================================
  * GENERAR CODE 128
  * ==================================================
- *
- * Para SKU numérico:
- *
- * PAR:
- * START C
- *
- * IMPAR:
- * START C
- * pares numéricos
- * CODE B
- * último dígito
- *
- * 101089300:
- *
- * START C
- * 10
- * 10
- * 89
- * 30
- * CODE B
- * 0
- * CHECKSUM
- * STOP
  */
 
 function buildTecItCode128(
@@ -294,9 +422,7 @@ function buildTecItCode128(
     );
 
 
-  if (
-    !numeric
-  ) {
+  if (!numeric) {
     return null;
   }
 
@@ -304,12 +430,6 @@ function buildTecItCode128(
   const codes: number[] =
     [];
 
-
-  /*
-   * ==================================================
-   * UN SOLO DÍGITO
-   * ==================================================
-   */
 
   if (
     value.length ===
@@ -330,10 +450,6 @@ function buildTecItCode128(
 
   } else {
 
-    /*
-     * START C
-     */
-
     codes.push(
       105
     );
@@ -347,10 +463,6 @@ function buildTecItCode128(
         : value.length -
           1;
 
-
-    /*
-     * PARES EN CODE C
-     */
 
     for (
       let i = 0;
@@ -374,19 +486,11 @@ function buildTecItCode128(
     }
 
 
-    /*
-     * SI SOBRA UN DÍGITO
-     */
-
     if (
       value.length %
       2 !==
       0
     ) {
-
-      /*
-       * CODE B
-       */
 
       codes.push(
         100
@@ -411,12 +515,6 @@ function buildTecItCode128(
 
   }
 
-
-  /*
-   * ==================================================
-   * CHECKSUM
-   * ==================================================
-   */
 
   let checksum =
     codes[0];
@@ -445,20 +543,10 @@ function buildTecItCode128(
   );
 
 
-  /*
-   * STOP
-   */
-
   codes.push(
     106
   );
 
-
-  /*
-   * ==================================================
-   * CONVERTIR A MÓDULOS
-   * ==================================================
-   */
 
   let modules =
     "";
@@ -474,9 +562,7 @@ function buildTecItCode128(
       ];
 
 
-    if (
-      !pattern
-    ) {
+    if (!pattern) {
       continue;
     }
 
@@ -514,6 +600,7 @@ function buildTecItCode128(
 
 
   return modules;
+
 }
 
 
@@ -526,11 +613,15 @@ export default function Canvas({
 }: CanvasProps) {
 
   const {
+
     elements,
     setElements,
+
     selected,
     setSelected,
+
     labelData
+
   } = useDesigner();
 
 
@@ -614,6 +705,7 @@ export default function Canvas({
       element.text ??
       ""
     );
+
   }
 
 
@@ -627,10 +719,14 @@ export default function Canvas({
     field?: string
   ) {
 
+    if (!field) {
+      return null;
+    }
+
+
     if (
       labelFormat ===
-        "FORMATO_1" &&
-      field
+      "FORMATO_1"
     ) {
 
       return (
@@ -643,7 +739,23 @@ export default function Canvas({
     }
 
 
+    if (
+      labelFormat ===
+      "FORMATO_2"
+    ) {
+
+      return (
+        FORMAT_2_DEFAULTS[
+          field
+        ] ??
+        null
+      );
+
+    }
+
+
     return null;
+
   }
 
 
@@ -714,6 +826,11 @@ export default function Canvas({
           ? "Texto"
           : "",
 
+      binding:
+        normalizedField
+          ? `\${${normalizedField}}`
+          : undefined,
+
       x:
         defaults?.x ??
         10,
@@ -745,7 +862,9 @@ export default function Canvas({
       rotation:
         defaults?.rotation ??
         (
-          isUpperText
+          isUpperText &&
+          labelFormat ===
+          "FORMATO_1"
             ? 180
             : 0
         ),
@@ -798,6 +917,9 @@ export default function Canvas({
       newElement.field =
         "BARCODE";
 
+      newElement.binding =
+        "${BARCODE}";
+
     }
 
 
@@ -808,6 +930,9 @@ export default function Canvas({
 
       newElement.field =
         "QR";
+
+      newElement.binding =
+        "${QR}";
 
     }
 
@@ -823,6 +948,7 @@ export default function Canvas({
     setSelected(
       newElement.id
     );
+
   }
 
 
@@ -834,9 +960,7 @@ export default function Canvas({
 
   useEffect(() => {
 
-    if (
-      !addText
-    ) {
+    if (!addText) {
       return;
     }
 
@@ -858,9 +982,7 @@ export default function Canvas({
 
   useEffect(() => {
 
-    if (
-      !insertField
-    ) {
+    if (!insertField) {
       return;
     }
 
@@ -881,6 +1003,7 @@ export default function Canvas({
       );
 
       return;
+
     }
 
 
@@ -895,6 +1018,7 @@ export default function Canvas({
       );
 
       return;
+
     }
 
 
@@ -909,6 +1033,7 @@ export default function Canvas({
       );
 
       return;
+
     }
 
 
@@ -947,9 +1072,7 @@ export default function Canvas({
         svgRef.current;
 
 
-      if (
-        !svg
-      ) {
+      if (!svg) {
         return;
       }
 
@@ -960,10 +1083,6 @@ export default function Canvas({
           "123456789"
         ).trim();
 
-
-      /*
-       * LIMPIAR BARCODE ANTERIOR
-       */
 
       while (
         svg.firstChild
@@ -982,12 +1101,6 @@ export default function Canvas({
         );
 
 
-      /*
-       * ==================================================
-       * BARCODE NUMÉRICO
-       * ==================================================
-       */
-
       if (
         modules
       ) {
@@ -995,25 +1108,6 @@ export default function Canvas({
         const namespace =
           "http://www.w3.org/2000/svg";
 
-
-        /*
-         * ==================================================
-         * PROPORCIÓN DE LA REFERENCIA TEC-IT
-         *
-         * 101 módulos
-         * 2 unidades por módulo
-         *
-         * BARRAS:
-         * 202 x 76
-         *
-         * TEXTO:
-         * debajo de las barras
-         *
-         * No metemos quiet-zone dentro del SVG.
-         * El espacio blanco lo proporciona el
-         * propio elemento de la etiqueta.
-         * ==================================================
-         */
 
         const moduleWidth =
           2;
@@ -1024,34 +1118,17 @@ export default function Canvas({
           moduleWidth;
 
 
-        /*
-         * Referencia:
-         * barras de aproximadamente 76 px.
-         */
-
         const barHeight =
           76;
 
-
-        /*
-         * Separación entre barras y número.
-         */
 
         const textGap =
           4;
 
 
-        /*
-         * Tamaño del número.
-         */
-
         const textSize =
           18;
 
-
-        /*
-         * Espacio inferior reservado para texto.
-         */
 
         const textSpace =
           24;
@@ -1067,12 +1144,6 @@ export default function Canvas({
           textSpace;
 
 
-        /*
-         * ==================================================
-         * VIEWBOX
-         * ==================================================
-         */
-
         svg.setAttribute(
           "viewBox",
           `0 0 ${totalWidth} ${totalHeight}`
@@ -1084,12 +1155,6 @@ export default function Canvas({
           "xMidYMid meet"
         );
 
-
-        /*
-         * ==================================================
-         * FONDO
-         * ==================================================
-         */
 
         const background =
           document.createElementNS(
@@ -1137,12 +1202,6 @@ export default function Canvas({
         );
 
 
-        /*
-         * ==================================================
-         * DIBUJAR BARRAS
-         * ==================================================
-         */
-
         let x =
           0;
 
@@ -1155,10 +1214,6 @@ export default function Canvas({
           index <
           modules.length
         ) {
-
-          /*
-           * MÓDULO BLANCO
-           */
 
           if (
             modules[
@@ -1175,12 +1230,9 @@ export default function Canvas({
 
 
             continue;
+
           }
 
-
-          /*
-           * AGRUPAR MÓDULOS NEGROS CONSECUTIVOS
-           */
 
           let blackModules =
             0;
@@ -1196,7 +1248,6 @@ export default function Canvas({
           ) {
 
             blackModules++;
-
 
             index++;
 
@@ -1258,12 +1309,6 @@ export default function Canvas({
 
         }
 
-
-        /*
-         * ==================================================
-         * NÚMERO
-         * ==================================================
-         */
 
         const text =
           document.createElementNS(
@@ -1333,14 +1378,9 @@ export default function Canvas({
 
 
         return;
+
       }
 
-
-      /*
-       * ==================================================
-       * FALLBACK PARA BARCODES NO NUMÉRICOS
-       * ==================================================
-       */
 
       try {
 
@@ -1450,8 +1490,7 @@ export default function Canvas({
             svgRef
           }
 
-          preserveAspectRatio=
-            "xMidYMid meet"
+          preserveAspectRatio="xMidYMid meet"
 
           style={{
 
@@ -1473,6 +1512,7 @@ export default function Canvas({
       </Box>
 
     );
+
   }
 
 
@@ -1543,6 +1583,7 @@ export default function Canvas({
       />
 
     );
+
   }
 
 
@@ -1586,11 +1627,14 @@ export default function Canvas({
     const startX =
       event.clientX;
 
+
     const startY =
       event.clientY;
 
+
     const originalX =
       element.x;
+
 
     const originalY =
       element.y;
@@ -1699,6 +1743,7 @@ export default function Canvas({
       "mouseup",
       handleUp
     );
+
   }
 
 
@@ -1771,6 +1816,7 @@ export default function Canvas({
               : item
         )
     );
+
   }
 
 
@@ -1794,9 +1840,60 @@ export default function Canvas({
       ).toUpperCase();
 
 
+    /*
+     * FORMATO 1
+     */
+
     if (
       field ===
         "UPPER_TEXT" ||
+      field ===
+        "DESCRIPTION"
+    ) {
+
+      return "center";
+
+    }
+
+
+    /*
+     * FORMATO 2
+     *
+     * Descripción y bloque técnico
+     * centrados dentro del cuadro grande.
+     */
+
+    if (
+      field ===
+        "COIL_DESCRIPTION" ||
+      field ===
+        "COIL_TECHNICAL"
+    ) {
+
+      return "center";
+
+    }
+
+
+    /*
+     * MADE IN SPAIN / QI02
+     */
+
+    if (
+      field ===
+      "COIL_ORIGIN"
+    ) {
+
+      return "center";
+
+    }
+
+
+    /*
+     * ORDER / LOT / COIL / SKU
+     */
+
+    if (
       field ===
         "ORDER" ||
       field ===
@@ -1804,15 +1901,21 @@ export default function Canvas({
       field ===
         "COIL" ||
       field ===
-        "SKU" ||
-      field ===
-        "DESCRIPTION"
+        "SKU"
     ) {
+
       return "center";
+
     }
 
 
+    /*
+     * COIL_LEGAL queda alineado
+     * a la izquierda.
+     */
+
     return "left";
+
   }
 
 
@@ -1994,6 +2097,26 @@ export default function Canvas({
                 "UPPER_TEXT";
 
 
+              const isCoilDescription =
+                field ===
+                "COIL_DESCRIPTION";
+
+
+              const isCoilTechnical =
+                field ===
+                "COIL_TECHNICAL";
+
+
+              const isCoilLegal =
+                field ===
+                "COIL_LEGAL";
+
+
+              const isCoilOrigin =
+                field ===
+                "COIL_ORIGIN";
+
+
               const isBoxField =
                 field ===
                   "ORDER" ||
@@ -2001,6 +2124,14 @@ export default function Canvas({
                   "LOT" ||
                 field ===
                   "COIL";
+
+
+              const centerVertically =
+                isUpperText ||
+                isCoilDescription ||
+                isCoilTechnical ||
+                isCoilOrigin ||
+                isBoxField;
 
 
               return (
@@ -2072,7 +2203,7 @@ export default function Canvas({
                       "flex",
 
                     alignItems:
-                      isBoxField
+                      centerVertically
                         ? "center"
                         : "flex-start",
 
@@ -2080,7 +2211,10 @@ export default function Canvas({
                       textAlign ===
                       "center"
                         ? "center"
-                        : "flex-start"
+                        : textAlign ===
+                            "right"
+                          ? "flex-end"
+                          : "flex-start"
 
                   }}
                 >
@@ -2093,6 +2227,7 @@ export default function Canvas({
                       value={
                         value
                       }
+
                       element={
                         element
                       }
@@ -2159,8 +2294,7 @@ export default function Canvas({
                           "column",
 
                         justifyContent:
-                          isUpperText ||
-                          isBoxField
+                          centerVertically
                             ? "center"
                             : "flex-start",
 
@@ -2180,13 +2314,23 @@ export default function Canvas({
                         lineHeight:
                           isUpperText
                             ? 1.25
-                            : 1.1,
+                            : isCoilTechnical
+                              ? 1.25
+                              : isCoilLegal
+                                ? 1.15
+                                : 1.1,
 
                         whiteSpace:
                           "pre-wrap",
 
                         overflow:
                           "hidden",
+
+                        overflowWrap:
+                          "break-word",
+
+                        wordBreak:
+                          "normal",
 
                         userSelect:
                           "none",
@@ -2219,5 +2363,7 @@ export default function Canvas({
       </Paper>
 
     </Box>
+
   );
+
 }

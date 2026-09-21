@@ -14,13 +14,10 @@ export interface Template {
 
   name: string;
 
-  // Tamaño físico de la etiqueta
   labelFormat: LabelFormat;
 
-  // Imagen base
   backgroundImage?: string;
 
-  // Elementos dinámicos
   elements: DesignerElement[];
 
 }
@@ -35,19 +32,176 @@ const CURRENT_TEMPLATE_KEY =
 
 /*
  * ==================================================
- * ELEMENTOS OFICIALES AMNON - FORMATO 1
+ * IDENTIFICAR FONDO OFICIAL FORMATO 1
+ * ROLLOS
+ * ==================================================
+ */
+
+export function getFormat1Background(
+  templateName: string
+): string | null {
+
+  const name =
+    templateName
+      .trim()
+      .toUpperCase();
+
+
+  /*
+   * AMNON
+   */
+
+  if (
+    name.includes(
+      "AMNON"
+    )
+  ) {
+
+    return "/templates/amnon-formato1.png";
+
+  }
+
+
+  /*
+   * LISA
+   */
+
+  if (
+    name.includes(
+      "LISA"
+    )
+  ) {
+
+    return "/templates/lisa-formato1.png";
+
+  }
+
+
+  /*
+   * MICROTUBO ROLLOS
+   */
+
+  if (
+    name.includes(
+      "MICROTUBO"
+    )
+  ) {
+
+    return "/templates/microtuborollos-formato1.png";
+
+  }
+
+
+  /*
+   * NAAN PC MAX
+   *
+   * IMPORTANTE:
+   * comprobar MAX antes de NAAN PC
+   */
+
+  if (
+    name.includes(
+      "NAAN PC MAX"
+    ) ||
+    name.includes(
+      "NAANPCMAX"
+    ) ||
+    name.includes(
+      "NAANPC MAX"
+    )
+  ) {
+
+    return "/templates/naanpcmax-formato1.png";
+
+  }
+
+
+  /*
+   * NAAN PC
+   */
+
+  if (
+    name.includes(
+      "NAAN PC"
+    ) ||
+    name.includes(
+      "NAANPC"
+    )
+  ) {
+
+    return "/templates/naanpc-formato1.png";
+
+  }
+
+
+  /*
+   * TIFDRIP+
+   */
+
+  if (
+    name.includes(
+      "TIFDRIP+"
+    ) ||
+    name.includes(
+      "TIFDRIP"
+    )
+  ) {
+
+    return "/templates/tifdrip+-formato1.png";
+
+  }
+
+
+  /*
+   * TOPDRIP
+   */
+
+  if (
+    name.includes(
+      "TOPDRIP"
+    ) ||
+    name.includes(
+      "TOP DRIP"
+    )
+  ) {
+
+    return "/templates/topdrip-formato1.png";
+
+  }
+
+
+  /*
+   * TURBO EXCEL ROLLOS
+   */
+
+  if (
+    name.includes(
+      "TURBO EXCEL"
+    ) ||
+    name.includes(
+      "TURBOEXCEL"
+    ) ||
+    name.includes(
+      "EXCEL"
+    )
+  ) {
+
+    return "/templates/turboexcelrollos-formato1.png";
+
+  }
+
+
+  return null;
+
+}
+
+
+/*
+ * ==================================================
+ * ELEMENTOS OFICIALES FORMATO 1
+ * ROLLOS
  * 80 x 285 mm
  * ==================================================
- *
- * La imagen de fondo contiene:
- *
- * - líneas
- * - logos
- * - AMNON
- * - textos fijos
- * - REELVIEW
- *
- * Aquí colocamos únicamente los datos variables.
  */
 
 export function createAmnonFormat1Elements():
@@ -58,22 +212,6 @@ export function createAmnonFormat1Elements():
 
 
   return [
-
-    /*
-     * ==================================================
-     * TEXTO SUPERIOR
-     * ==================================================
-     *
-     * Ejemplo:
-     *
-     * AMNON PC AS 16/2.2
-     * 75CM E-1MM R-500M
-     * Emitting Pipe
-     * Max Pressure 3.5 BAR
-     * ISO 9261
-     *
-     * Toda esta zona va girada 180°.
-     */
 
     {
       id:
@@ -126,12 +264,6 @@ export function createAmnonFormat1Elements():
     },
 
 
-    /*
-     * ==================================================
-     * ORDER
-     * ==================================================
-     */
-
     {
       id:
         baseId + 2,
@@ -182,12 +314,6 @@ export function createAmnonFormat1Elements():
         true
     },
 
-
-    /*
-     * ==================================================
-     * LOT
-     * ==================================================
-     */
 
     {
       id:
@@ -240,12 +366,6 @@ export function createAmnonFormat1Elements():
     },
 
 
-    /*
-     * ==================================================
-     * COIL
-     * ==================================================
-     */
-
     {
       id:
         baseId + 4,
@@ -296,14 +416,6 @@ export function createAmnonFormat1Elements():
         true
     },
 
-
-    /*
-     * ==================================================
-     * CÓDIGO DE BARRAS
-     * ==================================================
-     *
-     * El valor será automáticamente el SKU.
-     */
 
     {
       id:
@@ -368,16 +480,6 @@ export function createAmnonFormat1Elements():
     },
 
 
-    /*
-     * ==================================================
-     * DESCRIPCIÓN INFERIOR
-     * ==================================================
-     *
-     * Ejemplo:
-     *
-     * AS 16/40/2.2/0.75 R-500M
-     */
-
     {
       id:
         baseId + 6,
@@ -429,12 +531,13 @@ export function createAmnonFormat1Elements():
     }
 
   ];
+
 }
 
 
 /*
  * ==================================================
- * APLICAR DISEÑO OFICIAL AMNON
+ * APLICAR DISEÑO OFICIAL FORMATO 1
  * ==================================================
  */
 
@@ -449,11 +552,27 @@ export function applyAmnonFormat1Layout(
 
 
   if (!template) {
+
     return null;
+
   }
 
 
-  const updated: Template = {
+  /*
+   * Ahora no forzamos siempre AMNON.
+   *
+   * Buscamos automáticamente el fondo correcto
+   * según el nombre de la plantilla.
+   */
+
+  const detectedBackground =
+    getFormat1Background(
+      template.name
+    );
+
+
+  const updated:
+    Template = {
 
     ...template,
 
@@ -461,7 +580,8 @@ export function applyAmnonFormat1Layout(
       "FORMATO_1",
 
     backgroundImage:
-      "/templates/amnon-formato1.png",
+      detectedBackground ??
+      template.backgroundImage,
 
     elements:
       createAmnonFormat1Elements()
@@ -475,6 +595,613 @@ export function applyAmnonFormat1Layout(
 
 
   return updated;
+
+}
+
+
+/*
+ * ==================================================
+ * ELEMENTOS OFICIALES FORMATO 2
+ * BOBINAS
+ * 240 x 110 mm
+ * ==================================================
+ */
+
+export function createFormat2Elements():
+  DesignerElement[] {
+
+  const baseId =
+    Date.now();
+
+
+  return [
+
+    {
+      id:
+        baseId + 1,
+
+      type:
+        "field",
+
+      field:
+        "COIL_DESCRIPTION",
+
+      text:
+        "COIL_DESCRIPTION",
+
+      value:
+        "",
+
+      binding:
+        "${COIL_DESCRIPTION}",
+
+      x:
+        7,
+
+      y:
+        9,
+
+      width:
+        108,
+
+      height:
+        10,
+
+      rotation:
+        0,
+
+      fontSize:
+        14,
+
+      fontWeight:
+        700,
+
+      color:
+        "#000000",
+
+      locked:
+        false,
+
+      visible:
+        true
+    },
+
+
+    {
+      id:
+        baseId + 2,
+
+      type:
+        "field",
+
+      field:
+        "COIL_TECHNICAL",
+
+      text:
+        "COIL_TECHNICAL",
+
+      value:
+        "",
+
+      binding:
+        "${COIL_TECHNICAL}",
+
+      x:
+        7,
+
+      y:
+        20,
+
+      width:
+        108,
+
+      height:
+        36,
+
+      rotation:
+        0,
+
+      fontSize:
+        12,
+
+      fontWeight:
+        600,
+
+      color:
+        "#000000",
+
+      locked:
+        false,
+
+      visible:
+        true
+    },
+
+
+    {
+      id:
+        baseId + 3,
+
+      type:
+        "field",
+
+      field:
+        "COIL_LEGAL",
+
+      text:
+        "COIL_LEGAL",
+
+      value:
+        "",
+
+      binding:
+        "${COIL_LEGAL}",
+
+      x:
+        7,
+
+      y:
+        57,
+
+      width:
+        62,
+
+      height:
+        15,
+
+      rotation:
+        0,
+
+      fontSize:
+        6,
+
+      fontWeight:
+        400,
+
+      color:
+        "#000000",
+
+      locked:
+        false,
+
+      visible:
+        true
+    },
+
+
+    {
+      id:
+        baseId + 4,
+
+      type:
+        "field",
+
+      field:
+        "COIL_ORIGIN",
+
+      text:
+        "COIL_ORIGIN",
+
+      value:
+        "",
+
+      binding:
+        "${COIL_ORIGIN}",
+
+      x:
+        69,
+
+      y:
+        62,
+
+      width:
+        46,
+
+      height:
+        8,
+
+      rotation:
+        0,
+
+      fontSize:
+        7,
+
+      fontWeight:
+        600,
+
+      color:
+        "#000000",
+
+      locked:
+        false,
+
+      visible:
+        true
+    },
+
+
+    {
+      id:
+        baseId + 5,
+
+      type:
+        "field",
+
+      field:
+        "ORDER",
+
+      text:
+        "ORDER",
+
+      value:
+        "",
+
+      binding:
+        "${ORDER}",
+
+      x:
+        7,
+
+      y:
+        80,
+
+      width:
+        39,
+
+      height:
+        14,
+
+      rotation:
+        0,
+
+      fontSize:
+        12,
+
+      fontWeight:
+        700,
+
+      color:
+        "#000000",
+
+      locked:
+        false,
+
+      visible:
+        true
+    },
+
+
+    {
+      id:
+        baseId + 6,
+
+      type:
+        "field",
+
+      field:
+        "LOT",
+
+      text:
+        "LOT",
+
+      value:
+        "",
+
+      binding:
+        "${LOT}",
+
+      x:
+        48,
+
+      y:
+        80,
+
+      width:
+        34,
+
+      height:
+        14,
+
+      rotation:
+        0,
+
+      fontSize:
+        12,
+
+      fontWeight:
+        700,
+
+      color:
+        "#000000",
+
+      locked:
+        false,
+
+      visible:
+        true
+    },
+
+
+    {
+      id:
+        baseId + 7,
+
+      type:
+        "field",
+
+      field:
+        "COIL",
+
+      text:
+        "COIL",
+
+      value:
+        "",
+
+      binding:
+        "${COIL}",
+
+      x:
+        84,
+
+      y:
+        80,
+
+      width:
+        31,
+
+      height:
+        14,
+
+      rotation:
+        0,
+
+      fontSize:
+        13,
+
+      fontWeight:
+        700,
+
+      color:
+        "#000000",
+
+      locked:
+        false,
+
+      visible:
+        true
+    },
+
+
+    {
+      id:
+        baseId + 8,
+
+      type:
+        "barcode",
+
+      field:
+        "BARCODE",
+
+      text:
+        "BARCODE",
+
+      value:
+        "",
+
+      binding:
+        "${BARCODE}",
+
+      barcodeFormat:
+        "CODE128",
+
+      barcodeHeight:
+        30,
+
+      barcodeWidth:
+        2,
+
+      barcodeDisplayValue:
+        true,
+
+      x:
+        143,
+
+      y:
+        69,
+
+      width:
+        70,
+
+      height:
+        25,
+
+      rotation:
+        0,
+
+      fontSize:
+        11,
+
+      fontWeight:
+        400,
+
+      color:
+        "#000000",
+
+      locked:
+        false,
+
+      visible:
+        true
+    }
+
+  ];
+
+}
+
+
+/*
+ * ==================================================
+ * IDENTIFICAR FONDO OFICIAL FORMATO 2
+ * BOBINAS
+ * ==================================================
+ */
+
+export function getFormat2Background(
+  templateName: string
+): string | null {
+
+  const name =
+    templateName
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    name.includes(
+      "AMNON"
+    )
+  ) {
+
+    return "/templates/formato2/amnon-formato2.png";
+
+  }
+
+
+  if (
+    name.includes(
+      "CHAPIN"
+    )
+  ) {
+
+    return "/templates/formato2/chapin-stf-formato2.png";
+
+  }
+
+
+  if (
+    name.includes(
+      "D900"
+    )
+  ) {
+
+    return "/templates/formato2/d900-formato2.png";
+
+  }
+
+
+  if (
+    name.includes(
+      "TAL DRIP"
+    ) ||
+    name.includes(
+      "TALDRIP"
+    )
+  ) {
+
+    return "/templates/formato2/taldrip-gen2-formato2.png";
+
+  }
+
+
+  if (
+    name.includes(
+      "TOP DRIP"
+    ) ||
+    name.includes(
+      "TOPDRIP"
+    )
+  ) {
+
+    return "/templates/formato2/topdrip-formato2.png";
+
+  }
+
+
+  if (
+    name.includes(
+      "TURBO EXCEL"
+    ) ||
+    name.includes(
+      "TURBOEXCEL"
+    )
+  ) {
+
+    return "/templates/formato2/turboexcel-formato2.png";
+
+  }
+
+
+  return null;
+
+}
+
+
+/*
+ * ==================================================
+ * APLICAR DISEÑO OFICIAL FORMATO 2
+ * ==================================================
+ */
+
+export function applyOfficialFormat2Layout(
+  templateId: number
+): Template | null {
+
+  const template =
+    findTemplate(
+      templateId
+    );
+
+
+  if (!template) {
+
+    return null;
+
+  }
+
+
+  const backgroundImage =
+    getFormat2Background(
+      template.name
+    );
+
+
+  if (!backgroundImage) {
+
+    console.error(
+      "No se ha podido identificar el fondo de Formato 2:",
+      template.name
+    );
+
+
+    return null;
+
+  }
+
+
+  const updated:
+    Template = {
+
+    ...template,
+
+    labelFormat:
+      "FORMATO_2",
+
+    backgroundImage,
+
+    elements:
+      createFormat2Elements()
+
+  };
+
+
+  updateTemplate(
+    updated
+  );
+
+
+  return updated;
+
 }
 
 
@@ -494,7 +1221,9 @@ export function getTemplates():
 
 
   if (!data) {
+
     return [];
+
   }
 
 
@@ -511,7 +1240,9 @@ export function getTemplates():
         templates
       )
     ) {
+
       return [];
+
     }
 
 
@@ -519,39 +1250,81 @@ export function getTemplates():
       (
         template:
           any
-      ) => ({
+      ) => {
 
-        id:
-          Number(
-            template.id
-          ),
-
-        name:
-          String(
-            template.name ??
-            "Plantilla"
-          ),
-
-        labelFormat:
+        const labelFormat:
+          LabelFormat =
           template.labelFormat ===
           "FORMATO_2"
             ? "FORMATO_2"
-            : "FORMATO_1",
+            : "FORMATO_1";
 
-        backgroundImage:
-          typeof template.backgroundImage ===
-          "string"
-            ? template.backgroundImage
-            : undefined,
 
-        elements:
-          Array.isArray(
-            template.elements
-          )
-            ? template.elements
-            : []
+        /*
+         * ==================================================
+         * AUTOCORRECCIÓN DEL FONDO
+         * ==================================================
+         *
+         * Cada vez que se lee una plantilla buscamos
+         * el fondo oficial correspondiente.
+         *
+         * Esto también corrige plantillas antiguas
+         * guardadas en localStorage con una ruta vieja.
+         */
 
-      })
+        const officialBackground =
+          labelFormat ===
+          "FORMATO_2"
+
+            ? getFormat2Background(
+                String(
+                  template.name ??
+                  ""
+                )
+              )
+
+            : getFormat1Background(
+                String(
+                  template.name ??
+                  ""
+                )
+              );
+
+
+        return {
+
+          id:
+            Number(
+              template.id
+            ),
+
+          name:
+            String(
+              template.name ??
+              "Plantilla"
+            ),
+
+          labelFormat,
+
+          backgroundImage:
+            officialBackground ??
+            (
+              typeof template.backgroundImage ===
+              "string"
+                ? template.backgroundImage
+                : undefined
+            ),
+
+          elements:
+            Array.isArray(
+              template.elements
+            )
+              ? template.elements
+              : []
+
+        };
+
+      }
     );
 
   } catch {
@@ -564,6 +1337,7 @@ export function getTemplates():
 
 
   return [];
+
 }
 
 
@@ -747,7 +1521,9 @@ export function getCurrentTemplate():
 
 
   if (!data) {
+
     return null;
+
   }
 
 
@@ -762,11 +1538,14 @@ export function getCurrentTemplate():
       id
     )
   ) {
+
     return null;
+
   }
 
 
   return id;
+
 }
 
 
