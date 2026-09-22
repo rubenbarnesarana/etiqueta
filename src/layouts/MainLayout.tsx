@@ -31,6 +31,7 @@ import LabelIcon from "@mui/icons-material/Label";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PersonIcon from "@mui/icons-material/Person";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import HistoryIcon from "@mui/icons-material/History";
 
 import AppRoutes from "../routes/AppRoutes";
 
@@ -162,6 +163,12 @@ export default function MainLayout() {
       text: "Imprimir Orden",
       path: "/operator/load",
       icon: <PrintIcon />
+    },
+
+    {
+      text: "Historial impresión",
+      path: "/print-history",
+      icon: <HistoryIcon />
     },
 
     {
@@ -703,14 +710,8 @@ export default function MainLayout() {
         }}
       >
 
-        {/* espacio para AppBar */}
-
         <Toolbar />
 
-
-        {/* =========================================
-            PÁGINA
-            ========================================= */}
 
         <Box
           sx={{

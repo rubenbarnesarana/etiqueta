@@ -42,6 +42,14 @@ import {
   printLabel
 } from "../../services/PrintService";
 
+import {
+  registerPrint
+} from "../../services/PrintHistoryService";
+
+import {
+  useAuth
+} from "../../auth/AuthContext";
+
 import type {
   DesignerElement
 } from "../../components/designer/DesignerTypes";
@@ -51,6 +59,11 @@ export default function OrderPrint() {
 
   const navigate =
     useNavigate();
+
+
+  const {
+    user
+  } = useAuth();
 
 
   const [
@@ -128,6 +141,7 @@ export default function OrderPrint() {
    * Guardamos el total final antes
    * de limpiar/actualizar la orden.
    */
+
   const finalPrintedRef =
     useRef<number>(0);
 
@@ -159,13 +173,17 @@ export default function OrderPrint() {
       );
 
 
-    if (!orderNumber) {
+    if (
+      !orderNumber
+    ) {
 
       setError(
         "No se ha indicado ninguna orden de producción."
       );
 
-      setOrder(null);
+      setOrder(
+        null
+      );
 
       return;
 
@@ -178,13 +196,17 @@ export default function OrderPrint() {
       );
 
 
-    if (!productionOrder) {
+    if (
+      !productionOrder
+    ) {
 
       setError(
         `La orden ${orderNumber} no existe.`
       );
 
-      setOrder(null);
+      setOrder(
+        null
+      );
 
       return;
 
@@ -209,17 +231,101 @@ export default function OrderPrint() {
 
   /*
    * ==================================================
+   * REGISTRAR IMPRESIÓN EN BASE DE DATOS
+   * ==================================================
+   */
+
+  async function savePrintHistory(
+    productionOrder: ProductionOrder,
+    coilNumber: number
+  ) {
+
+    try {
+
+      await registerPrint({
+
+        username:
+          user?.fullName ??
+          "Usuario desconocido",
+
+        productionOrder:
+          productionOrder.order,
+
+        sku:
+          productionOrder.sku,
+
+        description:
+          productionOrder.product,
+
+        lot:
+          productionOrder.lot,
+
+        coilNumber,
+
+        quantity:
+          1,
+
+        printer:
+          productionOrder.printer,
+
+        templateId:
+          productionOrder.templateId,
+
+        printType:
+          "PRINT",
+
+        productionLine:
+          productionOrder.productionLine
+
+      });
+
+    }
+    catch (
+      historyError
+    ) {
+
+      /*
+       * Un fallo en el historial NO debe bloquear
+       * ni modificar la impresión realizada.
+       */
+
+      console.error(
+        "La etiqueta se imprimió, pero no se pudo registrar en el historial:",
+        historyError
+      );
+
+    }
+
+  }
+
+
+  /*
+   * ==================================================
    * IMPRIMIR
    * ==================================================
    */
 
   function printCurrentLabel() {
 
-    if (!order) {
+    if (
+      !order
+    ) {
 
       return;
 
     }
+
+
+    /*
+     * Bobina que corresponde a esta impresión.
+     *
+     * Se calcula ANTES de llamar a printLabel()
+     * porque printLabel incrementará el contador.
+     */
+
+    const printedCoil =
+      order.firstCoil +
+      order.printed;
 
 
     const result =
@@ -228,7 +334,9 @@ export default function OrderPrint() {
       );
 
 
-    if (!result.success) {
+    if (
+      !result.success
+    ) {
 
       alert(
         result.message
@@ -237,6 +345,21 @@ export default function OrderPrint() {
       return;
 
     }
+
+
+    /*
+     * ==================================================
+     * HISTORIAL SUPABASE
+     * ==================================================
+     *
+     * Solo llegamos aquí si printLabel()
+     * ha confirmado success.
+     */
+
+    void savePrintHistory(
+      order,
+      printedCoil
+    );
 
 
     /*
@@ -287,7 +410,9 @@ export default function OrderPrint() {
       );
 
 
-    if (updated) {
+    if (
+      updated
+    ) {
 
       setOrder(
         updated
@@ -327,7 +452,9 @@ export default function OrderPrint() {
           );
 
 
-        if (latest) {
+        if (
+          latest
+        ) {
 
           setOrder(
             latest
@@ -369,7 +496,9 @@ export default function OrderPrint() {
 
   function repeatLabel() {
 
-    if (!order) {
+    if (
+      !order
+    ) {
 
       return;
 
@@ -382,12 +511,24 @@ export default function OrderPrint() {
       );
 
 
-    if (!coil) {
+    if (
+      !coil
+    ) {
 
       return;
 
     }
 
+
+    /*
+     * Por ahora NO registramos REPRINT aquí.
+     *
+     * Actualmente este botón todavía no ejecuta
+     * una impresión real. Solo muestra el aviso.
+     *
+     * Cuando conectemos la reimpresión real,
+     * registraremos el evento REPRINT.
+     */
 
     alert(
       "Reimpresión de la bobina " +
@@ -433,7 +574,9 @@ export default function OrderPrint() {
    * ==================================================
    */
 
-  if (error) {
+  if (
+    error
+  ) {
 
     return (
 
@@ -479,7 +622,9 @@ export default function OrderPrint() {
    * ==================================================
    */
 
-  if (!order) {
+  if (
+    !order
+  ) {
 
     return (
 
@@ -602,35 +747,43 @@ export default function OrderPrint() {
         </Box>
 
 
-        {order.productionLine > 0 && (
+        {
+          order.productionLine > 0
+          &&
+          (
 
-          <Chip
-            label={
-              `Línea ${order.productionLine}`
-            }
-            color="success"
-            variant="outlined"
-            sx={{
-              fontWeight: 700
-            }}
-          />
+            <Chip
+              label={
+                `Línea ${order.productionLine}`
+              }
+              color="success"
+              variant="outlined"
+              sx={{
+                fontWeight: 700
+              }}
+            />
 
-        )}
+          )
+        }
 
 
-        {order.planningPosition > 0 && (
+        {
+          order.planningPosition > 0
+          &&
+          (
 
-          <Chip
-            label={
-              `Posición ${order.planningPosition}`
-            }
-            variant="outlined"
-            sx={{
-              fontWeight: 700
-            }}
-          />
+            <Chip
+              label={
+                `Posición ${order.planningPosition}`
+              }
+              variant="outlined"
+              sx={{
+                fontWeight: 700
+              }}
+            />
 
-        )}
+          )
+        }
 
       </Box>
 
@@ -681,9 +834,7 @@ export default function OrderPrint() {
             spacing={3}
           >
 
-            {/* =====================================
-                DATOS
-                ===================================== */}
+            {/* DATOS */}
 
             <Grid
               size={{
@@ -776,7 +927,9 @@ export default function OrderPrint() {
               >
 
                 <Typography>
+
                   <b>Estado:</b>
+
                 </Typography>
 
 
@@ -798,43 +951,49 @@ export default function OrderPrint() {
               </Box>
 
 
-              {order.productionLine > 0 && (
+              {
+                order.productionLine > 0
+                &&
+                (
 
-                <Typography
-                  sx={{
-                    mb: 1.5
-                  }}
-                >
+                  <Typography
+                    sx={{
+                      mb: 1.5
+                    }}
+                  >
 
-                  <b>
-                    Línea de producción:
-                  </b>{" "}
+                    <b>
+                      Línea de producción:
+                    </b>{" "}
 
-                  {order.productionLine}
+                    {order.productionLine}
 
-                </Typography>
+                  </Typography>
 
-              )}
-
-
-              {order.planningPosition > 0 && (
-
-                <Typography>
-
-                  <b>
-                    Posición en planificación:
-                  </b>{" "}
-
-                  {order.planningPosition}
-
-                </Typography>
-
-              )}
+                )
+              }
 
 
-              {/* =====================================
-                  BOTONES
-                  ===================================== */}
+              {
+                order.planningPosition > 0
+                &&
+                (
+
+                  <Typography>
+
+                    <b>
+                      Posición en planificación:
+                    </b>{" "}
+
+                    {order.planningPosition}
+
+                  </Typography>
+
+                )
+              }
+
+
+              {/* BOTONES */}
 
               <Box
                 display="flex"
@@ -899,9 +1058,7 @@ export default function OrderPrint() {
             </Grid>
 
 
-            {/* =====================================
-                CONTADORES
-                ===================================== */}
+            {/* CONTADORES */}
 
             <Grid
               size={{
@@ -1037,9 +1194,7 @@ export default function OrderPrint() {
               </Card>
 
 
-              {/* =====================================
-                  PRÓXIMA BOBINA
-                  ===================================== */}
+              {/* PRÓXIMA BOBINA */}
 
               <Card
                 elevation={0}
@@ -1068,41 +1223,45 @@ export default function OrderPrint() {
                 </Typography>
 
 
-                {nextCoil !== null ? (
+                {
+                  nextCoil !== null
+                    ? (
 
-                  <Typography
-                    sx={{
-                      mt: 0.5,
-                      fontSize: {
-                        xs: 48,
-                        md: 58
-                      },
-                      fontWeight: 700,
-                      lineHeight: 1,
-                      color: "#1976D2"
-                    }}
-                  >
+                      <Typography
+                        sx={{
+                          mt: 0.5,
+                          fontSize: {
+                            xs: 48,
+                            md: 58
+                          },
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          color: "#1976D2"
+                        }}
+                      >
 
-                    {nextCoil}
+                        {nextCoil}
 
-                  </Typography>
+                      </Typography>
 
-                ) : (
+                    )
+                    : (
 
-                  <Typography
-                    sx={{
-                      mt: 1,
-                      fontSize: 24,
-                      fontWeight: 700,
-                      color: "#4CAF50"
-                    }}
-                  >
+                      <Typography
+                        sx={{
+                          mt: 1,
+                          fontSize: 24,
+                          fontWeight: 700,
+                          color: "#4CAF50"
+                        }}
+                      >
 
-                    FINALIZADA
+                        FINALIZADA
 
-                  </Typography>
+                      </Typography>
 
-                )}
+                    )
+                }
 
               </Card>
 

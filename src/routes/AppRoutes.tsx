@@ -19,6 +19,7 @@ import OrderPrint from "../pages/Operator/OrderPrint";
 import Preview from "../pages/Preview/Preview";
 import Printers from "../pages/Printers/Printers";
 import Settings from "../pages/Settings/Settings";
+import PrintHistory from "../pages/PrintHistory/PrintHistory";
 
 import {
   DesignerProvider
@@ -101,6 +102,18 @@ export default function AppRoutes() {
         path="/production"
         element={
           <Production />
+        }
+      />
+
+
+      {/* =============================================
+          HISTORIAL DE IMPRESIÓN
+          ============================================= */}
+
+      <Route
+        path="/print-history"
+        element={
+          <PrintHistory />
         }
       />
 

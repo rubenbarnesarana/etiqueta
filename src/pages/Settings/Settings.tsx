@@ -1,4 +1,7 @@
-import { useRef, useState } from "react";
+import {
+  useRef,
+  useState
+} from "react";
 
 import {
   Alert,
@@ -6,6 +9,7 @@ import {
   Button,
   Card,
   CardContent,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -19,20 +23,34 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import DownloadIcon from "@mui/icons-material/Download";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import BackupIcon from "@mui/icons-material/Backup";
+import StorageIcon from "@mui/icons-material/Storage";
+
+import {
+  getPrintHistory,
+  registerPrint
+} from "../../services/PrintHistoryService";
 
 
 interface BackupFile {
+
   application: string;
+
   version: number;
+
   createdAt: string;
+
   data: Record<string, string>;
+
 }
 
 
 export default function Settings() {
 
+
   const fileInputRef =
-    useRef<HTMLInputElement | null>(null);
+    useRef<HTMLInputElement | null>(
+      null
+    );
 
 
   const [
@@ -50,7 +68,31 @@ export default function Settings() {
   const [
     pendingBackup,
     setPendingBackup
-  ] = useState<BackupFile | null>(null);
+  ] = useState<BackupFile | null>(
+    null
+  );
+
+
+  const [
+    testingDatabase,
+    setTestingDatabase
+  ] = useState(false);
+
+
+  const [
+    databaseStatus,
+    setDatabaseStatus
+  ] = useState<
+    "idle" |
+    "success" |
+    "error"
+  >("idle");
+
+
+  const [
+    databaseMessage,
+    setDatabaseMessage
+  ] = useState("");
 
 
   /*
@@ -74,16 +116,24 @@ export default function Settings() {
         localStorage.key(i);
 
 
-      if (!key) {
+      if (
+        !key
+      ) {
+
         continue;
+
       }
 
 
       const value =
-        localStorage.getItem(key);
+        localStorage.getItem(
+          key
+        );
 
 
-      if (value !== null) {
+      if (
+        value !== null
+      ) {
 
         data[key] =
           value;
@@ -148,10 +198,16 @@ export default function Settings() {
         now.getFullYear(),
         String(
           now.getMonth() + 1
-        ).padStart(2, "0"),
+        ).padStart(
+          2,
+          "0"
+        ),
         String(
           now.getDate()
-        ).padStart(2, "0")
+        ).padStart(
+          2,
+          "0"
+        )
       ].join("-");
 
 
@@ -159,15 +215,22 @@ export default function Settings() {
       [
         String(
           now.getHours()
-        ).padStart(2, "0"),
+        ).padStart(
+          2,
+          "0"
+        ),
         String(
           now.getMinutes()
-        ).padStart(2, "0")
+        ).padStart(
+          2,
+          "0"
+        )
       ].join("-");
 
 
     link.href =
       url;
+
 
     link.download =
       `etiquetas-backup-${date}_${time}.json`;
@@ -225,11 +288,16 @@ export default function Settings() {
       event.target.files?.[0];
 
 
-    event.target.value = "";
+    event.target.value =
+      "";
 
 
-    if (!file) {
+    if (
+      !file
+    ) {
+
       return;
+
     }
 
 
@@ -249,11 +317,13 @@ export default function Settings() {
         parsed.application !==
           "Rivulis Programa Etiquetas"
         ||
-        parsed.version !== 1
+        parsed.version !==
+          1
         ||
         !parsed.data
         ||
-        typeof parsed.data !== "object"
+        typeof parsed.data !==
+          "object"
       ) {
 
         throw new Error(
@@ -292,15 +362,14 @@ export default function Settings() {
 
   function importData() {
 
-    if (!pendingBackup) {
+    if (
+      !pendingBackup
+    ) {
+
       return;
+
     }
 
-
-    /*
-     * Eliminamos los datos actuales y restauramos
-     * exactamente los datos incluidos en la copia.
-     */
 
     localStorage.clear();
 
@@ -329,15 +398,164 @@ export default function Settings() {
     );
 
 
-    /*
-     * Recargamos para que toda la aplicación
-     * lea los datos recién restaurados.
-     */
-
     window.location.reload();
 
   }
 
+
+  /*
+   * ==================================================
+   * PROBAR SUPABASE
+   * ==================================================
+   */
+
+  async function testDatabase() {
+
+    if (
+      testingDatabase
+    ) {
+
+      return;
+
+    }
+
+
+    setTestingDatabase(
+      true
+    );
+
+
+    setDatabaseStatus(
+      "idle"
+    );
+
+
+    setDatabaseMessage(
+      ""
+    );
+
+
+    try {
+
+      const testOrder =
+        `TEST-${Date.now()}`;
+
+
+      const inserted =
+        await registerPrint({
+
+          username:
+            "Rubén - PRUEBA",
+
+          productionOrder:
+            testOrder,
+
+          sku:
+            "TEST-SUPABASE",
+
+          description:
+            "Registro de prueba de conexión",
+
+          lot:
+            "TEST",
+
+          coilNumber:
+            1,
+
+          quantity:
+            1,
+
+          printer:
+            "PRUEBA",
+
+          templateName:
+            "PRUEBA",
+
+          printType:
+            "PRINT",
+
+          productionLine:
+            1
+
+        });
+
+
+      const history =
+        await getPrintHistory(
+          20
+        );
+
+
+      const found =
+        history.some(
+          record =>
+            record.id ===
+              inserted.id
+            ||
+            record.production_order ===
+              testOrder
+        );
+
+
+      if (
+        !found
+      ) {
+
+        throw new Error(
+          "El registro se guardó, pero no se pudo recuperar al consultar el historial."
+        );
+
+      }
+
+
+      setDatabaseStatus(
+        "success"
+      );
+
+
+      setDatabaseMessage(
+        "Conexión correcta. La aplicación ha guardado y leído un registro en Supabase."
+      );
+
+    }
+    catch (
+      error
+    ) {
+
+      console.error(
+        "Error probando Supabase:",
+        error
+      );
+
+
+      setDatabaseStatus(
+        "error"
+      );
+
+
+      setDatabaseMessage(
+        error instanceof Error
+          ? error.message
+          : "No se pudo conectar con Supabase."
+      );
+
+    }
+    finally {
+
+      setTestingDatabase(
+        false
+      );
+
+    }
+
+  }
+
+
+  /*
+   * ==================================================
+   * RENDER
+   * ==================================================
+   */
 
   return (
 
@@ -355,11 +573,8 @@ export default function Settings() {
       <Box
         sx={{
           mb: 4,
-
           display: "flex",
-
           alignItems: "center",
-
           gap: 2
         }}
       >
@@ -398,6 +613,152 @@ export default function Settings() {
         </Box>
 
       </Box>
+
+
+      {/* =============================================
+          BASE DE DATOS
+          ============================================= */}
+
+      <Card
+        sx={{
+          borderRadius: 2,
+          mb: 3
+        }}
+      >
+
+        <CardContent
+          sx={{
+            p: 4
+          }}
+        >
+
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              mb: 2
+            }}
+          >
+
+            <StorageIcon
+              sx={{
+                color: "#0B7A3B",
+                fontSize: 30
+              }}
+            />
+
+
+            <Typography
+              variant="h6"
+              fontWeight={700}
+            >
+
+              Base de datos
+
+            </Typography>
+
+          </Box>
+
+
+          <Typography
+            color="text.secondary"
+            sx={{
+              mb: 3,
+              maxWidth: 750
+            }}
+          >
+
+            Comprueba la conexión entre el Programa de Etiquetas
+            y la base de datos de historial de impresión.
+
+          </Typography>
+
+
+          <Button
+            variant="contained"
+            disabled={
+              testingDatabase
+            }
+            startIcon={
+              testingDatabase
+                ? (
+                  <CircularProgress
+                    size={18}
+                    color="inherit"
+                  />
+                )
+                : (
+                  <StorageIcon />
+                )
+            }
+            onClick={
+              testDatabase
+            }
+            sx={{
+              backgroundColor:
+                "#0B7A3B",
+
+              "&:hover": {
+                backgroundColor:
+                  "#08652F"
+              }
+            }}
+          >
+
+            {
+              testingDatabase
+                ? "PROBANDO..."
+                : "PROBAR CONEXIÓN"
+            }
+
+          </Button>
+
+
+          {
+            databaseStatus ===
+              "success"
+            &&
+            (
+              <Alert
+                severity="success"
+                sx={{
+                  mt: 3
+                }}
+              >
+
+                {
+                  databaseMessage
+                }
+
+              </Alert>
+            )
+          }
+
+
+          {
+            databaseStatus ===
+              "error"
+            &&
+            (
+              <Alert
+                severity="error"
+                sx={{
+                  mt: 3
+                }}
+              >
+
+                {
+                  databaseMessage
+                }
+
+              </Alert>
+            )
+          }
+
+        </CardContent>
+
+      </Card>
 
 
       {/* =============================================
@@ -566,7 +927,9 @@ export default function Settings() {
         }
         onClose={
           () =>
-            setConfirmOpen(false)
+            setConfirmOpen(
+              false
+            )
         }
       >
 
@@ -600,7 +963,9 @@ export default function Settings() {
           <Button
             onClick={
               () =>
-                setConfirmOpen(false)
+                setConfirmOpen(
+                  false
+                )
             }
           >
 
@@ -635,9 +1000,13 @@ export default function Settings() {
 
       <Snackbar
         open={
-          Boolean(message)
+          Boolean(
+            message
+          )
         }
-        autoHideDuration={4000}
+        autoHideDuration={
+          4000
+        }
         onClose={
           () =>
             setMessage("")
