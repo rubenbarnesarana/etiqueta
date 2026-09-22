@@ -270,11 +270,6 @@ export default function ProductDialog({
 
     onSave({
 
-      /*
-       * Si estamos editando mantenemos
-       * exactamente el mismo ID.
-       */
-
       id:
         product?.id ??
         Date.now(),
@@ -282,16 +277,8 @@ export default function ProductDialog({
       sapCode:
         cleanSapCode,
 
-      /*
-       * DESCRIPCIÓN INFERIOR
-       */
-
       description:
         cleanDescription,
-
-      /*
-       * TEXTO SUPERIOR 180°
-       */
 
       upperText:
         upperText.trim(),
@@ -353,9 +340,7 @@ export default function ProductDialog({
           }}
         >
 
-          {/* ============================================
-              CÓDIGO SAP
-             ============================================ */}
+          {/* CÓDIGO SAP */}
 
           <Grid
             size={{
@@ -381,9 +366,7 @@ export default function ProductDialog({
           </Grid>
 
 
-          {/* ============================================
-              DESCRIPCIÓN INFERIOR
-             ============================================ */}
+          {/* DESCRIPCIÓN */}
 
           <Grid
             size={{
@@ -410,9 +393,7 @@ export default function ProductDialog({
           </Grid>
 
 
-          {/* ============================================
-              TEXTO SUPERIOR 180°
-             ============================================ */}
+          {/* TEXTO SUPERIOR */}
 
           <Grid
             size={{
@@ -461,9 +442,7 @@ ISO 9261`
           </Grid>
 
 
-          {/* ============================================
-              DIÁMETRO
-             ============================================ */}
+          {/* DIÁMETRO */}
 
           <Grid
             size={{
@@ -487,39 +466,27 @@ ISO 9261`
               }
             >
 
-              <MenuItem
-                value="16"
-              >
+              <MenuItem value="16">
                 16 mm
               </MenuItem>
 
-              <MenuItem
-                value="17"
-              >
+              <MenuItem value="17">
                 17 mm
               </MenuItem>
 
-              <MenuItem
-                value="20"
-              >
+              <MenuItem value="20">
                 20 mm
               </MenuItem>
 
-              <MenuItem
-                value="22"
-              >
+              <MenuItem value="22">
                 22 mm
               </MenuItem>
 
-              <MenuItem
-                value="23"
-              >
+              <MenuItem value="23">
                 23 mm
               </MenuItem>
 
-              <MenuItem
-                value="25"
-              >
+              <MenuItem value="25">
                 25 mm
               </MenuItem>
 
@@ -528,9 +495,7 @@ ISO 9261`
           </Grid>
 
 
-          {/* ============================================
-              ESPESOR
-             ============================================ */}
+          {/* ESPESOR */}
 
           <Grid
             size={{
@@ -594,9 +559,7 @@ ISO 9261`
           </Grid>
 
 
-          {/* ============================================
-              CAUDAL
-             ============================================ */}
+          {/* CAUDAL */}
 
           <Grid
             size={{
@@ -626,6 +589,7 @@ ISO 9261`
                 "0.95",
                 "1.0",
                 "1.1",
+                "1.2",
                 "1.4",
                 "1.6",
                 "2.0",
@@ -657,9 +621,7 @@ ISO 9261`
           </Grid>
 
 
-          {/* ============================================
-              ESPACIADO
-             ============================================ */}
+          {/* ESPACIADO */}
 
           <Grid
             size={{
@@ -685,9 +647,7 @@ ISO 9261`
           </Grid>
 
 
-          {/* ============================================
-              TIPO DE GOTERO
-             ============================================ */}
+          {/* TIPO DE GOTERO */}
 
           <Grid
             size={{
@@ -713,9 +673,7 @@ ISO 9261`
           </Grid>
 
 
-          {/* ============================================
-              PLANTILLA
-             ============================================ */}
+          {/* PLANTILLA */}
 
           <Grid
             size={{
@@ -741,12 +699,8 @@ ISO 9261`
               }
             >
 
-              <MenuItem
-                value={0}
-              >
-
+              <MenuItem value={0}>
                 Sin plantilla
-
               </MenuItem>
 
 
