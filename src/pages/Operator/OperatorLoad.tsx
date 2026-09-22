@@ -214,40 +214,41 @@ export default function OperatorLoad() {
 
       <Box
         sx={{
-          textAlign: "center",
-          mb: 4
+          mb: 4,
+          display: "flex",
+          alignItems: "center",
+          gap: 2
         }}
       >
 
         <PrecisionManufacturingIcon
           sx={{
-            fontSize: 52,
-            color: "#0B7A3B",
-            mb: 1
+            fontSize: 46,
+            color: "#0B7A3B"
           }}
         />
 
 
-        <Typography
-          variant="h4"
-          fontWeight={700}
-        >
+        <Box>
 
-          Cargar orden
+          <Typography
+            variant="h4"
+            fontWeight={700}
+          >
+            Imprimir Orden
+          </Typography>
 
-        </Typography>
 
+          <Typography
+            color="text.secondary"
+            sx={{
+              mt: 0.5
+            }}
+          >
+            Carga una orden de producción para imprimir sus etiquetas
+          </Typography>
 
-        <Typography
-          color="text.secondary"
-          sx={{
-            mt: 1
-          }}
-        >
-
-          Introduce la orden de producción que deseas imprimir
-
-        </Typography>
+        </Box>
 
       </Box>
 

@@ -15,7 +15,8 @@ import {
   MenuItem,
   Alert,
   Typography,
-  Box
+  Box,
+  Autocomplete
 } from "@mui/material";
 
 import type {
@@ -71,17 +72,6 @@ const PRODUCTION_LINES = [
 /*
  * ==================================================
  * GENERAR LOTE AUTOMÁTICO
- * ==================================================
- *
- * Formato:
- *
- * AAMMDD
- *
- * Ejemplo:
- *
- * 21/09/2026 -> 260921
- *
- * Se utiliza la fecha LOCAL del ordenador.
  * ==================================================
  */
 
@@ -210,12 +200,6 @@ export default function ProductionDialog({
   );
 
 
-  /*
-   * ==================================================
-   * LÍNEA DE PRODUCCIÓN
-   * ==================================================
-   */
-
   const [
     productionLine,
     setProductionLine
@@ -270,9 +254,7 @@ export default function ProductionDialog({
 
 
     /*
-     * ==================================================
      * EDITAR ORDEN EXISTENTE
-     * ==================================================
      */
 
     if (editing) {
@@ -338,9 +320,7 @@ export default function ProductionDialog({
 
 
     /*
-     * ==================================================
      * NUEVA ORDEN
-     * ==================================================
      */
 
     setOrder("");
@@ -371,13 +351,6 @@ export default function ProductionDialog({
     );
 
 
-    /*
-     * No seleccionamos una línea automáticamente.
-     *
-     * El usuario debe indicar expresamente
-     * dónde se va a fabricar la orden.
-     */
-
     setProductionLine(0);
 
   }, [
@@ -388,37 +361,30 @@ export default function ProductionDialog({
 
   /*
    * ==================================================
-   * CAMBIO DE SKU
+   * SELECCIONAR SKU
    * ==================================================
    */
 
-  function handleSkuChange(
-    value: string
+  function handleProductSelect(
+    product: Product | null
   ) {
-
-    setSku(
-      value
-    );
-
-
-    const product =
-      products.find(
-        item =>
-          item.sapCode === value
-      );
-
 
     if (!product) {
 
+      setSku("");
+
       setProductName("");
 
-
       setTemplateId(0);
-
 
       return;
 
     }
+
+
+    setSku(
+      product.sapCode
+    );
 
 
     setProductName(
@@ -456,9 +422,7 @@ export default function ProductionDialog({
 
 
     /*
-     * ==================================================
      * VALIDACIONES
-     * ==================================================
      */
 
     if (!cleanOrder) {
@@ -466,7 +430,6 @@ export default function ProductionDialog({
       alert(
         "Debes indicar la Orden SAP."
       );
-
 
       return;
 
@@ -479,7 +442,6 @@ export default function ProductionDialog({
         "No se ha podido generar el lote."
       );
 
-
       return;
 
     }
@@ -490,7 +452,6 @@ export default function ProductionDialog({
       alert(
         "Debes seleccionar un SKU."
       );
-
 
       return;
 
@@ -503,7 +464,6 @@ export default function ProductionDialog({
         "El SKU seleccionado no existe en Productos."
       );
 
-
       return;
 
     }
@@ -515,15 +475,10 @@ export default function ProductionDialog({
         "El producto no tiene una plantilla asignada."
       );
 
-
       return;
 
     }
 
-
-    /*
-     * LÍNEA OBLIGATORIA
-     */
 
     if (
       productionLine < 1 ||
@@ -533,7 +488,6 @@ export default function ProductionDialog({
       alert(
         "Debes seleccionar una línea de producción."
       );
-
 
       return;
 
@@ -550,7 +504,6 @@ export default function ProductionDialog({
       alert(
         "El número de rollos debe ser mayor que 0."
       );
-
 
       return;
 
@@ -569,7 +522,6 @@ export default function ProductionDialog({
         "La primera bobina debe estar entre 1 y 9999."
       );
 
-
       return;
 
     }
@@ -585,7 +537,6 @@ export default function ProductionDialog({
       alert(
         "La numeración de bobinas supera el máximo 9999."
       );
-
 
       return;
 
@@ -639,22 +590,8 @@ export default function ProductionDialog({
         printer.trim() ||
         "Toshiba BA420",
 
-      /*
-       * PLANIFICACIÓN
-       */
-
       productionLine:
         productionLine,
-
-      /*
-       * Si estamos editando conservamos
-       * la posición actual.
-       *
-       * Si es nueva, ponemos 0 y
-       * OrderStorage la colocará
-       * automáticamente al final
-       * de la línea seleccionada.
-       */
 
       planningPosition:
         editing?.planningPosition ??
@@ -685,13 +622,10 @@ export default function ProductionDialog({
       open={
         open
       }
-
       onClose={
         onClose
       }
-
       fullWidth
-
       maxWidth="md"
     >
 
@@ -771,7 +705,7 @@ export default function ProductionDialog({
           </Grid>
 
 
-          {/* SKU */}
+          {/* SKU BUSCADOR */}
 
           <Grid
             size={{
@@ -780,51 +714,138 @@ export default function ProductionDialog({
             }}
           >
 
-            <TextField
-              select
-              label="SKU"
-              value={
-                sku
+            <Autocomplete
+              options={
+                products
               }
+
+              value={
+                selectedProduct ??
+                null
+              }
+
               onChange={
-                event =>
-                  handleSkuChange(
-                    event.target.value
+                (
+                  _event,
+                  value
+                ) =>
+                  handleProductSelect(
+                    value
                   )
               }
-              fullWidth
-            >
 
-              <MenuItem
-                value=""
-              >
-                Seleccionar producto
-              </MenuItem>
+              getOptionLabel={
+                product =>
+                  `${product.sapCode} - ${product.description}`
+              }
+
+              isOptionEqualToValue={
+                (
+                  option,
+                  value
+                ) =>
+                  option.id ===
+                  value.id
+              }
+
+              filterOptions={
+                (
+                  options,
+                  state
+                ) => {
+
+                  const search =
+                    state.inputValue
+                      .trim()
+                      .toLowerCase();
 
 
-              {products.map(
-                product => (
+                  /*
+                   * No enseñamos toda la lista
+                   * mientras el usuario no escriba.
+                   */
 
-                  <MenuItem
+                  if (!search) {
+
+                    return [];
+
+                  }
+
+
+                  return options.filter(
+                    product =>
+                      product.sapCode
+                        .toLowerCase()
+                        .includes(
+                          search
+                        ) ||
+                      product.description
+                        .toLowerCase()
+                        .includes(
+                          search
+                        )
+                  );
+
+                }
+              }
+
+              noOptionsText="No se ha encontrado ningún SKU"
+
+              renderOption={
+                (
+                  props,
+                  product
+                ) => (
+
+                  <Box
+                    component="li"
+                    {...props}
                     key={
                       product.id
                     }
-
-                    value={
-                      product.sapCode
-                    }
                   >
 
-                    {product.sapCode}
-                    {" - "}
-                    {product.description}
+                    <Box>
 
-                  </MenuItem>
+                      <Typography
+                        fontWeight={700}
+                      >
+
+                        {product.sapCode}
+
+                      </Typography>
+
+
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                      >
+
+                        {product.description}
+
+                      </Typography>
+
+                    </Box>
+
+                  </Box>
 
                 )
-              )}
+              }
 
-            </TextField>
+              renderInput={
+                params => (
+
+                  <TextField
+                    {...params}
+                    label="SKU"
+                    placeholder="Escribe el SKU..."
+                    helperText="Escribe parte del SKU para buscar el producto."
+                    fullWidth
+                  />
+
+                )
+              }
+            />
 
           </Grid>
 
@@ -896,7 +917,6 @@ export default function ProductionDialog({
                     key={
                       line
                     }
-
                     value={
                       line
                     }
@@ -1143,7 +1163,6 @@ export default function ProductionDialog({
 
           )}
 
-
         </Grid>
 
       </DialogContent>
@@ -1156,7 +1175,9 @@ export default function ProductionDialog({
             onClose
           }
         >
+
           CANCELAR
+
         </Button>
 
 

@@ -20,6 +20,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import LabelIcon from "@mui/icons-material/Label";
 
 import {
   useEffect,
@@ -1342,15 +1343,49 @@ export default function Templates() {
 
     <Box>
 
-      <Typography
-        variant="h4"
-        fontWeight="bold"
+      {/* ==================================================
+          CABECERA
+         ================================================== */}
+
+      <Box
         sx={{
-          mb: 3
+          mb: 4,
+          display: "flex",
+          alignItems: "center",
+          gap: 2
         }}
       >
-        Plantillas
-      </Typography>
+
+        <LabelIcon
+          sx={{
+            fontSize: 46,
+            color: "#0B7A3B"
+          }}
+        />
+
+
+        <Box>
+
+          <Typography
+            variant="h4"
+            fontWeight={700}
+          >
+            Plantillas
+          </Typography>
+
+
+          <Typography
+            color="text.secondary"
+            sx={{
+              mt: 0.5
+            }}
+          >
+            Diseño y configuración de etiquetas de rollos y bobinas
+          </Typography>
+
+        </Box>
+
+      </Box>
 
 
       <Card

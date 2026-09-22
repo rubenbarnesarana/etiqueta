@@ -238,7 +238,7 @@ export default function MainLayout() {
 
   /*
    * ==================================================
-   * MENÚ SELECCIONADO ADMIN
+   * MENÚ SELECCIONADO
    * ==================================================
    */
 
@@ -285,7 +285,10 @@ export default function MainLayout() {
 
     <Box
       sx={{
-        display: "flex"
+        width: "100vw",
+        minHeight: "100vh",
+        backgroundColor: "#F5F7FA",
+        overflowX: "hidden"
       }}
     >
 
@@ -297,9 +300,8 @@ export default function MainLayout() {
         position="fixed"
         elevation={2}
         sx={{
-          backgroundColor:
-            "#0B7A3B",
-
+          width: "100%",
+          backgroundColor: "#0B7A3B",
           zIndex: 1300
         }}
       >
@@ -315,9 +317,7 @@ export default function MainLayout() {
           }}
         >
 
-          {/* =========================================
-              MARCA
-              ========================================= */}
+          {/* MARCA */}
 
           <Box
             sx={{
@@ -333,12 +333,9 @@ export default function MainLayout() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-
                 px: 1.4,
                 py: 0.6,
-
                 borderRadius: 1.5,
-
                 backgroundColor:
                   "rgba(255,255,255,0.12)"
               }}
@@ -399,9 +396,7 @@ export default function MainLayout() {
           </Box>
 
 
-          {/* =========================================
-              FECHA Y HORA
-              ========================================= */}
+          {/* FECHA Y HORA */}
 
           <Box
             sx={{
@@ -416,7 +411,9 @@ export default function MainLayout() {
 
               alignItems: "center",
 
-              gap: 1
+              gap: 1,
+
+              minWidth: 0
             }}
           >
 
@@ -439,7 +436,10 @@ export default function MainLayout() {
                 fontWeight: 500,
 
                 textTransform:
-                  "capitalize"
+                  "capitalize",
+
+                whiteSpace:
+                  "nowrap"
               }}
             >
 
@@ -463,9 +463,7 @@ export default function MainLayout() {
           </Box>
 
 
-          {/* =========================================
-              USUARIO
-              ========================================= */}
+          {/* USUARIO */}
 
           <Box
             sx={{
@@ -518,9 +516,7 @@ export default function MainLayout() {
 
             <Button
               color="inherit"
-              onClick={
-                logout
-              }
+              onClick={logout}
               sx={{
                 fontWeight: 700
               }}
@@ -538,7 +534,7 @@ export default function MainLayout() {
 
 
       {/* =============================================
-          MENÚ LATERAL ADMINISTRADOR
+          MENÚ LATERAL
           ============================================= */}
 
       {!isOperator && (
@@ -546,25 +542,25 @@ export default function MainLayout() {
         <Drawer
           variant="permanent"
           sx={{
-            width:
-              drawerWidth,
+
+            width: drawerWidth,
 
             flexShrink: 0,
 
             "& .MuiDrawer-paper": {
 
-              width:
-                drawerWidth,
+              width: drawerWidth,
 
-              boxSizing:
-                "border-box",
+              boxSizing: "border-box",
 
               borderRight:
                 "1px solid #E0E0E0",
 
               backgroundColor:
                 "#FFFFFF"
+
             }
+
           }}
         >
 
@@ -591,18 +587,14 @@ export default function MainLayout() {
                 return (
 
                   <ListItemButton
-                    key={
-                      item.text
-                    }
-                    component={
-                      Link
-                    }
-                    to={
-                      item.path
-                    }
-                    selected={
-                      selected
-                    }
+                    key={item.text}
+
+                    component={Link}
+
+                    to={item.path}
+
+                    selected={selected}
+
                     sx={{
                       mx: 1,
 
@@ -624,10 +616,8 @@ export default function MainLayout() {
                           "#0B7A3B",
 
                         "&:hover": {
-
                           backgroundColor:
                             "#DDEFE2"
-
                         }
 
                       }
@@ -636,11 +626,8 @@ export default function MainLayout() {
 
                     <ListItemIcon
                       sx={{
-                        color:
-                          "#0B7A3B",
-
-                        minWidth:
-                          42
+                        color: "#0B7A3B",
+                        minWidth: 42
                       }}
                     >
 
@@ -650,9 +637,8 @@ export default function MainLayout() {
 
 
                     <ListItemText
-                      primary={
-                        item.text
-                      }
+                      primary={item.text}
+
                       primaryTypographyProps={{
                         fontWeight:
                           selected
@@ -676,34 +662,71 @@ export default function MainLayout() {
 
 
       {/* =============================================
-          CONTENIDO
+          CONTENIDO PRINCIPAL
           ============================================= */}
 
       <Box
         component="main"
         sx={{
-          flexGrow: 1,
+
+          position: "absolute",
+
+          top: 0,
+
+          left: isOperator
+            ? 0
+            : `${drawerWidth}px`,
+
+          width: isOperator
+            ? "100vw"
+            : `calc(100vw - ${drawerWidth}px)`,
+
+          minHeight: "100vh",
+
+          boxSizing: "border-box",
 
           backgroundColor:
             "#F5F7FA",
 
-          minHeight:
-            "100vh",
+          overflowX: "hidden",
 
-          p: {
+          px: {
+            xs: 2,
+            md: 3
+          },
+
+          pb: {
             xs: 2,
             md: 4
           }
+
         }}
       >
+
+        {/* espacio para AppBar */}
 
         <Toolbar />
 
 
-        {isOperator
-          ? renderOperatorPage()
-          : <AppRoutes />
-        }
+        {/* =========================================
+            PÁGINA
+            ========================================= */}
+
+        <Box
+          sx={{
+            width: "100%",
+            maxWidth: "none",
+            minWidth: 0,
+            boxSizing: "border-box"
+          }}
+        >
+
+          {isOperator
+            ? renderOperatorPage()
+            : <AppRoutes />
+          }
+
+        </Box>
 
       </Box>
 

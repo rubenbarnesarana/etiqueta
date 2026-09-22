@@ -26,6 +26,7 @@ import {
 
 import PrintIcon from "@mui/icons-material/Print";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ReplayIcon from "@mui/icons-material/Replay";
 
 import LabelPreview from "../../components/print/LabelPreview";
 
@@ -439,6 +440,7 @@ export default function OrderPrint() {
       <Box>
 
         <Button
+          variant="outlined"
           startIcon={
             <ArrowBackIcon />
           }
@@ -446,7 +448,8 @@ export default function OrderPrint() {
             goBack
           }
           sx={{
-            mb: 3
+            mb: 3,
+            fontWeight: 700
           }}
         >
 
@@ -483,6 +486,7 @@ export default function OrderPrint() {
       <Box>
 
         <Button
+          variant="outlined"
           startIcon={
             <ArrowBackIcon />
           }
@@ -490,7 +494,8 @@ export default function OrderPrint() {
             goBack
           }
           sx={{
-            mb: 3
+            mb: 3,
+            fontWeight: 700
           }}
         >
 
@@ -535,7 +540,7 @@ export default function OrderPrint() {
           goBack
         }
         sx={{
-          mb: 2,
+          mb: 3,
           fontWeight: 700
         }}
       >
@@ -553,8 +558,8 @@ export default function OrderPrint() {
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 1.5,
-          mb: 3,
+          gap: 2,
+          mb: 4,
           flexWrap: "wrap"
         }}
       >
@@ -562,7 +567,7 @@ export default function OrderPrint() {
         <PrintIcon
           sx={{
             color: "#0B7A3B",
-            fontSize: 34
+            fontSize: 46
           }}
         />
 
@@ -575,16 +580,19 @@ export default function OrderPrint() {
 
           <Typography
             variant="h4"
-            fontWeight="bold"
+            fontWeight={700}
           >
 
-            Imprimir orden
+            Imprimir Orden
 
           </Typography>
 
 
           <Typography
             color="text.secondary"
+            sx={{
+              mt: 0.5
+            }}
           >
 
             Orden de producción {order.order}
@@ -602,6 +610,9 @@ export default function OrderPrint() {
             }
             color="success"
             variant="outlined"
+            sx={{
+              fontWeight: 700
+            }}
           />
 
         )}
@@ -614,6 +625,9 @@ export default function OrderPrint() {
               `Posición ${order.planningPosition}`
             }
             variant="outlined"
+            sx={{
+              fontWeight: 700
+            }}
           />
 
         )}
@@ -625,16 +639,51 @@ export default function OrderPrint() {
           ORDEN
           ============================================= */}
 
-      <Card>
+      <Card
+        elevation={0}
+        sx={{
+          border:
+            "1px solid #E0E0E0",
 
-        <CardContent>
+          borderRadius: 3,
+
+          overflow: "hidden"
+        }}
+      >
+
+        <Box
+          sx={{
+            height: 7,
+            backgroundColor:
+              "#0B7A3B"
+          }}
+        />
+
+
+        <CardContent
+          sx={{
+            p: {
+              xs: 3,
+              md: 4
+            },
+
+            "&:last-child": {
+              pb: {
+                xs: 3,
+                md: 4
+              }
+            }
+          }}
+        >
 
           <Grid
             container
             spacing={3}
           >
 
-            {/* DATOS */}
+            {/* =====================================
+                DATOS
+                ===================================== */}
 
             <Grid
               size={{
@@ -646,7 +695,10 @@ export default function OrderPrint() {
               <Typography
                 variant="h5"
                 fontWeight={700}
-                mb={3}
+                sx={{
+                  mb: 3,
+                  color: "#0B7A3B"
+                }}
               >
 
                 Orden {order.order}
@@ -656,7 +708,7 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  mb: 1
+                  mb: 1.5
                 }}
               >
 
@@ -668,7 +720,7 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  mb: 1
+                  mb: 1.5
                 }}
               >
 
@@ -680,7 +732,7 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  mb: 1
+                  mb: 1.5
                 }}
               >
 
@@ -692,7 +744,7 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  mb: 1
+                  mb: 1.5
                 }}
               >
 
@@ -704,7 +756,7 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  mb: 1
+                  mb: 1.5
                 }}
               >
 
@@ -714,13 +766,19 @@ export default function OrderPrint() {
               </Typography>
 
 
-              <Typography
+              <Box
                 sx={{
-                  mb: 1
+                  mb: 1.5,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1
                 }}
               >
 
-                <b>Estado:</b>{" "}
+                <Typography>
+                  <b>Estado:</b>
+                </Typography>
+
 
                 <Chip
                   size="small"
@@ -732,16 +790,19 @@ export default function OrderPrint() {
                       ? "success"
                       : "warning"
                   }
+                  sx={{
+                    fontWeight: 700
+                  }}
                 />
 
-              </Typography>
+              </Box>
 
 
               {order.productionLine > 0 && (
 
                 <Typography
                   sx={{
-                    mb: 1
+                    mb: 1.5
                   }}
                 >
 
@@ -784,8 +845,10 @@ export default function OrderPrint() {
 
                 <Button
                   variant="contained"
-                  color="success"
                   size="large"
+                  startIcon={
+                    <PrintIcon />
+                  }
                   disabled={
                     finished
                   }
@@ -793,13 +856,20 @@ export default function OrderPrint() {
                     printCurrentLabel
                   }
                   sx={{
-                    minWidth: 180,
-                    minHeight: 55,
-                    fontWeight: 700
+                    minWidth: 190,
+                    minHeight: 56,
+                    fontWeight: 700,
+                    backgroundColor:
+                      "#0B7A3B",
+
+                    "&:hover": {
+                      backgroundColor:
+                        "#086530"
+                    }
                   }}
                 >
 
-                  🖨 IMPRIMIR
+                  IMPRIMIR
 
                 </Button>
 
@@ -807,16 +877,20 @@ export default function OrderPrint() {
                 <Button
                   variant="outlined"
                   size="large"
+                  startIcon={
+                    <ReplayIcon />
+                  }
                   onClick={
                     repeatLabel
                   }
                   sx={{
-                    minWidth: 190,
-                    minHeight: 55
+                    minWidth: 210,
+                    minHeight: 56,
+                    fontWeight: 700
                   }}
                 >
 
-                  🔁 REPETIR ETIQUETA
+                  REPETIR ETIQUETA
 
                 </Button>
 
@@ -837,19 +911,30 @@ export default function OrderPrint() {
             >
 
               <Card
+                elevation={0}
                 sx={{
                   backgroundColor:
                     "#0B7A3B",
-                  color: "white",
-                  textAlign: "center",
-                  p: 2,
-                  borderRadius: 2
+
+                  color:
+                    "white",
+
+                  textAlign:
+                    "center",
+
+                  p: 2.5,
+
+                  borderRadius:
+                    3
                 }}
               >
 
                 <Typography
-                  variant="h5"
-                  fontWeight="bold"
+                  variant="h6"
+                  fontWeight={700}
+                  sx={{
+                    opacity: 0.9
+                  }}
                 >
 
                   TOTAL
@@ -859,9 +944,19 @@ export default function OrderPrint() {
 
                 <Typography
                   sx={{
-                    fontSize: 82,
-                    fontWeight: 700,
-                    lineHeight: 1
+                    fontSize: {
+                      xs: 64,
+                      md: 82
+                    },
+
+                    fontWeight:
+                      700,
+
+                    lineHeight:
+                      1,
+
+                    mt:
+                      1
                   }}
                 >
 
@@ -872,44 +967,72 @@ export default function OrderPrint() {
 
                 <Typography
                   sx={{
-                    mt: 1,
-                    fontSize: 22
+                    mt:
+                      2,
+
+                    fontSize:
+                      20
                   }}
                 >
 
                   Impresos:{" "}
-                  {order.printed}
+
+                  <b>
+                    {order.printed}
+                  </b>
 
                 </Typography>
 
 
-                <Typography
+                <Box
                   sx={{
-                    mt: 2,
-                    fontSize: 18
+                    mt: 2.5,
+                    pt: 2,
+                    borderTop:
+                      "1px solid rgba(255,255,255,0.30)"
                   }}
                 >
 
-                  Pendientes
+                  <Typography
+                    sx={{
+                      fontSize:
+                        17
+                    }}
+                  >
 
-                </Typography>
+                    Pendientes
+
+                  </Typography>
 
 
-                <Typography
-                  sx={{
-                    fontSize: 58,
-                    fontWeight: 400,
-                    lineHeight: 1,
-                    color:
-                      pending === 0
-                        ? "#8BC34A"
-                        : "#FF5252"
-                  }}
-                >
+                  <Typography
+                    sx={{
+                      fontSize: {
+                        xs: 48,
+                        md: 58
+                      },
 
-                  {pending}
+                      fontWeight:
+                        700,
 
-                </Typography>
+                      lineHeight:
+                        1,
+
+                      mt:
+                        0.5,
+
+                      color:
+                        pending === 0
+                          ? "#B7E27A"
+                          : "#FF8A80"
+                    }}
+                  >
+
+                    {pending}
+
+                  </Typography>
+
+                </Box>
 
               </Card>
 
@@ -919,11 +1042,12 @@ export default function OrderPrint() {
                   ===================================== */}
 
               <Card
+                elevation={0}
                 sx={{
                   mt: 2,
-                  p: 2,
+                  p: 2.5,
                   textAlign: "center",
-                  borderRadius: 2,
+                  borderRadius: 3,
                   border:
                     "2px solid #1976D2",
                   backgroundColor:
@@ -949,7 +1073,10 @@ export default function OrderPrint() {
                   <Typography
                     sx={{
                       mt: 0.5,
-                      fontSize: 58,
+                      fontSize: {
+                        xs: 48,
+                        md: 58
+                      },
                       fontWeight: 700,
                       lineHeight: 1,
                       color: "#1976D2"
@@ -1005,7 +1132,11 @@ export default function OrderPrint() {
         maxWidth="lg"
       >
 
-        <DialogTitle>
+        <DialogTitle
+          sx={{
+            fontWeight: 700
+          }}
+        >
 
           Vista previa de etiqueta
 
@@ -1050,7 +1181,11 @@ export default function OrderPrint() {
         }
       >
 
-        <DialogTitle>
+        <DialogTitle
+          sx={{
+            fontWeight: 700
+          }}
+        >
 
           ✅ Pedido finalizado
 
@@ -1099,6 +1234,15 @@ export default function OrderPrint() {
                   false
                 )
             }
+            sx={{
+              backgroundColor:
+                "#0B7A3B",
+
+              "&:hover": {
+                backgroundColor:
+                  "#086530"
+              }
+            }}
           >
 
             Aceptar
