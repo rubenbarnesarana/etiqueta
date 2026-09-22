@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState
+} from "react";
 
 import {
   Dialog,
@@ -12,7 +15,9 @@ import {
   Typography
 } from "@mui/material";
 
-import type { Product } from "../../models/Product";
+import type {
+  Product
+} from "../../models/Product";
 
 import {
   getTemplates
@@ -20,54 +25,94 @@ import {
 
 
 interface Props {
+
   open: boolean;
+
   onClose: () => void;
-  onSave: (product: Product) => void;
-  editing?: Product;
+
+  onSave: (
+    product: Product
+  ) => void;
+
+  product?: Product;
+
 }
 
 
 export default function ProductDialog({
+
   open,
+
   onClose,
+
   onSave,
-  editing
+
+  product
+
 }: Props) {
+
 
   const templates =
     getTemplates();
 
 
-  const [sapCode, setSapCode] =
-    useState("");
+  const [
+    sapCode,
+    setSapCode
+  ] = useState("");
 
-  const [description, setDescription] =
-    useState("");
+
+  const [
+    description,
+    setDescription
+  ] = useState("");
+
 
   /*
    * Texto que aparecerá en la mitad
    * superior de la etiqueta a 180°.
    */
-  const [upperText, setUpperText] =
-    useState("");
 
-  const [diameter, setDiameter] =
-    useState("");
+  const [
+    upperText,
+    setUpperText
+  ] = useState("");
 
-  const [thickness, setThickness] =
-    useState("");
 
-  const [flow, setFlow] =
-    useState("");
+  const [
+    diameter,
+    setDiameter
+  ] = useState("");
 
-  const [spacing, setSpacing] =
-    useState("");
 
-  const [dripper, setDripper] =
-    useState("");
+  const [
+    thickness,
+    setThickness
+  ] = useState("");
 
-  const [templateId, setTemplateId] =
-    useState<number>(0);
+
+  const [
+    flow,
+    setFlow
+  ] = useState("");
+
+
+  const [
+    spacing,
+    setSpacing
+  ] = useState("");
+
+
+  const [
+    dripper,
+    setDripper
+  ] = useState("");
+
+
+  const [
+    templateId,
+    setTemplateId
+  ] = useState<number>(0);
 
 
   /*
@@ -78,70 +123,105 @@ export default function ProductDialog({
 
   useEffect(() => {
 
-    if (editing) {
+    if (
+      !open
+    ) {
 
-      setSapCode(
-        editing.sapCode ?? ""
-      );
-
-      setDescription(
-        editing.description ?? ""
-      );
-
-      setUpperText(
-        editing.upperText ?? ""
-      );
-
-      setDiameter(
-        editing.diameter ?? ""
-      );
-
-      setThickness(
-        editing.thickness ?? ""
-      );
-
-      setFlow(
-        editing.flow ?? ""
-      );
-
-      setSpacing(
-        editing.spacing ?? ""
-      );
-
-      setDripper(
-        editing.dripper ?? ""
-      );
-
-      setTemplateId(
-        Number(
-          editing.templateId ?? 0
-        )
-      );
-
-    } else {
-
-      setSapCode("");
-
-      setDescription("");
-
-      setUpperText("");
-
-      setDiameter("");
-
-      setThickness("");
-
-      setFlow("");
-
-      setSpacing("");
-
-      setDripper("");
-
-      setTemplateId(0);
+      return;
 
     }
 
+
+    if (
+      product
+    ) {
+
+      setSapCode(
+        product.sapCode ??
+        ""
+      );
+
+
+      setDescription(
+        product.description ??
+        ""
+      );
+
+
+      setUpperText(
+        product.upperText ??
+        ""
+      );
+
+
+      setDiameter(
+        product.diameter ??
+        ""
+      );
+
+
+      setThickness(
+        product.thickness ??
+        ""
+      );
+
+
+      setFlow(
+        product.flow ??
+        ""
+      );
+
+
+      setSpacing(
+        product.spacing ??
+        ""
+      );
+
+
+      setDripper(
+        product.dripper ??
+        ""
+      );
+
+
+      setTemplateId(
+        Number(
+          product.templateId ??
+          0
+        )
+      );
+
+
+      return;
+
+    }
+
+
+    /*
+     * NUEVO PRODUCTO
+     */
+
+    setSapCode("");
+
+    setDescription("");
+
+    setUpperText("");
+
+    setDiameter("");
+
+    setThickness("");
+
+    setFlow("");
+
+    setSpacing("");
+
+    setDripper("");
+
+    setTemplateId(0);
+
+
   }, [
-    editing,
+    product,
     open
   ]);
 
@@ -157,34 +237,46 @@ export default function ProductDialog({
     const cleanSapCode =
       sapCode.trim();
 
+
     const cleanDescription =
       description.trim();
 
 
-    if (!cleanSapCode) {
+    if (
+      !cleanSapCode
+    ) {
 
       alert(
         "Introduce el Código SAP."
       );
 
       return;
+
     }
 
 
-    if (!cleanDescription) {
+    if (
+      !cleanDescription
+    ) {
 
       alert(
         "Introduce la descripción del producto."
       );
 
       return;
+
     }
 
 
     onSave({
 
+      /*
+       * Si estamos editando mantenemos
+       * exactamente el mismo ID.
+       */
+
       id:
-        editing?.id ??
+        product?.id ??
         Date.now(),
 
       sapCode:
@@ -230,8 +322,12 @@ export default function ProductDialog({
   return (
 
     <Dialog
-      open={open}
-      onClose={onClose}
+      open={
+        open
+      }
+      onClose={
+        onClose
+      }
       fullWidth
       maxWidth="md"
     >
@@ -239,7 +335,7 @@ export default function ProductDialog({
       <DialogTitle>
 
         {
-          editing
+          product
             ? "Editar Producto"
             : "Nuevo Producto"
         }
@@ -271,11 +367,14 @@ export default function ProductDialog({
             <TextField
               fullWidth
               label="Código SAP"
-              value={sapCode}
-              onChange={(event) =>
-                setSapCode(
-                  event.target.value
-                )
+              value={
+                sapCode
+              }
+              onChange={
+                event =>
+                  setSapCode(
+                    event.target.value
+                  )
               }
             />
 
@@ -296,11 +395,14 @@ export default function ProductDialog({
             <TextField
               fullWidth
               label="Descripción"
-              value={description}
-              onChange={(event) =>
-                setDescription(
-                  event.target.value
-                )
+              value={
+                description
+              }
+              onChange={
+                event =>
+                  setDescription(
+                    event.target.value
+                  )
               }
               helperText="Descripción que aparecerá en la parte inferior de la etiqueta."
             />
@@ -325,7 +427,9 @@ export default function ProductDialog({
                 mb: 1
               }}
             >
+
               Texto superior de la etiqueta
+
             </Typography>
 
 
@@ -335,11 +439,14 @@ export default function ProductDialog({
               minRows={5}
               maxRows={8}
               label="Texto superior (180°)"
-              value={upperText}
-              onChange={(event) =>
-                setUpperText(
-                  event.target.value
-                )
+              value={
+                upperText
+              }
+              onChange={
+                event =>
+                  setUpperText(
+                    event.target.value
+                  )
               }
               placeholder={
 `AMNON PC AS 20/3.8
@@ -369,31 +476,50 @@ ISO 9261`
               fullWidth
               select
               label="Diámetro"
-              value={diameter}
-              onChange={(event) =>
-                setDiameter(
-                  event.target.value
-                )
+              value={
+                diameter
+              }
+              onChange={
+                event =>
+                  setDiameter(
+                    event.target.value
+                  )
               }
             >
 
-              <MenuItem value="16">
+              <MenuItem
+                value="16"
+              >
                 16 mm
               </MenuItem>
 
-              <MenuItem value="17">
+              <MenuItem
+                value="17"
+              >
                 17 mm
               </MenuItem>
 
-              <MenuItem value="20">
+              <MenuItem
+                value="20"
+              >
                 20 mm
               </MenuItem>
 
-              <MenuItem value="22">
+              <MenuItem
+                value="22"
+              >
                 22 mm
               </MenuItem>
 
-              <MenuItem value="25">
+              <MenuItem
+                value="23"
+              >
+                23 mm
+              </MenuItem>
+
+              <MenuItem
+                value="25"
+              >
                 25 mm
               </MenuItem>
 
@@ -417,11 +543,14 @@ ISO 9261`
               fullWidth
               select
               label="Espesor"
-              value={thickness}
-              onChange={(event) =>
-                setThickness(
-                  event.target.value
-                )
+              value={
+                thickness
+              }
+              onChange={
+                event =>
+                  setThickness(
+                    event.target.value
+                  )
               }
             >
 
@@ -433,7 +562,9 @@ ISO 9261`
                 "13",
                 "15",
                 "18",
+                "20",
                 "25",
+                "30",
                 "35",
                 "40",
                 "43",
@@ -443,10 +574,16 @@ ISO 9261`
                 mil => (
 
                   <MenuItem
-                    key={mil}
-                    value={mil}
+                    key={
+                      mil
+                    }
+                    value={
+                      mil
+                    }
                   >
+
                     {mil} mil
+
                   </MenuItem>
 
                 )
@@ -472,11 +609,14 @@ ISO 9261`
               fullWidth
               select
               label="Caudal"
-              value={flow}
-              onChange={(event) =>
-                setFlow(
-                  event.target.value
-                )
+              value={
+                flow
+              }
+              onChange={
+                event =>
+                  setFlow(
+                    event.target.value
+                  )
               }
             >
 
@@ -497,10 +637,16 @@ ISO 9261`
                 flowValue => (
 
                   <MenuItem
-                    key={flowValue}
-                    value={flowValue}
+                    key={
+                      flowValue
+                    }
+                    value={
+                      flowValue
+                    }
                   >
+
                     {flowValue} l/h
+
                   </MenuItem>
 
                 )
@@ -525,11 +671,14 @@ ISO 9261`
             <TextField
               fullWidth
               label="Espaciado"
-              value={spacing}
-              onChange={(event) =>
-                setSpacing(
-                  event.target.value
-                )
+              value={
+                spacing
+              }
+              onChange={
+                event =>
+                  setSpacing(
+                    event.target.value
+                  )
               }
             />
 
@@ -550,11 +699,14 @@ ISO 9261`
             <TextField
               fullWidth
               label="Tipo de gotero"
-              value={dripper}
-              onChange={(event) =>
-                setDripper(
-                  event.target.value
-                )
+              value={
+                dripper
+              }
+              onChange={
+                event =>
+                  setDripper(
+                    event.target.value
+                  )
               }
             />
 
@@ -576,18 +728,25 @@ ISO 9261`
               fullWidth
               select
               label="Plantilla"
-              value={templateId}
-              onChange={(event) =>
-                setTemplateId(
-                  Number(
-                    event.target.value
+              value={
+                templateId
+              }
+              onChange={
+                event =>
+                  setTemplateId(
+                    Number(
+                      event.target.value
+                    )
                   )
-                )
               }
             >
 
-              <MenuItem value={0}>
+              <MenuItem
+                value={0}
+              >
+
                 Sin plantilla
+
               </MenuItem>
 
 
@@ -602,7 +761,9 @@ ISO 9261`
                       template.id
                     }
                   >
+
                     {template.name}
+
                   </MenuItem>
 
                 )
@@ -620,18 +781,26 @@ ISO 9261`
       <DialogActions>
 
         <Button
-          onClick={onClose}
+          onClick={
+            onClose
+          }
         >
+
           Cancelar
+
         </Button>
 
 
         <Button
           variant="contained"
           color="success"
-          onClick={save}
+          onClick={
+            save
+          }
         >
+
           Guardar
+
         </Button>
 
       </DialogActions>
@@ -639,4 +808,5 @@ ISO 9261`
     </Dialog>
 
   );
+
 }
