@@ -11,18 +11,21 @@ import {
 import {
   Box,
   Button,
-  Card,
   Chip,
-  Divider,
-  Grid,
+  LinearProgress,
   Paper,
   Stack,
   Typography
 } from "@mui/material";
 
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
-import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import FactoryIcon from "@mui/icons-material/Factory";
 import PrintIcon from "@mui/icons-material/Print";
+
+import type {
+  ReactNode
+} from "react";
 
 import type {
   ProductionOrder
@@ -302,26 +305,27 @@ export default function OperatorPlanning() {
 
       <Box
         sx={{
+          mb: 4,
+
           display: "flex",
+
           alignItems: "center",
-          gap: 2,
-          mb: 3
+
+          justifyContent: "center",
+
+          gap: 2
         }}
       >
 
-        <PrecisionManufacturingIcon
+        <CalendarMonthIcon
           sx={{
-            color: "#0B7A3B",
-            fontSize: 38
+            fontSize: 46,
+            color: "#0B7A3B"
           }}
         />
 
 
-        <Box
-          sx={{
-            flexGrow: 1
-          }}
-        >
+        <Box>
 
           <Typography
             variant="h4"
@@ -335,6 +339,9 @@ export default function OperatorPlanning() {
 
           <Typography
             color="text.secondary"
+            sx={{
+              mt: 0.5
+            }}
           >
 
             Selecciona la orden de producción que deseas imprimir
@@ -354,18 +361,20 @@ export default function OperatorPlanning() {
               : "default"
           }
           variant="outlined"
+          sx={{
+            ml: 2
+          }}
         />
 
       </Box>
 
 
       {/* =============================================
-          LÍNEAS
+          8 LÍNEAS
           ============================================= */}
 
-      <Grid
-        container
-        spacing={2}
+      <Stack
+        spacing={3}
       >
 
         {PRODUCTION_LINES.map(
@@ -428,162 +437,236 @@ export default function OperatorPlanning() {
 
             return (
 
-              <Grid
+              <Paper
                 key={
                   line
                 }
-                size={{
-                  xs: 12,
-                  md: 6,
-                  lg: 3
+                elevation={0}
+                sx={{
+                  overflow: "hidden",
+
+                  border:
+                    "1px solid #E0E0E0",
+
+                  borderRadius: 2
                 }}
               >
 
-                <Paper
-                  elevation={0}
+                {/* =====================================
+                    CABECERA LÍNEA
+                    ===================================== */}
+
+                <Box
                   sx={{
-                    height: "100%",
-                    border:
-                      "1px solid #E0E0E0",
-                    borderRadius: 2,
-                    overflow: "hidden",
+                    px: 2.5,
+                    py: 1.7,
+
                     backgroundColor:
-                      "#FFFFFF"
+                      "#E8F3EB",
+
+                    borderBottom:
+                      "1px solid #E0E0E0",
+
+                    display: "flex",
+
+                    alignItems: "center",
+
+                    gap: 1.5,
+
+                    flexWrap: "wrap"
                   }}
                 >
 
-                  {/* =================================
-                      CABECERA DE LÍNEA
-                      ================================= */}
+                  <FactoryIcon
+                    sx={{
+                      color: "#0B7A3B",
+                      fontSize: 28
+                    }}
+                  />
+
+
+                  <Typography
+                    variant="h6"
+                    fontWeight={800}
+                    sx={{
+                      color: "#0B7A3B",
+                      mr: "auto"
+                    }}
+                  >
+
+                    LÍNEA {line}
+
+                  </Typography>
+
+
+                  <Chip
+                    label={
+                      lineOrders.length === 1
+                        ? "1 orden"
+                        : `${lineOrders.length} órdenes`
+                    }
+                    size="small"
+                    sx={{
+                      fontWeight: 700,
+                      backgroundColor:
+                        "#FFFFFF"
+                    }}
+                  />
+
+
+                  <Chip
+                    label={
+                      `Total: ${total}`
+                    }
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      backgroundColor:
+                        "#FFFFFF"
+                    }}
+                  />
+
+
+                  <Chip
+                    label={
+                      `Impresas: ${printed}`
+                    }
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      backgroundColor:
+                        "#FFFFFF"
+                    }}
+                  />
+
+
+                  <Chip
+                    label={
+                      `Pendientes: ${pending}`
+                    }
+                    size="small"
+                    color={
+                      pending > 0
+                        ? "warning"
+                        : "success"
+                    }
+                    sx={{
+                      fontWeight: 600
+                    }}
+                  />
+
+                </Box>
+
+
+                {/* =====================================
+                    SIN ÓRDENES
+                    ===================================== */}
+
+                {lineOrders.length ===
+                0 ? (
 
                   <Box
                     sx={{
-                      px: 2,
-                      py: 1.7,
-                      borderBottom:
-                        "1px solid #E0E0E0"
+                      p: 3,
+                      textAlign: "center",
+                      backgroundColor:
+                        "#FAFAFA"
                     }}
                   >
 
                     <Typography
-                      variant="h6"
-                      fontWeight={700}
-                      color="#0B7A3B"
-                      textAlign="center"
+                      color="text.secondary"
                     >
 
-                      Línea {line}
+                      Sin órdenes planificadas
 
                     </Typography>
 
-
-                    <Box
-                      sx={{
-                        mt: 1,
-                        display: "flex",
-                        justifyContent:
-                          "center",
-                        gap: 1,
-                        flexWrap: "wrap"
-                      }}
-                    >
-
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                      >
-
-                        Órdenes:{" "}
-
-                        <b>
-                          {lineOrders.length}
-                        </b>
-
-                      </Typography>
-
-
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                      >
-
-                        Total:{" "}
-
-                        <b>
-                          {total}
-                        </b>
-
-                      </Typography>
-
-
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                      >
-
-                        Imp.:{" "}
-
-                        <b>
-                          {printed}
-                        </b>
-
-                      </Typography>
-
-
-                      <Typography
-                        variant="caption"
-                        color={
-                          pending > 0
-                            ? "warning.dark"
-                            : "success.main"
-                        }
-                      >
-
-                        Pend.:{" "}
-
-                        <b>
-                          {pending}
-                        </b>
-
-                      </Typography>
-
-                    </Box>
-
                   </Box>
 
+                ) : (
 
-                  {/* =================================
-                      SIN ÓRDENES
-                      ================================= */}
-
-                  {lineOrders.length ===
-                  0 ? (
+                  <Box
+                    sx={{
+                      overflowX: "auto"
+                    }}
+                  >
 
                     <Box
                       sx={{
-                        p: 3,
-                        textAlign: "center"
+                        minWidth: 1020
                       }}
                     >
 
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
+                      {/* =================================
+                          CABECERA TABLA
+                          ================================= */}
+
+                      <Box
+                        sx={{
+                          display: "grid",
+
+                          gridTemplateColumns:
+                            "60px 170px 140px minmax(280px, 1fr) 100px 100px 110px 130px",
+
+                          alignItems: "center",
+
+                          px: 2,
+                          py: 1.2,
+
+                          backgroundColor:
+                            "#F5F7FA",
+
+                          borderBottom:
+                            "1px solid #E0E0E0"
+                        }}
                       >
 
-                        Sin órdenes pendientes
+                        <Header>
+                          #
+                        </Header>
 
-                      </Typography>
 
-                    </Box>
+                        <Header>
+                          Orden
+                        </Header>
 
-                  ) : (
 
-                    <Stack
-                      divider={
-                        <Divider />
-                      }
-                    >
+                        <Header>
+                          SKU
+                        </Header>
+
+
+                        <Header>
+                          Producto
+                        </Header>
+
+
+                        <Header center>
+                          Total
+                        </Header>
+
+
+                        <Header center>
+                          Impresas
+                        </Header>
+
+
+                        <Header center>
+                          Pendientes
+                        </Header>
+
+
+                        <Header center>
+                          Progreso
+                        </Header>
+
+                      </Box>
+
+
+                      {/* =================================
+                          ÓRDENES
+                          ================================= */}
 
                       {lineOrders.map(
                         (
@@ -597,14 +680,25 @@ export default function OperatorPlanning() {
                             );
 
 
+                          const progress =
+                            order.rolls > 0
+                              ? Math.min(
+                                  100,
+                                  (
+                                    order.printed /
+                                    order.rolls
+                                  ) *
+                                    100
+                                )
+                              : 0;
+
+
                           return (
 
-                            <Card
+                            <Box
                               key={
                                 order.id
                               }
-                              elevation={0}
-                              square
                               onClick={
                                 () =>
                                   openOrder(
@@ -612,50 +706,64 @@ export default function OperatorPlanning() {
                                   )
                               }
                               sx={{
-                                p: 2,
+                                display:
+                                  "grid",
+
+                                gridTemplateColumns:
+                                  "60px 170px 140px minmax(280px, 1fr) 100px 100px 110px 130px",
+
+                                alignItems:
+                                  "center",
+
+                                minHeight:
+                                  64,
+
+                                px: 2,
+
                                 cursor:
                                   "pointer",
-                                borderLeft:
-                                  "4px solid transparent",
+
+                                borderBottom:
+                                  index ===
+                                  lineOrders.length -
+                                    1
+                                    ? "none"
+                                    : "1px solid #EEEEEE",
+
+                                backgroundColor:
+                                  "#FFFFFF",
+
                                 transition:
-                                  "all 0.15s ease",
+                                  "background-color 0.15s ease",
 
                                 "&:hover": {
                                   backgroundColor:
-                                    "#E8F5E9",
-                                  borderLeftColor:
-                                    "#0B7A3B"
+                                    "#F1F8E9"
                                 }
                               }}
                             >
 
-                              {/* ORDEN */}
+                              <Typography
+                                fontWeight={700}
+                                color="text.secondary"
+                              >
+
+                                {index + 1}
+
+                              </Typography>
+
 
                               <Box
                                 sx={{
                                   display: "flex",
-                                  alignItems:
-                                    "center",
+                                  alignItems: "center",
                                   gap: 1
                                 }}
                               >
 
-                                <Chip
-                                  label={
-                                    index + 1
-                                  }
-                                  size="small"
-                                  sx={{
-                                    minWidth: 32
-                                  }}
-                                />
-
-
                                 <Typography
                                   fontWeight={700}
-                                  sx={{
-                                    flexGrow: 1
-                                  }}
+                                  color="primary.main"
                                 >
 
                                   {order.order}
@@ -665,7 +773,7 @@ export default function OperatorPlanning() {
 
                                 <PrintIcon
                                   sx={{
-                                    fontSize: 19,
+                                    fontSize: 17,
                                     color:
                                       "#0B7A3B"
                                   }}
@@ -674,14 +782,8 @@ export default function OperatorPlanning() {
                               </Box>
 
 
-                              {/* SKU */}
-
                               <Typography
                                 variant="body2"
-                                fontWeight={500}
-                                sx={{
-                                  mt: 1.25
-                                }}
                               >
 
                                 {order.sku}
@@ -689,105 +791,165 @@ export default function OperatorPlanning() {
                               </Typography>
 
 
-                              {/* PRODUCTO */}
-
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{
-                                  display: "block",
-                                  mt: 0.4,
-                                  minHeight: 36
-                                }}
-                              >
-
-                                {order.product}
-
-                              </Typography>
-
-
-                              {/* CANTIDADES */}
-
                               <Box
                                 sx={{
-                                  mt: 1.5,
-                                  pt: 1,
-                                  borderTop:
-                                    "1px solid #EEEEEE",
-
-                                  display: "flex",
-
-                                  justifyContent:
-                                    "space-between",
-
-                                  gap: 1
+                                  pr: 2
                                 }}
                               >
 
                                 <Typography
-                                  variant="caption"
+                                  variant="body2"
+                                  fontWeight={500}
                                 >
 
-                                  Total:{" "}
-
-                                  <b>
-                                    {order.rolls}
-                                  </b>
+                                  {order.product}
 
                                 </Typography>
 
 
                                 <Typography
                                   variant="caption"
+                                  color="text.secondary"
                                 >
 
-                                  Imp.:{" "}
-
-                                  <b>
-                                    {order.printed}
-                                  </b>
-
-                                </Typography>
-
-
-                                <Typography
-                                  variant="caption"
-                                  color="warning.dark"
-                                >
-
-                                  Pend.:{" "}
-
-                                  <b>
-                                    {orderPending}
-                                  </b>
+                                  Lote:{" "}
+                                  {order.lot}
 
                                 </Typography>
 
                               </Box>
 
-                            </Card>
+
+                              <Typography
+                                textAlign="center"
+                                fontWeight={600}
+                              >
+
+                                {order.rolls}
+
+                              </Typography>
+
+
+                              <Typography
+                                textAlign="center"
+                              >
+
+                                {order.printed}
+
+                              </Typography>
+
+
+                              <Typography
+                                textAlign="center"
+                                fontWeight={700}
+                                color={
+                                  orderPending === 0
+                                    ? "success.main"
+                                    : "warning.dark"
+                                }
+                              >
+
+                                {orderPending}
+
+                              </Typography>
+
+
+                              <Box
+                                sx={{
+                                  px: 1
+                                }}
+                              >
+
+                                <LinearProgress
+                                  variant="determinate"
+                                  value={
+                                    progress
+                                  }
+                                  sx={{
+                                    height: 8,
+                                    borderRadius: 5
+                                  }}
+                                />
+
+
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+
+                                  {
+                                    Math.round(
+                                      progress
+                                    )
+                                  }%
+
+                                </Typography>
+
+                              </Box>
+
+                            </Box>
 
                           );
 
                         }
                       )}
 
-                    </Stack>
+                    </Box>
 
-                  )}
+                  </Box>
 
-                </Paper>
+                )}
 
-              </Grid>
+              </Paper>
 
             );
 
           }
         )}
 
-      </Grid>
+      </Stack>
 
     </Box>
+
+  );
+
+}
+
+
+/*
+ * ==================================================
+ * CABECERA TABLA
+ * ==================================================
+ */
+
+function Header({
+  children,
+  center = false
+}: {
+  children: ReactNode;
+  center?: boolean;
+}) {
+
+  return (
+
+    <Typography
+      variant="caption"
+      fontWeight={700}
+      color="text.secondary"
+      textAlign={
+        center
+          ? "center"
+          : "left"
+      }
+      sx={{
+        textTransform:
+          "uppercase"
+      }}
+    >
+
+      {children}
+
+    </Typography>
 
   );
 
