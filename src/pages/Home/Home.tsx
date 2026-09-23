@@ -62,14 +62,15 @@ export default function Home() {
 
       {/* =============================================
           TÍTULO
+          MISMO FORMATO QUE EL RESTO DE PÁGINAS
           ============================================= */}
 
       <Typography
-        variant="h3"
-        fontWeight={700}
+        variant="h4"
         sx={{
           color: "#0B7A3B",
-          textAlign: "center"
+          textAlign: "center",
+          fontWeight: 800
         }}
       >
 

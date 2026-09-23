@@ -39,6 +39,8 @@ import {
   moveOrderInPlanning
 } from "../../services/OrderStorage";
 
+import BackButton from "../../components/common/BackButton";
+
 
 const PRODUCTION_LINES = [
   1,
@@ -174,6 +176,15 @@ export default function Planning() {
   return (
 
     <Box>
+
+      {/* =============================================
+          INICIO
+          ============================================= */}
+
+      <BackButton
+        showBack={false}
+      />
+
 
       {/* =============================================
           CABECERA

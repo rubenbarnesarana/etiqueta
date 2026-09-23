@@ -31,6 +31,8 @@ import Canvas from "../../components/designer/Canvas";
 import PropertyPanel from "../../components/designer/PropertyPanel";
 import DesignerToolbar from "../../components/designer/DesignerToolbar";
 
+import BackButton from "../../components/common/BackButton";
+
 import {
   getTemplates,
   addTemplate,
@@ -1342,6 +1344,15 @@ export default function Templates() {
   return (
 
     <Box>
+
+      {/* ==================================================
+          INICIO
+         ================================================== */}
+
+      <BackButton
+        showBack={false}
+      />
+
 
       {/* ==================================================
           CABECERA

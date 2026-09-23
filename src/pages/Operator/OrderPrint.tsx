@@ -5,7 +5,6 @@ import {
 } from "react";
 
 import {
-  useNavigate,
   useSearchParams
 } from "react-router-dom";
 
@@ -21,13 +20,14 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Chip
+  Chip,
+  TextField
 } from "@mui/material";
 
 import PrintIcon from "@mui/icons-material/Print";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ReplayIcon from "@mui/icons-material/Replay";
 
+import BackButton from "../../components/common/BackButton";
 import LabelPreview from "../../components/print/LabelPreview";
 
 import type {
@@ -39,7 +39,8 @@ import {
 } from "../../services/OrderStorage";
 
 import {
-  printLabel
+  printLabel,
+  reprintLabel
 } from "../../services/PrintService";
 
 import {
@@ -56,10 +57,6 @@ import type {
 
 
 export default function OrderPrint() {
-
-  const navigate =
-    useNavigate();
-
 
   const {
     user
@@ -97,6 +94,24 @@ export default function OrderPrint() {
     finishedOpen,
     setFinishedOpen
   ] = useState(false);
+
+
+  const [
+    reprintOpen,
+    setReprintOpen
+  ] = useState(false);
+
+
+  const [
+    reprintCoil,
+    setReprintCoil
+  ] = useState("");
+
+
+  const [
+    reprintError,
+    setReprintError
+  ] = useState("");
 
 
   const [
@@ -144,19 +159,6 @@ export default function OrderPrint() {
 
   const finalPrintedRef =
     useRef<number>(0);
-
-
-  /*
-   * ==================================================
-   * VOLVER
-   * ==================================================
-   */
-
-  function goBack() {
-
-    navigate(-1);
-
-  }
 
 
   /*
@@ -237,7 +239,11 @@ export default function OrderPrint() {
 
   async function savePrintHistory(
     productionOrder: ProductionOrder,
-    coilNumber: number
+    coilNumber: number,
+    printType:
+      | "PRINT"
+      | "REPRINT" =
+      "PRINT"
   ) {
 
     try {
@@ -271,8 +277,7 @@ export default function OrderPrint() {
         templateId:
           productionOrder.templateId,
 
-        printType:
-          "PRINT",
+        printType,
 
         productionLine:
           productionOrder.productionLine
@@ -284,17 +289,70 @@ export default function OrderPrint() {
       historyError
     ) {
 
-      /*
-       * Un fallo en el historial NO debe bloquear
-       * ni modificar la impresión realizada.
-       */
-
       console.error(
         "La etiqueta se imprimió, pero no se pudo registrar en el historial:",
         historyError
       );
 
     }
+
+  }
+
+
+  /*
+   * ==================================================
+   * CARGAR VISTA PREVIA
+   * ==================================================
+   */
+
+  function loadPreview(
+    result: {
+      label?: any[];
+      backgroundImage?: string;
+      labelFormat?:
+        | "FORMATO_1"
+        | "FORMATO_2";
+      labelData?: any;
+    }
+  ) {
+
+    setLabel(
+      result.label ??
+      []
+    );
+
+
+    setBackgroundImage(
+      result.backgroundImage
+    );
+
+
+    setLabelFormat(
+      result.labelFormat ??
+      "FORMATO_1"
+    );
+
+
+    setLabelData(
+      result.labelData
+    );
+
+
+    setPreviewOpen(
+      true
+    );
+
+
+    setTimeout(
+      () => {
+
+        setPreviewOpen(
+          false
+        );
+
+      },
+      2000
+    );
 
   }
 
@@ -315,13 +373,6 @@ export default function OrderPrint() {
 
     }
 
-
-    /*
-     * Bobina que corresponde a esta impresión.
-     *
-     * Se calcula ANTES de llamar a printLabel()
-     * porque printLabel incrementará el contador.
-     */
 
     const printedCoil =
       order.firstCoil +
@@ -347,24 +398,12 @@ export default function OrderPrint() {
     }
 
 
-    /*
-     * ==================================================
-     * HISTORIAL SUPABASE
-     * ==================================================
-     *
-     * Solo llegamos aquí si printLabel()
-     * ha confirmado success.
-     */
-
     void savePrintHistory(
       order,
-      printedCoil
+      printedCoil,
+      "PRINT"
     );
 
-
-    /*
-     * ELEMENTOS DE LA ETIQUETA
-     */
 
     setLabel(
       result.label ??
@@ -372,18 +411,10 @@ export default function OrderPrint() {
     );
 
 
-    /*
-     * IMAGEN DE FONDO
-     */
-
     setBackgroundImage(
       result.backgroundImage
     );
 
-
-    /*
-     * FORMATO
-     */
 
     setLabelFormat(
       result.labelFormat ??
@@ -391,18 +422,10 @@ export default function OrderPrint() {
     );
 
 
-    /*
-     * DATOS
-     */
-
     setLabelData(
       result.labelData
     );
 
-
-    /*
-     * RECARGAR ORDEN
-     */
 
     const updated =
       findOrder(
@@ -425,18 +448,10 @@ export default function OrderPrint() {
     }
 
 
-    /*
-     * ABRIR PREVIEW
-     */
-
     setPreviewOpen(
       true
     );
 
-
-    /*
-     * CERRAR PREVIEW AUTOMÁTICAMENTE
-     */
 
     setTimeout(
       () => {
@@ -467,10 +482,6 @@ export default function OrderPrint() {
         }
 
 
-        /*
-         * SI ERA LA ÚLTIMA ETIQUETA
-         */
-
         if (
           result.finished
         ) {
@@ -490,7 +501,7 @@ export default function OrderPrint() {
 
   /*
    * ==================================================
-   * REIMPRIMIR
+   * ABRIR REIMPRESIÓN
    * ==================================================
    */
 
@@ -505,14 +516,51 @@ export default function OrderPrint() {
     }
 
 
-    const coil =
-      prompt(
-        "¿Qué bobina desea reimprimir?"
-      );
+    setReprintError("");
 
 
     if (
-      !coil
+      order.printed <= 0
+    ) {
+
+      setReprintCoil("");
+
+    }
+    else {
+
+      /*
+       * Proponemos por defecto la última
+       * bobina realmente impresa.
+       */
+
+      setReprintCoil(
+        String(
+          order.firstCoil +
+          order.printed -
+          1
+        )
+      );
+
+    }
+
+
+    setReprintOpen(
+      true
+    );
+
+  }
+
+
+  /*
+   * ==================================================
+   * CONFIRMAR REIMPRESIÓN
+   * ==================================================
+   */
+
+  function confirmReprint() {
+
+    if (
+      !order
     ) {
 
       return;
@@ -520,19 +568,76 @@ export default function OrderPrint() {
     }
 
 
+    const coilNumber =
+      Number(
+        reprintCoil
+      );
+
+
+    if (
+      !Number.isInteger(
+        coilNumber
+      )
+    ) {
+
+      setReprintError(
+        "Introduce un número de bobina válido."
+      );
+
+      return;
+
+    }
+
+
+    const result =
+      reprintLabel(
+        order,
+        coilNumber
+      );
+
+
+    if (
+      !result.success
+    ) {
+
+      setReprintError(
+        result.message
+      );
+
+      return;
+
+    }
+
+
     /*
-     * Por ahora NO registramos REPRINT aquí.
+     * IMPORTANTE:
      *
-     * Actualmente este botón todavía no ejecuta
-     * una impresión real. Solo muestra el aviso.
+     * La reimpresión NO modifica:
      *
-     * Cuando conectemos la reimpresión real,
-     * registraremos el evento REPRINT.
+     * - Impresos
+     * - Pendientes
+     * - Próxima bobina
+     * - Estado
      */
 
-    alert(
-      "Reimpresión de la bobina " +
-      coil
+
+    void savePrintHistory(
+      order,
+      coilNumber,
+      "REPRINT"
+    );
+
+
+    setReprintOpen(
+      false
+    );
+
+
+    setReprintError("");
+
+
+    loadPreview(
+      result
     );
 
   }
@@ -568,6 +673,21 @@ export default function OrderPrint() {
       : null;
 
 
+  const firstReprintCoil =
+    order
+      ? order.firstCoil
+      : 0;
+
+
+  const lastReprintCoil =
+    order &&
+    order.printed > 0
+      ? order.firstCoil +
+        order.printed -
+        1
+      : null;
+
+
   /*
    * ==================================================
    * ERROR
@@ -582,23 +702,7 @@ export default function OrderPrint() {
 
       <Box>
 
-        <Button
-          variant="outlined"
-          startIcon={
-            <ArrowBackIcon />
-          }
-          onClick={
-            goBack
-          }
-          sx={{
-            mb: 3,
-            fontWeight: 700
-          }}
-        >
-
-          VOLVER
-
-        </Button>
+        <BackButton />
 
 
         <Alert
@@ -630,23 +734,7 @@ export default function OrderPrint() {
 
       <Box>
 
-        <Button
-          variant="outlined"
-          startIcon={
-            <ArrowBackIcon />
-          }
-          onClick={
-            goBack
-          }
-          sx={{
-            mb: 3,
-            fontWeight: 700
-          }}
-        >
-
-          VOLVER
-
-        </Button>
+        <BackButton />
 
 
         <Typography>
@@ -676,23 +764,7 @@ export default function OrderPrint() {
           VOLVER
           ============================================= */}
 
-      <Button
-        variant="outlined"
-        startIcon={
-          <ArrowBackIcon />
-        }
-        onClick={
-          goBack
-        }
-        sx={{
-          mb: 3,
-          fontWeight: 700
-        }}
-      >
-
-        VOLVER
-
-      </Button>
+      <BackButton />
 
 
       {/* =============================================
@@ -752,16 +824,46 @@ export default function OrderPrint() {
           &&
           (
 
-            <Chip
-              label={
-                `Línea ${order.productionLine}`
-              }
-              color="success"
-              variant="outlined"
+            <Box
               sx={{
-                fontWeight: 700
+                minWidth: 145,
+                height: 105,
+                px: 2.5,
+                borderRadius: 3,
+                backgroundColor: "#0B7A3B",
+                color: "#FFFFFF",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 5px 14px rgba(11, 122, 59, 0.22)",
+                border: "2px solid #086530"
               }}
-            />
+            >
+
+              <Typography
+                sx={{
+                  fontSize: 16,
+                  fontWeight: 800,
+                  letterSpacing: 1.2,
+                  lineHeight: 1,
+                  mb: 0.5
+                }}
+              >
+                LÍNEA
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: 54,
+                  fontWeight: 900,
+                  lineHeight: 0.95
+                }}
+              >
+                {order.productionLine}
+              </Typography>
+
+            </Box>
 
           )
         }
@@ -1039,13 +1141,24 @@ export default function OrderPrint() {
                   startIcon={
                     <ReplayIcon />
                   }
+                  disabled={
+                    order.printed <= 0
+                  }
                   onClick={
                     repeatLabel
                   }
                   sx={{
                     minWidth: 210,
                     minHeight: 56,
-                    fontWeight: 700
+                    fontWeight: 700,
+                    color: "#0B7A3B",
+                    borderColor: "#0B7A3B",
+
+                    "&:hover": {
+                      borderColor: "#086530",
+                      backgroundColor:
+                        "#F2F8F4"
+                    }
                   }}
                 >
 
@@ -1272,6 +1385,231 @@ export default function OrderPrint() {
         </CardContent>
 
       </Card>
+
+
+      {/* =============================================
+          VENTANA REIMPRESIÓN
+          ============================================= */}
+
+      <Dialog
+        open={
+          reprintOpen
+        }
+        onClose={
+          () =>
+            setReprintOpen(
+              false
+            )
+        }
+        fullWidth
+        maxWidth="sm"
+      >
+
+        <DialogTitle
+          sx={{
+            fontWeight: 800,
+            fontSize: 26,
+            color: "#0B7A3B",
+            display: "flex",
+            alignItems: "center",
+            gap: 1
+          }}
+        >
+
+          <ReplayIcon
+            sx={{
+              fontSize: 32
+            }}
+          />
+
+          Repetir etiqueta
+
+        </DialogTitle>
+
+
+        <DialogContent>
+
+          <Typography
+            sx={{
+              mb: 2
+            }}
+          >
+
+            Orden de producción{" "}
+
+            <b>
+              {order.order}
+            </b>
+
+          </Typography>
+
+
+          {
+            lastReprintCoil !== null
+            &&
+            (
+
+              <Alert
+                severity="info"
+                sx={{
+                  mb: 3
+                }}
+              >
+
+                Puedes reimprimir las bobinas{" "}
+
+                <b>
+                  {firstReprintCoil}
+                </b>
+
+                {" "}a{" "}
+
+                <b>
+                  {lastReprintCoil}
+                </b>.
+
+                La reimpresión no modificará los contadores de la orden.
+
+              </Alert>
+
+            )
+          }
+
+
+          {
+            reprintError
+            &&
+            (
+
+              <Alert
+                severity="error"
+                sx={{
+                  mb: 2
+                }}
+              >
+
+                {reprintError}
+
+              </Alert>
+
+            )
+          }
+
+
+          <TextField
+            autoFocus
+            fullWidth
+            label="Número de bobina"
+            type="number"
+            value={
+              reprintCoil
+            }
+            onChange={
+              event => {
+
+                setReprintCoil(
+                  event.target.value
+                );
+
+                setReprintError("");
+
+              }
+            }
+            onKeyDown={
+              event => {
+
+                if (
+                  event.key ===
+                  "Enter"
+                ) {
+
+                  confirmReprint();
+
+                }
+
+              }
+            }
+            slotProps={{
+              htmlInput: {
+                min:
+                  firstReprintCoil,
+
+                max:
+                  lastReprintCoil ??
+                  undefined,
+
+                step:
+                  1
+              }
+            }}
+            sx={{
+              mt: 1,
+
+              "& input": {
+                fontSize: 28,
+                fontWeight: 700,
+                textAlign: "center"
+              }
+            }}
+          />
+
+        </DialogContent>
+
+
+        <DialogActions
+          sx={{
+            px: 3,
+            pb: 3,
+            gap: 1
+          }}
+        >
+
+          <Button
+            onClick={
+              () =>
+                setReprintOpen(
+                  false
+                )
+            }
+            sx={{
+              fontWeight: 700
+            }}
+          >
+
+            CANCELAR
+
+          </Button>
+
+
+          <Button
+            variant="contained"
+            startIcon={
+              <ReplayIcon />
+            }
+            onClick={
+              confirmReprint
+            }
+            sx={{
+              minHeight: 48,
+              px: 3,
+              fontWeight: 800,
+              backgroundColor:
+                "#0B7A3B",
+
+              "&:hover": {
+                backgroundColor:
+                  "#086530"
+              }
+            }}
+          >
+
+            REIMPRIMIR BOBINA
+
+          </Button>
+
+        </DialogActions>
+
+      </Dialog>
 
 
       {/* =============================================

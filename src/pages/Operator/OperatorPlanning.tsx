@@ -20,7 +20,7 @@ import {
   Typography
 } from "@mui/material";
 
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 import PrintIcon from "@mui/icons-material/Print";
 
@@ -153,29 +153,147 @@ export default function OperatorPlanning() {
     <Box>
 
       {/* =============================================
-          VOLVER
+          INICIO
           ============================================= */}
 
-      <Button
-        variant="outlined"
-        startIcon={
-          <ArrowBackIcon />
-        }
-        onClick={
-          () =>
-            navigate(
-              "/operator"
-            )
-        }
+      <Box
         sx={{
-          mb: 3,
-          fontWeight: 700
+          mt: 3,
+          mb: 4
         }}
       >
 
-        VOLVER
+        <Button
+          onClick={
+            () =>
+              navigate("/")
+          }
+          sx={{
+            minWidth: 205,
+            height: 68,
+            px: 2.5,
 
-      </Button>
+            display: "flex",
+            justifyContent: "flex-start",
+            alignItems: "center",
+            gap: 1.8,
+
+            border:
+              "2px solid #0B7A3B",
+
+            borderRadius:
+              "16px",
+
+            backgroundColor:
+              "#FFFFFF",
+
+            color:
+              "#0B7A3B",
+
+            fontSize: 19,
+            fontWeight: 800,
+
+            letterSpacing:
+              "0.4px",
+
+            textTransform:
+              "uppercase",
+
+            boxShadow:
+              "0 5px 14px rgba(11, 122, 59, 0.16)",
+
+            transition:
+              "all 0.18s ease",
+
+            "&:hover": {
+              backgroundColor:
+                "#EAF6EE",
+
+              borderColor:
+                "#086530",
+
+              color:
+                "#086530",
+
+              boxShadow:
+                "0 7px 18px rgba(11, 122, 59, 0.24)",
+
+              transform:
+                "translateY(-2px)"
+            },
+
+            "&:active": {
+              transform:
+                "translateY(0)",
+
+              boxShadow:
+                "0 3px 9px rgba(11, 122, 59, 0.18)"
+            },
+
+            "&:hover .homeIcon": {
+              backgroundColor:
+                "#086530",
+
+              transform:
+                "scale(1.08)"
+            }
+          }}
+        >
+
+          <Box
+            className="homeIcon"
+            sx={{
+              width: 46,
+              height: 46,
+              flexShrink: 0,
+
+              borderRadius:
+                "50%",
+
+              display: "flex",
+              alignItems: "center",
+              justifyContent:
+                "center",
+
+              backgroundColor:
+                "#0B7A3B",
+
+              color:
+                "#FFFFFF",
+
+              boxShadow:
+                "0 3px 8px rgba(11, 122, 59, 0.25)",
+
+              transition:
+                "all 0.18s ease"
+            }}
+          >
+
+            <HomeRoundedIcon
+              sx={{
+                fontSize: 29
+              }}
+            />
+
+          </Box>
+
+
+          <Box
+            component="span"
+            sx={{
+              flexGrow: 1,
+              textAlign: "center",
+              pr: 2
+            }}
+          >
+
+            INICIO
+
+          </Box>
+
+        </Button>
+
+      </Box>
 
 
       {/* =============================================

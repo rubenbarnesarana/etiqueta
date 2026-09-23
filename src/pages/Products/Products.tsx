@@ -40,6 +40,8 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 import ProductDialog from "./ProductDialog";
 
+import BackButton from "../../components/common/BackButton";
+
 import type {
   Product
 } from "../../models/Product";
@@ -1260,6 +1262,15 @@ export default function Products() {
         boxSizing: "border-box"
       }}
     >
+
+      {/* =============================================
+          INICIO
+          ============================================= */}
+
+      <BackButton
+        showBack={false}
+      />
+
 
       {/* =============================================
           CABECERA

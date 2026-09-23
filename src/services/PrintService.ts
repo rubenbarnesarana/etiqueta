@@ -85,11 +85,6 @@ export interface PrintResult {
 
   finished?: boolean;
 
-
-  // -----------------------------------------------
-  // DATOS DE LA PLANTILLA
-  // -----------------------------------------------
-
   backgroundImage?: string;
 
   labelFormat?:
@@ -100,11 +95,6 @@ export interface PrintResult {
 
   labelHeight?: number;
 
-
-  // -----------------------------------------------
-  // DATOS DINÁMICOS
-  // -----------------------------------------------
-
   labelData?:
     PrintLabelData;
 
@@ -112,41 +102,28 @@ export interface PrintResult {
 
 
 //==================================================
-// IMPRIMIR UNA ETIQUETA
+// GENERAR ETIQUETA
+//==================================================
+//
+// Esta función construye la etiqueta.
+//
+// IMPORTANTE:
+//
+// NO modifica:
+// - impresos
+// - pendientes
+// - estado
+// - planificación
+//
+// Esto permite utilizar exactamente la misma lógica
+// tanto para impresión normal como para reimpresión.
+//
 //==================================================
 
-export function printLabel(
-  order: ProductionOrder
+function buildPrintResult(
+  order: ProductionOrder,
+  coilNumber: number
 ): PrintResult {
-
-
-  //------------------------------------------------
-  // LA ORDEN YA TERMINÓ
-  //------------------------------------------------
-
-  if (
-    order.printed >=
-    order.rolls
-  ) {
-
-    return {
-
-      success:
-        false,
-
-      message:
-        "La orden ya está completamente impresa.",
-
-      coilNumber:
-        order.firstCoil +
-        order.printed,
-
-      finished:
-        true
-
-    };
-
-  }
 
 
   //------------------------------------------------
@@ -171,8 +148,7 @@ export function printLabel(
       message:
         "Producto no encontrado.",
 
-      coilNumber:
-        0
+      coilNumber
 
     };
 
@@ -232,8 +208,7 @@ export function printLabel(
       message:
         "El SKU no tiene una plantilla asignada.",
 
-      coilNumber:
-        0
+      coilNumber
 
     };
 
@@ -247,15 +222,6 @@ export function printLabel(
   const labelFormat =
     template.labelFormat ??
     "FORMATO_1";
-
-
-  //------------------------------------------------
-  // NÚMERO DE BOBINA / ROLLO
-  //------------------------------------------------
-
-  const currentCoil =
-    order.firstCoil +
-    order.printed;
 
 
   //------------------------------------------------
@@ -273,9 +239,9 @@ export function printLabel(
    *
    * Ejemplo:
    *
-   * 21/09/2026
+   * 23/09/2026
    *
-   * 210926
+   * 230926
    */
 
   const date =
@@ -308,7 +274,7 @@ export function printLabel(
   // Se utiliza siempre el lote guardado
   // en la orden.
   //
-  // Si por cualquier motivo estuviera vacío,
+  // Si estuviera vacío,
   // se genera automáticamente YYMMDD.
   //------------------------------------------------
 
@@ -400,30 +366,11 @@ export function printLabel(
     "FORMATO_2"
   ) {
 
-    /*
-     * DESCRIPCIÓN SKU
-     *
-     * Ejemplo:
-     *
-     * EXCEL 16/8/1.2/0.15 2300m
-     */
-
     coilDescription =
       generateCoilDescription(
         product
       );
 
-
-    /*
-     * INFORMACIÓN TÉCNICA
-     *
-     * Ejemplo:
-     *
-     * EXCEL 16/8 MIL 15 CM
-     * 1.2 L/H at 1 Bar - B-2300M
-     * EMITTING PIPE ISO 9261
-     * Max Pressure 1.2 Bar
-     */
 
     coilTechnical =
       generateCoilTechnicalText(
@@ -432,17 +379,9 @@ export function printLabel(
       );
 
 
-    /*
-     * TEXTO FIJO INFERIOR
-     */
-
     coilLegal =
       generateCoilLegalText();
 
-
-    /*
-     * ORIGEN
-     */
 
     coilOrigin =
       generateCoilOriginText();
@@ -540,7 +479,7 @@ export function printLabel(
 
     COIL:
       String(
-        currentCoil
+        coilNumber
       ),
 
 
@@ -558,17 +497,6 @@ export function printLabel(
 
   //------------------------------------------------
   // CONSTRUIR ETIQUETA
-  //------------------------------------------------
-  //
-  // Aquí se conservan:
-  //
-  // - posiciones
-  // - tamaños
-  // - rotaciones
-  // - campos
-  // - barcode
-  //
-  // configurados en el diseñador.
   //------------------------------------------------
 
   const label =
@@ -625,6 +553,113 @@ export function printLabel(
 
 
   //------------------------------------------------
+  // RESPUESTA
+  //------------------------------------------------
+
+  return {
+
+    success:
+      true,
+
+    message:
+      "OK",
+
+    coilNumber,
+
+    label,
+
+    backgroundImage,
+
+    labelFormat,
+
+    labelWidth,
+
+    labelHeight,
+
+    labelData
+
+  };
+
+}
+
+
+//==================================================
+// IMPRIMIR UNA ETIQUETA NORMAL
+//==================================================
+//
+// Esta función:
+//
+// 1. Calcula la siguiente bobina.
+// 2. Genera la etiqueta.
+// 3. Incrementa el contador.
+// 4. Finaliza la orden cuando corresponde.
+//
+//==================================================
+
+export function printLabel(
+  order: ProductionOrder
+): PrintResult {
+
+
+  //------------------------------------------------
+  // LA ORDEN YA TERMINÓ
+  //------------------------------------------------
+
+  if (
+    order.printed >=
+    order.rolls
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "La orden ya está completamente impresa.",
+
+      coilNumber:
+        order.firstCoil +
+        order.printed,
+
+      finished:
+        true
+
+    };
+
+  }
+
+
+  //------------------------------------------------
+  // SIGUIENTE BOBINA
+  //------------------------------------------------
+
+  const currentCoil =
+    order.firstCoil +
+    order.printed;
+
+
+  //------------------------------------------------
+  // GENERAR ETIQUETA
+  //------------------------------------------------
+
+  const result =
+    buildPrintResult(
+      order,
+      currentCoil
+    );
+
+
+  if (
+    !result.success
+  ) {
+
+    return result;
+
+  }
+
+
+  //------------------------------------------------
   // ACTUALIZAR CONTADOR DE IMPRESIÓN
   //------------------------------------------------
 
@@ -664,40 +699,170 @@ export function printLabel(
 
   return {
 
-    success:
-      true,
+    ...result,
 
     message:
       finished
         ? "ÚLTIMA_ETIQUETA"
         : "OK",
 
-    coilNumber:
-      currentCoil,
+    finished
 
-    label,
+  };
 
-    finished,
-
-
-    //------------------------------------------------
-    // PLANTILLA
-    //------------------------------------------------
-
-    backgroundImage,
-
-    labelFormat,
-
-    labelWidth,
-
-    labelHeight,
+}
 
 
-    //------------------------------------------------
-    // DATOS REALES
-    //------------------------------------------------
+//==================================================
+// REIMPRIMIR UNA ETIQUETA
+//==================================================
+//
+// Genera exactamente la bobina solicitada.
+//
+// MUY IMPORTANTE:
+//
+// NO incrementa order.printed.
+// NO reduce pendientes.
+// NO cambia el estado de la orden.
+// NO modifica la planificación.
+//
+//==================================================
 
-    labelData
+export function reprintLabel(
+  order: ProductionOrder,
+  coilNumber: number
+): PrintResult {
+
+
+  //------------------------------------------------
+  // VALIDAR NÚMERO
+  //------------------------------------------------
+
+  if (
+    !Number.isInteger(
+      coilNumber
+    )
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "El número de bobina no es válido.",
+
+      coilNumber
+
+    };
+
+  }
+
+
+  //------------------------------------------------
+  // PRIMERA BOBINA DE LA ORDEN
+  //------------------------------------------------
+
+  const firstPrintedCoil =
+    order.firstCoil;
+
+
+  //------------------------------------------------
+  // ÚLTIMA BOBINA QUE REALMENTE SE HA IMPRESO
+  //------------------------------------------------
+
+  const lastPrintedCoil =
+    order.firstCoil +
+    order.printed -
+    1;
+
+
+  //------------------------------------------------
+  // TODAVÍA NO HAY ETIQUETAS IMPRESAS
+  //------------------------------------------------
+
+  if (
+    order.printed <=
+    0
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "Esta orden todavía no tiene etiquetas impresas.",
+
+      coilNumber
+
+    };
+
+  }
+
+
+  //------------------------------------------------
+  // COMPROBAR QUE ESA BOBINA YA FUE IMPRESA
+  //------------------------------------------------
+
+  if (
+    coilNumber <
+      firstPrintedCoil ||
+    coilNumber >
+      lastPrintedCoil
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        `Solo se pueden reimprimir las bobinas ${firstPrintedCoil} a ${lastPrintedCoil}.`,
+
+      coilNumber
+
+    };
+
+  }
+
+
+  //------------------------------------------------
+  // GENERAR LA ETIQUETA
+  //
+  // No se llama a updateOrder().
+  //------------------------------------------------
+
+  const result =
+    buildPrintResult(
+      order,
+      coilNumber
+    );
+
+
+  if (
+    !result.success
+  ) {
+
+    return result;
+
+  }
+
+
+  //------------------------------------------------
+  // RESPUESTA
+  //------------------------------------------------
+
+  return {
+
+    ...result,
+
+    message:
+      "REIMPRESIÓN_OK",
+
+    finished:
+      order.status ===
+      "FINALIZADA"
 
   };
 

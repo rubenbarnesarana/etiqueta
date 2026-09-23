@@ -9,25 +9,59 @@ import {
   Button,
   Card,
   CardContent,
+  CircularProgress,
   Stack,
   TextField,
   Typography
 } from "@mui/material";
 
-import { useAuth } from "./AuthContext";
+import {
+  useNavigate
+} from "react-router-dom";
+
+import {
+  useAuth
+} from "./AuthContext";
 
 
 export default function Login() {
 
-  const { login } = useAuth();
+  const {
+    login
+  } = useAuth();
 
-  const [username, setUsername] = useState("");
+  const navigate =
+    useNavigate();
 
-  const [password, setPassword] = useState("");
 
-  const [error, setError] = useState("");
+  const [
+    username,
+    setUsername
+  ] = useState("");
 
-  const [currentDate, setCurrentDate] = useState(
+
+  const [
+    password,
+    setPassword
+  ] = useState("");
+
+
+  const [
+    error,
+    setError
+  ] = useState("");
+
+
+  const [
+    loggingIn,
+    setLoggingIn
+  ] = useState(false);
+
+
+  const [
+    currentDate,
+    setCurrentDate
+  ] = useState(
     new Date()
   );
 
@@ -40,13 +74,17 @@ export default function Login() {
 
   useEffect(() => {
 
-    const timer = window.setInterval(() => {
+    const timer =
+      window.setInterval(
+        () => {
 
-      setCurrentDate(
-        new Date()
+          setCurrentDate(
+            new Date()
+          );
+
+        },
+        1000
       );
-
-    }, 1000);
 
 
     return () => {
@@ -66,18 +104,25 @@ export default function Login() {
    * ==================================================
    */
 
-  function handleLogin() {
+  async function handleLogin() {
 
-    const ok = login(
-      username,
-      password
-    );
+    if (
+      loggingIn
+    ) {
+
+      return;
+
+    }
 
 
-    if (!ok) {
+    if (
+      !username.trim()
+      ||
+      !password
+    ) {
 
       setError(
-        "Usuario o contraseña incorrectos"
+        "Introduce usuario y contraseña"
       );
 
       return;
@@ -85,7 +130,80 @@ export default function Login() {
     }
 
 
-    setError("");
+    setLoggingIn(
+      true
+    );
+
+
+    setError(
+      ""
+    );
+
+
+    try {
+
+      const ok =
+        await login(
+          username,
+          password
+        );
+
+
+      if (
+        !ok
+      ) {
+
+        setError(
+          "Usuario o contraseña incorrectos"
+        );
+
+        return;
+
+      }
+
+
+      setError(
+        ""
+      );
+
+
+      /*
+       * Después de iniciar sesión correctamente,
+       * siempre volvemos a la pantalla de Inicio.
+       *
+       * replace: true evita conservar la página
+       * anterior como destino de navegación.
+       */
+      navigate(
+        "/",
+        {
+          replace: true
+        }
+      );
+
+    }
+    catch (
+      error
+    ) {
+
+      console.error(
+        "Error en el inicio de sesión:",
+        error
+      );
+
+
+      setError(
+        "No se pudo conectar con el servidor"
+      );
+
+    }
+    finally {
+
+      setLoggingIn(
+        false
+      );
+
+    }
 
   }
 
@@ -281,7 +399,9 @@ export default function Login() {
               }}
             >
 
-              <Stack spacing={3}>
+              <Stack
+                spacing={3}
+              >
 
 
                 {/* ==================================================
@@ -381,7 +501,8 @@ export default function Login() {
 
                         color: "#0B7A3B",
 
-                        fontVariantNumeric: "tabular-nums"
+                        fontVariantNumeric:
+                          "tabular-nums"
                       }}
                     >
 
@@ -398,15 +519,21 @@ export default function Login() {
                     ERROR
                    ================================================== */}
 
-                {error !== "" && (
+                {
+                  error !== ""
+                  &&
+                  (
 
-                  <Alert severity="error">
+                    <Alert
+                      severity="error"
+                    >
 
-                    {error}
+                      {error}
 
-                  </Alert>
+                    </Alert>
 
-                )}
+                  )
+                }
 
 
                 {/* ==================================================
@@ -420,14 +547,20 @@ export default function Login() {
 
                   autoFocus
 
-                  value={username}
+                  disabled={
+                    loggingIn
+                  }
 
-                  onChange={(e) =>
+                  value={
+                    username
+                  }
 
-                    setUsername(
-                      e.target.value
-                    )
+                  onChange={
+                    event =>
 
+                      setUsername(
+                        event.target.value
+                      )
                   }
                 />
 
@@ -443,27 +576,35 @@ export default function Login() {
 
                   fullWidth
 
-                  value={password}
-
-                  onChange={(e) =>
-
-                    setPassword(
-                      e.target.value
-                    )
-
+                  disabled={
+                    loggingIn
                   }
 
-                  onKeyDown={(e) => {
+                  value={
+                    password
+                  }
 
-                    if (
-                      e.key === "Enter"
-                    ) {
+                  onChange={
+                    event =>
 
-                      handleLogin();
+                      setPassword(
+                        event.target.value
+                      )
+                  }
+
+                  onKeyDown={
+                    event => {
+
+                      if (
+                        event.key === "Enter"
+                      ) {
+
+                        void handleLogin();
+
+                      }
 
                     }
-
-                  }}
+                  }
                 />
 
 
@@ -478,7 +619,28 @@ export default function Login() {
 
                   fullWidth
 
-                  onClick={handleLogin}
+                  disabled={
+                    loggingIn
+                  }
+
+                  onClick={
+                    () => {
+
+                      void handleLogin();
+
+                    }
+                  }
+
+                  startIcon={
+                    loggingIn
+                      ? (
+                        <CircularProgress
+                          size={20}
+                          color="inherit"
+                        />
+                      )
+                      : undefined
+                  }
 
                   sx={{
                     height: 52,
@@ -487,15 +649,21 @@ export default function Login() {
 
                     fontWeight: 600,
 
-                    backgroundColor: "#0B7A3B",
+                    backgroundColor:
+                      "#0B7A3B",
 
                     "&:hover": {
-                      backgroundColor: "#086530"
+                      backgroundColor:
+                        "#086530"
                     }
                   }}
                 >
 
-                  ENTRAR
+                  {
+                    loggingIn
+                      ? "ENTRANDO..."
+                      : "ENTRAR"
+                  }
 
                 </Button>
 
@@ -527,4 +695,5 @@ export default function Login() {
     </Box>
 
   );
+
 }

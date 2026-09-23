@@ -7,7 +7,10 @@ import {
 import type { ReactNode } from "react";
 import type { User } from "./User";
 
-import { users } from "./users";
+import {
+  loginSupabaseUser
+} from "../services/SupabaseUserService";
+
 
 interface AuthContextType {
 
@@ -16,15 +19,17 @@ interface AuthContextType {
   login: (
     username: string,
     password: string
-  ) => boolean;
+  ) => Promise<boolean>;
 
   logout: () => void;
 
 }
 
+
 const AuthContext = createContext<AuthContextType>(
   {} as AuthContextType
 );
+
 
 interface Props {
 
@@ -32,51 +37,82 @@ interface Props {
 
 }
 
+
 export function AuthProvider({
 
   children
 
 }: Props) {
 
-  const [user, setUser] = useState<User | null>(null);
 
-  function login(
+  const [
+    user,
+    setUser
+  ] = useState<User | null>(
+    null
+  );
+
+
+  async function login(
 
     username: string,
 
     password: string
 
-  ): boolean {
+  ): Promise<boolean> {
 
-    const found = users.find(
 
-      u =>
+    try {
 
-        u.username.toLowerCase() === username.toLowerCase()
+      const found =
+        await loginSupabaseUser(
+          username,
+          password
+        );
 
-        &&
 
-        u.password === password
+      if (
+        !found
+      ) {
 
-    );
+        return false;
 
-    if (!found) {
+      }
+
+
+      setUser(
+        found
+      );
+
+
+      return true;
+
+    }
+    catch (
+      error
+    ) {
+
+      console.error(
+        "Error iniciando sesión:",
+        error
+      );
+
 
       return false;
 
     }
 
-    setUser(found);
-
-    return true;
-
   }
+
 
   function logout() {
 
-    setUser(null);
+    setUser(
+      null
+    );
 
   }
+
 
   return (
 
@@ -102,8 +138,11 @@ export function AuthProvider({
 
 }
 
+
 export function useAuth() {
 
-  return useContext(AuthContext);
+  return useContext(
+    AuthContext
+  );
 
 }

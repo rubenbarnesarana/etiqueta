@@ -24,6 +24,8 @@ import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturi
 import ProductionDialog from "../../components/production/ProductionDialog";
 import ProductionManageDialog from "../../components/production/ProductionManageDialog";
 
+import BackButton from "../../components/common/BackButton";
+
 import type {
   ProductionOrder
 } from "../../services/OrderStorage";
@@ -245,6 +247,15 @@ export default function Production() {
   return (
 
     <Box>
+
+      {/* =============================================
+          INICIO
+          ============================================= */}
+
+      <BackButton
+        showBack={false}
+      />
+
 
       {/* =============================================
           CABECERA

@@ -38,6 +38,8 @@ import BackupIcon from "@mui/icons-material/Backup";
 
 import * as XLSX from "xlsx";
 
+import BackButton from "../../components/common/BackButton";
+
 import {
   deleteAllPrintHistory,
   getPrintHistory
@@ -862,6 +864,15 @@ export default function PrintHistory() {
   return (
 
     <Box>
+
+      {/* =============================================
+          INICIO
+          ============================================= */}
+
+      <BackButton
+        showBack={false}
+      />
+
 
       {/* =============================================
           CABECERA

@@ -7,6 +7,8 @@ import {
 
 import PrintIcon from "@mui/icons-material/Print";
 
+import BackButton from "../../components/common/BackButton";
+
 
 export default function Printers() {
 
@@ -18,6 +20,15 @@ export default function Printers() {
         mx: "auto"
       }}
     >
+
+      {/* =============================================
+          INICIO
+          ============================================= */}
+
+      <BackButton
+        showBack={false}
+      />
+
 
       {/* =============================================
           CABECERA

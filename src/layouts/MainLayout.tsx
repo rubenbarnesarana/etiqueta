@@ -718,7 +718,31 @@ export default function MainLayout() {
             width: "100%",
             maxWidth: "none",
             minWidth: 0,
-            boxSizing: "border-box"
+            boxSizing: "border-box",
+
+            /*
+             * Más separación entre la barra superior
+             * y el contenido de todas las páginas.
+             */
+            pt: {
+              xs: 2.5,
+              md: 3.5
+            },
+
+            /*
+             * Títulos principales de página.
+             * Se aplica de forma común a los Typography h4.
+             */
+            "& .MuiTypography-h4": {
+              fontSize: {
+                xs: "2.4rem",
+                md: "3.25rem"
+              },
+              lineHeight: 1.08,
+              fontWeight: 800,
+              letterSpacing: "-0.8px",
+              color: "#0B7A3B"
+            }
           }}
         >
 

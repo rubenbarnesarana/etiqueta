@@ -26,21 +26,18 @@ export default function Operator() {
 
     <Box
       sx={{
+        width: "100%",
         minHeight:
           "calc(100vh - 128px)",
 
         display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
 
-        flexDirection:
-          "column",
+        pt: 7,
+        pb: 5,
 
-        alignItems:
-          "center",
-
-        justifyContent:
-          "center",
-
-        py: 4
+        boxSizing: "border-box"
       }}
     >
 
@@ -54,8 +51,8 @@ export default function Operator() {
         alt="Rivulis"
         sx={{
           width: "100%",
-          maxWidth: 360,
-          maxHeight: 150,
+          maxWidth: 220,
+          height: 220,
           objectFit: "contain",
           mb: 2
         }}
@@ -67,16 +64,47 @@ export default function Operator() {
           ============================================= */}
 
       <Typography
-        variant="h3"
-        fontWeight={700}
+        variant="h4"
         sx={{
           color: "#0B7A3B",
           textAlign: "center",
-          mb: 5
+          fontWeight: 800,
+
+          fontSize: {
+            xs: 42,
+            md: 54
+          },
+
+          lineHeight: 1.1,
+
+          mb: 1
         }}
       >
 
         PROGRAMA ETIQUETAS
+
+      </Typography>
+
+
+      {/* =============================================
+          SUBTÍTULO
+          ============================================= */}
+
+      <Typography
+        sx={{
+          color: "text.secondary",
+          textAlign: "center",
+
+          fontSize: {
+            xs: 18,
+            md: 22
+          },
+
+          mb: 5
+        }}
+      >
+
+        Rivulis Irrigation · QI02
 
       </Typography>
 
@@ -88,7 +116,7 @@ export default function Operator() {
       <Box
         sx={{
           width: "100%",
-          maxWidth: 620,
+          maxWidth: 800,
 
           display: "grid",
 
@@ -97,7 +125,7 @@ export default function Operator() {
             sm: "repeat(2, 1fr)"
           },
 
-          gap: 2.5
+          gap: 2
         }}
       >
 
@@ -105,11 +133,11 @@ export default function Operator() {
 
         <OperatorCard
           title="Planificación"
-          description="Seleccionar una orden de producción planificada"
+          description="Planificación de las líneas"
           icon={
             <CalendarMonthIcon
               sx={{
-                fontSize: 52
+                fontSize: 46
               }}
             />
           }
@@ -130,7 +158,7 @@ export default function Operator() {
           icon={
             <PrecisionManufacturingIcon
               sx={{
-                fontSize: 52
+                fontSize: 46
               }}
             />
           }
@@ -143,23 +171,6 @@ export default function Operator() {
         />
 
       </Box>
-
-
-      {/* =============================================
-          PIE
-          ============================================= */}
-
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{
-          mt: 5
-        }}
-      >
-
-        Rivulis Irrigation · QI02
-
-      </Typography>
 
     </Box>
 
@@ -194,31 +205,27 @@ function OperatorCard({
       }
       elevation={0}
       sx={{
-        minHeight: 210,
+        minHeight: 240,
 
         p: 3,
 
         display: "flex",
+        flexDirection: "column",
 
-        flexDirection:
-          "column",
+        alignItems: "center",
+        justifyContent: "center",
 
-        alignItems:
-          "center",
+        textAlign: "center",
 
-        justifyContent:
-          "center",
-
-        textAlign:
-          "center",
-
-        cursor:
-          "pointer",
+        cursor: "pointer",
 
         border:
           "1px solid #E0E0E0",
 
         borderRadius: 3,
+
+        backgroundColor:
+          "#FFFFFF",
 
         transition:
           "all 0.2s ease",
@@ -240,6 +247,8 @@ function OperatorCard({
       }}
     >
 
+      {/* ICONO */}
+
       <Box
         sx={{
           color:
@@ -254,9 +263,14 @@ function OperatorCard({
       </Box>
 
 
+      {/* TÍTULO TARJETA */}
+
       <Typography
         variant="h5"
-        fontWeight={700}
+        sx={{
+          fontWeight: 700,
+          fontSize: 24
+        }}
       >
 
         {title}
@@ -264,12 +278,18 @@ function OperatorCard({
       </Typography>
 
 
+      {/* DESCRIPCIÓN */}
+
       <Typography
-        variant="body2"
         color="text.secondary"
         sx={{
           mt: 1,
-          maxWidth: 220
+
+          fontSize: 17,
+
+          lineHeight: 1.35,
+
+          maxWidth: 250
         }}
       >
 
