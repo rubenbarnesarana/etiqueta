@@ -13,13 +13,19 @@ import {
   TableCell,
   TableBody,
   Chip,
-  IconButton
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 import ProductionDialog from "../../components/production/ProductionDialog";
 import ProductionManageDialog from "../../components/production/ProductionManageDialog";
@@ -53,6 +59,12 @@ export default function Production() {
     useState<ProductionOrder | undefined>();
 
   const [managing, setManaging] =
+    useState<ProductionOrder | undefined>();
+
+  const [
+    orderToDelete,
+    setOrderToDelete
+  ] =
     useState<ProductionOrder | undefined>();
 
 
@@ -184,17 +196,41 @@ export default function Production() {
 
 
   //--------------------------------------------------
-  // ELIMINAR ORDEN
+  // SOLICITAR ELIMINAR ORDEN
   //--------------------------------------------------
 
-  function removeOrder(
-    id: number
+  function askRemoveOrder(
+    order: ProductionOrder
   ) {
 
+    setOrderToDelete(
+      order
+    );
+
+  }
+
+
+  //--------------------------------------------------
+  // CANCELAR ELIMINACIÓN
+  //--------------------------------------------------
+
+  function cancelRemoveOrder() {
+
+    setOrderToDelete(
+      undefined
+    );
+
+  }
+
+
+  //--------------------------------------------------
+  // CONFIRMAR ELIMINACIÓN
+  //--------------------------------------------------
+
+  function confirmRemoveOrder() {
+
     if (
-      !window.confirm(
-        "¿Eliminar esta orden?"
-      )
+      !orderToDelete
     ) {
 
       return;
@@ -203,7 +239,12 @@ export default function Production() {
 
 
     deleteOrder(
-      id
+      orderToDelete.id
+    );
+
+
+    setOrderToDelete(
+      undefined
     );
 
 
@@ -591,8 +632,8 @@ export default function Production() {
                           color="error"
                           onClick={
                             () =>
-                              removeOrder(
-                                order.id
+                              askRemoveOrder(
+                                order
                               )
                           }
                         >
@@ -670,6 +711,112 @@ export default function Production() {
           saveOrder
         }
       />
+
+
+      {/* =============================================
+          CONFIRMAR ELIMINACIÓN
+          ============================================= */}
+
+      <Dialog
+        open={
+          Boolean(
+            orderToDelete
+          )
+        }
+        onClose={
+          cancelRemoveOrder
+        }
+        fullWidth
+        maxWidth="xs"
+      >
+
+        <DialogTitle>
+
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5
+            }}
+          >
+
+            <WarningAmberIcon
+              color="error"
+            />
+
+            <Typography
+              variant="h6"
+              fontWeight={700}
+            >
+
+              Eliminar orden
+
+            </Typography>
+
+          </Box>
+
+        </DialogTitle>
+
+
+        <DialogContent>
+
+          <DialogContentText>
+
+            ¿Seguro que deseas eliminar la orden de producción{" "}
+
+            <strong>
+              {orderToDelete?.order}
+            </strong>
+
+            ?
+
+            <br />
+            <br />
+
+            Esta acción no se puede deshacer.
+
+          </DialogContentText>
+
+        </DialogContent>
+
+
+        <DialogActions
+          sx={{
+            px: 3,
+            pb: 3
+          }}
+        >
+
+          <Button
+            onClick={
+              cancelRemoveOrder
+            }
+            color="inherit"
+          >
+
+            CANCELAR
+
+          </Button>
+
+
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={
+              <DeleteIcon />
+            }
+            onClick={
+              confirmRemoveOrder
+            }
+          >
+
+            ELIMINAR
+
+          </Button>
+
+        </DialogActions>
+
+      </Dialog>
 
     </Box>
 
