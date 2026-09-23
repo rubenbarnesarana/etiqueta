@@ -22,7 +22,7 @@ import {
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
+import FactoryIcon from "@mui/icons-material/Factory";
 import PrintIcon from "@mui/icons-material/Print";
 
 import type {
@@ -413,42 +413,58 @@ export default function Planning() {
                 <Box
                   sx={{
                     px: 2.5,
-                    py: 2,
+                    py: 1.7,
+
                     backgroundColor:
-                      "#FFFFFF",
+                      "#E8F3EB",
+
                     borderBottom:
                       "1px solid #E0E0E0",
+
                     display: "flex",
+
                     alignItems: "center",
-                    gap: 1.5
+
+                    gap: 1.5,
+
+                    flexWrap: "wrap"
                   }}
                 >
 
-                  <PrecisionManufacturingIcon
+                  <FactoryIcon
                     sx={{
-                      color: "#0B7A3B"
+                      color: "#0B7A3B",
+                      fontSize: 28
                     }}
                   />
 
 
                   <Typography
                     variant="h6"
-                    fontWeight={700}
+                    fontWeight={800}
                     sx={{
-                      flexGrow: 1
+                      color: "#0B7A3B",
+                      mr: "auto"
                     }}
                   >
 
-                    Línea {line}
+                    LÍNEA {line}
 
                   </Typography>
 
 
                   <Chip
                     label={
-                      `${lineOrders.length} órdenes`
+                      lineOrders.length === 1
+                        ? "1 orden"
+                        : `${lineOrders.length} órdenes`
                     }
                     size="small"
+                    sx={{
+                      fontWeight: 700,
+                      backgroundColor:
+                        "#FFFFFF"
+                    }}
                   />
 
 
@@ -458,6 +474,10 @@ export default function Planning() {
                     }
                     size="small"
                     variant="outlined"
+                    sx={{
+                      backgroundColor:
+                        "#FFFFFF"
+                    }}
                   />
 
 
@@ -467,6 +487,10 @@ export default function Planning() {
                     }
                     size="small"
                     variant="outlined"
+                    sx={{
+                      backgroundColor:
+                        "#FFFFFF"
+                    }}
                   />
 
 
@@ -480,6 +504,9 @@ export default function Planning() {
                         ? "warning"
                         : "success"
                     }
+                    sx={{
+                      fontWeight: 600
+                    }}
                   />
 
                 </Box>
