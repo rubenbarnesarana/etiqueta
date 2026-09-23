@@ -687,10 +687,7 @@ export default function Planning() {
                                 color="text.secondary"
                               >
 
-                                {
-                                  order.planningPosition ||
-                                  index + 1
-                                }
+                                {index + 1}
 
                               </Typography>
 

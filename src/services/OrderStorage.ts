@@ -157,13 +157,6 @@ function normalizeOrder(
         "BA420"
       ),
 
-    /*
-     * Solo permitimos líneas 1 - 8.
-     *
-     * Las órdenes antiguas quedarán
-     * temporalmente como línea 0.
-     */
-
     productionLine:
       productionLine >= 1 &&
       productionLine <= 8
@@ -603,26 +596,27 @@ export function getOrdersByLine(
       ) => {
 
         /*
-         * Las órdenes sin posición quedan
-         * siempre al final.
+         * Utilizamos el mismo criterio que
+         * la pantalla de Planificación.
+         *
+         * Las posiciones antiguas 0 aparecen
+         * antes que 1, 2, 3...
          */
 
-        const positionA =
-          a.planningPosition > 0
-            ? a.planningPosition
-            : Number.MAX_SAFE_INTEGER;
+        if (
+          a.planningPosition !==
+          b.planningPosition
+        ) {
+
+          return (
+            a.planningPosition -
+            b.planningPosition
+          );
+
+        }
 
 
-        const positionB =
-          b.planningPosition > 0
-            ? b.planningPosition
-            : Number.MAX_SAFE_INTEGER;
-
-
-        return (
-          positionA -
-          positionB
-        );
+        return 0;
 
       }
     );
@@ -673,19 +667,17 @@ export function getPendingQuantity(
  * NORMALIZAR POSICIONES DE UNA LÍNEA
  * ==================================================
  *
- * Ejemplo:
+ * Convierte cualquier planificación existente:
  *
- * Antes:
+ * 0, 1
+ * 1, 1, 3
+ * 2, 5, 9
  *
- * 1
- * 3
- * 7
+ * en:
  *
- * Después:
+ * 1, 2, 3...
  *
- * 1
- * 2
- * 3
+ * respetando el orden visual actual.
  *
  * ==================================================
  */
@@ -708,11 +700,26 @@ export function normalizePlanningPositions(
     getOrders();
 
 
+  /*
+   * Guardamos también el índice original
+   * para tener un desempate estable cuando
+   * existen posiciones duplicadas.
+   */
+
   const lineOrders =
     orders
+      .map(
+        (
+          order,
+          storageIndex
+        ) => ({
+          order,
+          storageIndex
+        })
+      )
       .filter(
-        order =>
-          order.productionLine ===
+        item =>
+          item.order.productionLine ===
           productionLine
       )
       .sort(
@@ -721,41 +728,29 @@ export function normalizePlanningPositions(
           b
         ) => {
 
-          const positionA =
-            a.planningPosition > 0
-              ? a.planningPosition
-              : Number.MAX_SAFE_INTEGER;
-
-
-          const positionB =
-            b.planningPosition > 0
-              ? b.planningPosition
-              : Number.MAX_SAFE_INTEGER;
-
-
           if (
-            positionA ===
-            positionB
+            a.order.planningPosition !==
+            b.order.planningPosition
           ) {
 
             return (
-              Number(
-                a.id
-              ) -
-              Number(
-                b.id
-              )
+              a.order.planningPosition -
+              b.order.planningPosition
             );
 
           }
 
 
           return (
-            positionA -
-            positionB
+            a.storageIndex -
+            b.storageIndex
           );
 
         }
+      )
+      .map(
+        item =>
+          item.order
       );
 
 
@@ -797,17 +792,30 @@ export function normalizePlanningPositions(
         }
 
 
+        const newPosition =
+          positions.get(
+            Number(
+              order.id
+            )
+          );
+
+
+        if (
+          newPosition ===
+          undefined
+        ) {
+
+          return order;
+
+        }
+
+
         return {
 
           ...order,
 
           planningPosition:
-            positions.get(
-              Number(
-                order.id
-              )
-            ) ??
-            order.planningPosition
+            newPosition
 
         };
 
@@ -925,17 +933,28 @@ export function reorderProductionLine(
     updated
   );
 
-
-  normalizePlanningPositions(
-    productionLine
-  );
-
 }
 
 
 /*
  * ==================================================
  * MOVER ORDEN DENTRO DE SU LÍNEA
+ * ==================================================
+ *
+ * La función trabaja exactamente con el mismo
+ * orden que se muestra en Planificación.
+ *
+ * Después de cada movimiento reescribe TODAS
+ * las posiciones de la línea:
+ *
+ * 1, 2, 3, 4...
+ *
+ * De esta forma también repara automáticamente:
+ *
+ * - posiciones 0 antiguas
+ * - posiciones duplicadas
+ * - huecos
+ *
  * ==================================================
  */
 
@@ -964,7 +983,8 @@ export function moveOrderInPlanning(
 
   if (
     !target ||
-    target.productionLine < 1
+    target.productionLine < 1 ||
+    target.productionLine > 8
   ) {
 
     return;
@@ -972,11 +992,68 @@ export function moveOrderInPlanning(
   }
 
 
-  const lineOrders =
-    getOrdersByLine(
-      target.productionLine
-    );
+  /*
+   * Obtenemos las órdenes de la línea
+   * exactamente en el orden visual actual.
+   */
 
+  const lineOrders =
+    orders
+      .map(
+        (
+          order,
+          storageIndex
+        ) => ({
+          order,
+          storageIndex
+        })
+      )
+      .filter(
+        item =>
+          item.order.productionLine ===
+          target.productionLine
+      )
+      .sort(
+        (
+          a,
+          b
+        ) => {
+
+          if (
+            a.order.planningPosition !==
+            b.order.planningPosition
+          ) {
+
+            return (
+              a.order.planningPosition -
+              b.order.planningPosition
+            );
+
+          }
+
+
+          /*
+           * Si dos órdenes tienen la misma
+           * planningPosition mantenemos el
+           * orden en el que estaban guardadas.
+           */
+
+          return (
+            a.storageIndex -
+            b.storageIndex
+          );
+
+        }
+      )
+      .map(
+        item =>
+          item.order
+      );
+
+
+  /*
+   * Localizamos la orden seleccionada.
+   */
 
   const currentIndex =
     lineOrders.findIndex(
@@ -1000,12 +1077,21 @@ export function moveOrderInPlanning(
   }
 
 
+  /*
+   * Calculamos la nueva posición.
+   */
+
   const newIndex =
     direction ===
     "UP"
       ? currentIndex - 1
       : currentIndex + 1;
 
+
+  /*
+   * Si intentamos subir la primera
+   * o bajar la última, no hacemos nada.
+   */
 
   if (
     newIndex < 0 ||
@@ -1017,6 +1103,11 @@ export function moveOrderInPlanning(
 
   }
 
+
+  /*
+   * Copiamos el array y movemos físicamente
+   * la orden a su nueva posición.
+   */
 
   const reordered =
     [
@@ -1040,12 +1131,95 @@ export function moveOrderInPlanning(
   );
 
 
-  reorderProductionLine(
-    target.productionLine,
-    reordered.map(
-      order =>
-        order.id
-    )
+  /*
+   * Generamos nuevamente:
+   *
+   * 1
+   * 2
+   * 3
+   * ...
+   */
+
+  const positions =
+    new Map<
+      number,
+      number
+    >();
+
+
+  reordered.forEach(
+    (
+      order,
+      index
+    ) => {
+
+      positions.set(
+        Number(
+          order.id
+        ),
+        index + 1
+      );
+
+    }
+  );
+
+
+  /*
+   * Modificamos únicamente las órdenes
+   * pertenecientes a esta línea.
+   */
+
+  const updated =
+    orders.map(
+      order => {
+
+        if (
+          order.productionLine !==
+          target.productionLine
+        ) {
+
+          return order;
+
+        }
+
+
+        const newPosition =
+          positions.get(
+            Number(
+              order.id
+            )
+          );
+
+
+        if (
+          newPosition ===
+          undefined
+        ) {
+
+          return order;
+
+        }
+
+
+        return {
+
+          ...order,
+
+          planningPosition:
+            newPosition
+
+        };
+
+      }
+    );
+
+
+  /*
+   * Guardamos una sola vez.
+   */
+
+  saveOrders(
+    updated
   );
 
 }
