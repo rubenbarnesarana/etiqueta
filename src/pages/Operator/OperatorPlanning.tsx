@@ -594,7 +594,7 @@ export default function OperatorPlanning() {
 
                     <Box
                       sx={{
-                        minWidth: 1020
+                        minWidth: 1170
                       }}
                     >
 
@@ -607,7 +607,7 @@ export default function OperatorPlanning() {
                           display: "grid",
 
                           gridTemplateColumns:
-                            "60px 170px 140px minmax(280px, 1fr) 100px 100px 110px 130px",
+                            "60px 170px 140px minmax(280px, 1fr) 150px 100px 100px 110px 130px",
 
                           alignItems: "center",
 
@@ -639,6 +639,11 @@ export default function OperatorPlanning() {
 
                         <Header>
                           Producto
+                        </Header>
+
+
+                        <Header>
+                          Cliente
                         </Header>
 
 
@@ -710,7 +715,7 @@ export default function OperatorPlanning() {
                                   "grid",
 
                                 gridTemplateColumns:
-                                  "60px 170px 140px minmax(280px, 1fr) 100px 100px 110px 130px",
+                                  "60px 170px 140px minmax(280px, 1fr) 150px 100px 100px 110px 130px",
 
                                 alignItems:
                                   "center",
@@ -818,6 +823,21 @@ export default function OperatorPlanning() {
                                 </Typography>
 
                               </Box>
+
+
+                              {/* CLIENTE */}
+
+                              <Typography
+                                variant="body2"
+                                fontWeight={500}
+                                sx={{
+                                  pr: 2
+                                }}
+                              >
+
+                                {order.customer || "-"}
+
+                              </Typography>
 
 
                               <Typography

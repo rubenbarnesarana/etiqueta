@@ -157,23 +157,6 @@ export default function Production() {
    * ==================================================
    * GUARDAR ORDEN
    * ==================================================
-   *
-   * IMPORTANTE:
-   *
-   * Utilizamos addOrder / updateOrder del
-   * OrderStorage.
-   *
-   * De esta forma:
-   *
-   * - Las órdenes nuevas se colocan al final
-   *   de la línea seleccionada.
-   *
-   * - Si cambiamos una orden de línea,
-   *   se reorganizan las dos líneas.
-   *
-   * - planningPosition se mantiene correctamente.
-   *
-   * ==================================================
    */
 
   function saveOrder(
@@ -463,11 +446,6 @@ export default function Production() {
    * ==================================================
    * LÍNEAS CON ÓRDENES
    * ==================================================
-   *
-   * Solo mostramos bloques para las líneas
-   * que actualmente tienen órdenes.
-   *
-   * ==================================================
    */
 
   const linesWithOrders =
@@ -674,6 +652,19 @@ export default function Production() {
         </TableCell>
 
 
+        {/* CLIENTE */}
+
+        <TableCell
+          sx={{
+            minWidth: 140
+          }}
+        >
+
+          {order.customer || "-"}
+
+        </TableCell>
+
+
         {/* PLANTILLA */}
 
         <TableCell>
@@ -875,6 +866,17 @@ export default function Production() {
           >
 
             Producto
+
+          </TableCell>
+
+
+          <TableCell
+            sx={{
+              fontWeight: 700
+            }}
+          >
+
+            Cliente
 
           </TableCell>
 
@@ -1131,13 +1133,6 @@ export default function Production() {
         {linesWithOrders.map(
           group => {
 
-            /*
-             * Dejamos esta llamada para que
-             * toda la lógica de ordenación
-             * permanezca centralizada también
-             * en esta pantalla.
-             */
-
             const lineOrders =
               getLineOrders(
                 group.line
@@ -1301,8 +1296,6 @@ export default function Production() {
             }}
           >
 
-            {/* CABECERA */}
-
             <Box
               sx={{
                 px: 2.5,
@@ -1375,8 +1368,6 @@ export default function Production() {
 
             </Box>
 
-
-            {/* TABLA */}
 
             <Box
               sx={{

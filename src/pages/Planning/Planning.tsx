@@ -548,7 +548,7 @@ export default function Planning() {
 
                     <Box
                       sx={{
-                        minWidth: 1110
+                        minWidth: 1260
                       }}
                     >
 
@@ -561,7 +561,7 @@ export default function Planning() {
                           display: "grid",
 
                           gridTemplateColumns:
-                            "60px 160px 130px minmax(240px, 1fr) 100px 100px 110px 120px 90px",
+                            "60px 160px 130px minmax(240px, 1fr) 150px 100px 100px 110px 120px 90px",
 
                           alignItems: "center",
 
@@ -593,6 +593,11 @@ export default function Planning() {
 
                         <Header>
                           Producto
+                        </Header>
+
+
+                        <Header>
+                          Cliente
                         </Header>
 
 
@@ -669,7 +674,7 @@ export default function Planning() {
                                   "grid",
 
                                 gridTemplateColumns:
-                                  "60px 160px 130px minmax(240px, 1fr) 100px 100px 110px 120px 90px",
+                                  "60px 160px 130px minmax(240px, 1fr) 150px 100px 100px 110px 120px 90px",
 
                                 alignItems:
                                   "center",
@@ -784,6 +789,21 @@ export default function Planning() {
                                 </Typography>
 
                               </Box>
+
+
+                              {/* CLIENTE */}
+
+                              <Typography
+                                variant="body2"
+                                fontWeight={500}
+                                sx={{
+                                  pr: 2
+                                }}
+                              >
+
+                                {order.customer || "-"}
+
+                              </Typography>
 
 
                               <Typography

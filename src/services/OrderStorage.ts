@@ -13,6 +13,11 @@ export interface ProductionOrder {
   lot: string;
 
   /*
+   * Cliente
+   */
+  customer: string;
+
+  /*
    * Producto
    */
   sku: string;
@@ -87,6 +92,7 @@ const STORAGE_KEY =
  * creadas antes de incorporar:
  *
  * - Lot Number
+ * - Cliente
  * - Línea de producción
  * - Posición de planificación
  *
@@ -124,6 +130,11 @@ function normalizeOrder(
     lot:
       String(
         order.lot ?? ""
+      ),
+
+    customer:
+      String(
+        order.customer ?? ""
       ),
 
     sku:

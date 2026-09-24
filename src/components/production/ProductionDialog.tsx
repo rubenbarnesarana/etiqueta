@@ -163,6 +163,12 @@ export default function ProductionDialog({
 
 
   const [
+    customer,
+    setCustomer
+  ] = useState("");
+
+
+  const [
     sku,
     setSku
   ] = useState("");
@@ -270,6 +276,11 @@ export default function ProductionDialog({
       );
 
 
+      setCustomer(
+        editing.customer ?? ""
+      );
+
+
       setSku(
         editing.sku ?? ""
       );
@@ -329,6 +340,9 @@ export default function ProductionDialog({
     setLot(
       getTodayLot()
     );
+
+
+    setCustomer("");
 
 
     setSku("");
@@ -415,6 +429,10 @@ export default function ProductionDialog({
 
     const cleanLot =
       lot.trim();
+
+
+    const cleanCustomer =
+      customer.trim();
 
 
     const cleanSku =
@@ -561,6 +579,9 @@ export default function ProductionDialog({
       lot:
         cleanLot,
 
+      customer:
+        cleanCustomer,
+
       sku:
         cleanSku,
 
@@ -700,6 +721,33 @@ export default function ProductionDialog({
                   readOnly: true
                 }
               }}
+            />
+
+          </Grid>
+
+
+          {/* CLIENTE */}
+
+          <Grid
+            size={{
+              xs: 12
+            }}
+          >
+
+            <TextField
+              label="Cliente"
+              value={
+                customer
+              }
+              onChange={
+                event =>
+                  setCustomer(
+                    event.target.value
+                  )
+              }
+              placeholder="Ejemplo: DISAGRI"
+              helperText="Se utilizará en la etiqueta de palet."
+              fullWidth
             />
 
           </Grid>
@@ -1136,6 +1184,25 @@ export default function ProductionDialog({
                     }
 
                   </Typography>
+
+
+                  {customer && (
+
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        mt: 0.5
+                      }}
+                    >
+
+                      Cliente:{" "}
+                      <strong>
+                        {customer}
+                      </strong>
+
+                    </Typography>
+
+                  )}
 
 
                   {productionLine > 0 && (

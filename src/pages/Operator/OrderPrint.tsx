@@ -26,9 +26,11 @@ import {
 
 import PrintIcon from "@mui/icons-material/Print";
 import ReplayIcon from "@mui/icons-material/Replay";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 
 import BackButton from "../../components/common/BackButton";
 import LabelPreview from "../../components/print/LabelPreview";
+import PalletLabelDialog from "../../components/print/PalletLabelDialog";
 
 import type {
   ProductionOrder
@@ -46,6 +48,18 @@ import {
 import {
   registerPrint
 } from "../../services/PrintHistoryService";
+
+import {
+  findProduct
+} from "../../services/ProductStorage";
+
+import {
+  findTemplate
+} from "../../services/TemplateStorage";
+
+import {
+  getAssignedTemplate
+} from "../../services/ProductTemplateStorage";
 
 import {
   useAuth
@@ -99,6 +113,18 @@ export default function OrderPrint() {
   const [
     reprintOpen,
     setReprintOpen
+  ] = useState(false);
+
+
+  /*
+   * ==================================================
+   * ETIQUETA DE PALET
+   * ==================================================
+   */
+
+  const [
+    palletLabelOpen,
+    setPalletLabelOpen
   ] = useState(false);
 
 
@@ -752,6 +778,75 @@ export default function OrderPrint() {
 
   /*
    * ==================================================
+   * PLANTILLA REAL DE LA ORDEN
+   * ==================================================
+   *
+   * Utilizamos exactamente el mismo criterio
+   * que PrintService:
+   *
+   * 1. Asignación específica SKU -> plantilla
+   * 2. Plantilla configurada en el producto
+   *
+   * De esta forma el botón de etiqueta de palet
+   * solamente aparece cuando la etiqueta que
+   * realmente utiliza el SKU es FORMATO_2.
+   * ==================================================
+   */
+
+  const product =
+    findProduct(
+      order.sku
+    );
+
+
+  const assignedTemplate =
+    getAssignedTemplate(
+      order.sku
+    );
+
+
+  const realTemplate =
+    assignedTemplate
+      ? findTemplate(
+          assignedTemplate.id
+        )
+      : product
+        ? findTemplate(
+            product.templateId
+          )
+        : null;
+
+
+  const isFormat2 =
+    realTemplate?.labelFormat ===
+    "FORMATO_2";
+
+
+  /*
+   * Nombre que aparecerá en la cabecera
+   * de la etiqueta de palet.
+   *
+   * Ejemplo:
+   *
+   * TURBO EXCEL BOBINAS
+   *
+   * pasa a:
+   *
+   * TURBO EXCEL
+   */
+
+  const palletProductTitle =
+    realTemplate?.name
+      ?.replace(
+        /\s+BOBINAS\s*$/i,
+        ""
+      )
+      .trim() ||
+    order.product;
+
+
+  /*
+   * ==================================================
    * PANTALLA
    * ==================================================
    */
@@ -983,6 +1078,20 @@ export default function OrderPrint() {
               </Typography>
 
 
+              {/* CLIENTE */}
+
+              <Typography
+                sx={{
+                  mb: 1.5
+                }}
+              >
+
+                <b>Cliente:</b>{" "}
+                {order.customer || "-"}
+
+              </Typography>
+
+
               <Typography
                 sx={{
                   mb: 1.5
@@ -1165,6 +1274,51 @@ export default function OrderPrint() {
                   REPETIR ETIQUETA
 
                 </Button>
+
+
+                {/* =====================================
+                    ETIQUETA DE PALET
+                    SOLO FORMATO 2
+                    ===================================== */}
+
+                {
+                  isFormat2
+                  &&
+                  (
+
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      startIcon={
+                        <Inventory2OutlinedIcon />
+                      }
+                      onClick={
+                        () =>
+                          setPalletLabelOpen(
+                            true
+                          )
+                      }
+                      sx={{
+                        minWidth: 230,
+                        minHeight: 56,
+                        fontWeight: 700,
+                        color: "#0B7A3B",
+                        borderColor: "#0B7A3B",
+
+                        "&:hover": {
+                          borderColor: "#086530",
+                          backgroundColor:
+                            "#F2F8F4"
+                        }
+                      }}
+                    >
+
+                      ETIQUETA DE PALET
+
+                    </Button>
+
+                  )
+                }
 
               </Box>
 
@@ -1610,6 +1764,32 @@ export default function OrderPrint() {
         </DialogActions>
 
       </Dialog>
+
+
+      {/* =============================================
+          ETIQUETA DE PALET
+          ============================================= */}
+
+      <PalletLabelDialog
+        open={
+          palletLabelOpen
+        }
+
+        order={
+          order
+        }
+
+        productTitle={
+          palletProductTitle
+        }
+
+        onClose={
+          () =>
+            setPalletLabelOpen(
+              false
+            )
+        }
+      />
 
 
       {/* =============================================
