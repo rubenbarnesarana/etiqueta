@@ -28,6 +28,21 @@ let qzSecurityConfigured =
   false;
 
 
+/*
+ * ==================================================
+ * PROMESA DE CONEXIÓN
+ * ==================================================
+ *
+ * Evita que varias llamadas simultáneas intenten
+ * abrir varias conexiones con QZ Tray a la vez.
+ * ==================================================
+ */
+
+let connectionPromise:
+  Promise<void> | null =
+  null;
+
+
 function configureQzSecurity():
   void {
 
@@ -217,6 +232,11 @@ export async function connectQz():
   configureQzSecurity();
 
 
+  /*
+   * Si QZ ya está conectado,
+   * no hacemos nada.
+   */
+
   if (
     qz.websocket.isActive()
   ) {
@@ -226,7 +246,45 @@ export async function connectQz():
   }
 
 
-  await qz.websocket.connect();
+  /*
+   * Si ya existe un intento de conexión,
+   * todas las llamadas esperan esa misma promesa.
+   */
+
+  if (
+    connectionPromise
+  ) {
+
+    return connectionPromise;
+
+  }
+
+
+  /*
+   * Abrimos UNA única conexión.
+   */
+
+  connectionPromise =
+    qz.websocket
+      .connect()
+      .then(
+        () => {
+
+          return;
+
+        }
+      )
+      .finally(
+        () => {
+
+          connectionPromise =
+            null;
+
+        }
+      );
+
+
+  return connectionPromise;
 
 }
 
@@ -239,6 +297,30 @@ export async function connectQz():
 
 export async function disconnectQz():
   Promise<void> {
+
+  /*
+   * Si todavía hay una conexión en proceso,
+   * esperamos a que termine.
+   */
+
+  if (
+    connectionPromise
+  ) {
+
+    try {
+
+      await connectionPromise;
+
+    }
+    catch {
+
+      connectionPromise =
+        null;
+
+    }
+
+  }
+
 
   if (
     !qz.websocket.isActive()
