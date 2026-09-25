@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# QZ Tray certificates / private keys
+*.pem
+private-key.pem
+digital-certificate.txt
+QZ Tray Demo Cert/
+qz-certificates/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
