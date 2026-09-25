@@ -13,6 +13,181 @@ export const LABEL_PRINTER_STORAGE_KEY =
 
 /*
  * ==================================================
+ * SEGURIDAD QZ TRAY
+ * ==================================================
+ *
+ * El certificado público y la firma se obtienen
+ * desde Cloudflare Pages Functions.
+ *
+ * La clave privada NUNCA llega al navegador.
+ * Permanece guardada como Secret en Cloudflare.
+ * ==================================================
+ */
+
+let qzSecurityConfigured =
+  false;
+
+
+function configureQzSecurity():
+  void {
+
+  if (
+    qzSecurityConfigured
+  ) {
+
+    return;
+
+  }
+
+
+  /*
+   * --------------------------------------------------
+   * CERTIFICADO PÚBLICO
+   * --------------------------------------------------
+   */
+
+  qz.security.setCertificatePromise(
+    async () => {
+
+      const response =
+        await fetch(
+          "/api/qz/certificate",
+          {
+            method:
+              "GET",
+
+            cache:
+              "no-store"
+          }
+        );
+
+
+      if (
+        !response.ok
+      ) {
+
+        const message =
+          await response.text();
+
+
+        throw new Error(
+          message ||
+          "No se ha podido obtener el certificado de QZ Tray."
+        );
+
+      }
+
+
+      return await response.text();
+
+    }
+  );
+
+
+  /*
+   * --------------------------------------------------
+   * ALGORITMO DE FIRMA
+   * --------------------------------------------------
+   */
+
+  qz.security.setSignatureAlgorithm(
+    "SHA512"
+  );
+
+
+  /*
+   * --------------------------------------------------
+   * FIRMA DE PETICIONES
+   * --------------------------------------------------
+   */
+
+  qz.security.setSignaturePromise(
+    (
+      toSign: string
+    ) => {
+
+      return async (
+        resolve: (
+          signature: string
+        ) => void,
+
+        reject: (
+          error: unknown
+        ) => void
+      ) => {
+
+        try {
+
+          const response =
+            await fetch(
+              "/api/qz/sign",
+              {
+                method:
+                  "POST",
+
+                headers: {
+                  "Content-Type":
+                    "text/plain;charset=UTF-8"
+                },
+
+                body:
+                  toSign,
+
+                cache:
+                  "no-store"
+              }
+            );
+
+
+          if (
+            !response.ok
+          ) {
+
+            const message =
+              await response.text();
+
+
+            throw new Error(
+              message ||
+              "No se ha podido firmar la petición de QZ Tray."
+            );
+
+          }
+
+
+          const signature =
+            await response.text();
+
+
+          resolve(
+            signature.trim()
+          );
+
+        }
+        catch (
+          error
+        ) {
+
+          reject(
+            error
+          );
+
+        }
+
+      };
+
+    }
+  );
+
+
+  qzSecurityConfigured =
+    true;
+
+}
+
+
+/*
+ * ==================================================
  * ESTADO DE CONEXIÓN
  * ==================================================
  */
@@ -33,6 +208,14 @@ export function isQzConnected():
 
 export async function connectQz():
   Promise<void> {
+
+  /*
+   * La seguridad debe configurarse ANTES
+   * de abrir la conexión con QZ Tray.
+   */
+
+  configureQzSecurity();
+
 
   if (
     qz.websocket.isActive()
