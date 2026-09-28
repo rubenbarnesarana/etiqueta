@@ -16,6 +16,7 @@
     "@mui/x-data-grid": "^8.11.1",
     "@supabase/realtime-js": "^2.117.0",
     "@supabase/supabase-js": "^2.117.0",
+    "html-to-image": "^1.11.13",
     "jsbarcode": "^3.12.3",
     "qrcode": "^1.5.4",
     "qz-tray": "^2.3.0",

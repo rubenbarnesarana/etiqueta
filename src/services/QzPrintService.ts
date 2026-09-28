@@ -43,6 +43,12 @@ let connectionPromise:
   null;
 
 
+/*
+ * ==================================================
+ * CONFIGURAR SEGURIDAD
+ * ==================================================
+ */
+
 function configureQzSecurity():
   void {
 
@@ -485,6 +491,294 @@ export function getConfiguredLabelPrinter():
 
 
   return printer;
+
+}
+
+
+/*
+ * ==================================================
+ * PREPARAR IMAGEN BASE64
+ * ==================================================
+ *
+ * html-to-image devuelve normalmente:
+ *
+ * data:image/png;base64,AAAA...
+ *
+ * QZ Tray con flavor "base64" necesita solamente:
+ *
+ * AAAA...
+ * ==================================================
+ */
+
+function getBase64ImageData(
+  imageDataUrl: string
+):
+  string {
+
+  const value =
+    imageDataUrl.trim();
+
+
+  const commaIndex =
+    value.indexOf(
+      ","
+    );
+
+
+  if (
+    value.startsWith(
+      "data:"
+    ) &&
+    commaIndex >= 0
+  ) {
+
+    return value.substring(
+      commaIndex + 1
+    );
+
+  }
+
+
+  return value;
+
+}
+
+
+/*
+ * ==================================================
+ * IMPRIMIR ETIQUETA PNG
+ * ==================================================
+ *
+ * Esta función:
+ *
+ * - Utiliza la impresora configurada en este PC.
+ * - Se comunica con QZ Tray.
+ * - Utiliza el driver instalado en Windows.
+ * - Recibe la etiqueta ya renderizada como PNG.
+ * - Respeta el tamaño físico indicado en milímetros.
+ *
+ * MUY IMPORTANTE:
+ *
+ * Esta función NO:
+ *
+ * - modifica órdenes
+ * - incrementa contadores
+ * - cambia estados
+ * - registra historial
+ *
+ * Si qz.print() falla, lanza el error al componente
+ * que ha solicitado la impresión.
+ * ==================================================
+ */
+
+export async function printLabelImage(
+  imageDataUrl: string,
+  labelWidthMm: number,
+  labelHeightMm: number,
+  jobName = "Etiqueta Rivulis"
+):
+  Promise<void> {
+
+  /*
+   * --------------------------------------------------
+   * VALIDAR IMAGEN
+   * --------------------------------------------------
+   */
+
+  if (
+    !imageDataUrl?.trim()
+  ) {
+
+    throw new Error(
+      "No se ha generado la imagen de la etiqueta."
+    );
+
+  }
+
+
+  /*
+   * --------------------------------------------------
+   * VALIDAR DIMENSIONES
+   * --------------------------------------------------
+   */
+
+  if (
+    !Number.isFinite(
+      labelWidthMm
+    ) ||
+    !Number.isFinite(
+      labelHeightMm
+    ) ||
+    labelWidthMm <= 0 ||
+    labelHeightMm <= 0
+  ) {
+
+    throw new Error(
+      "Las dimensiones de la etiqueta no son válidas."
+    );
+
+  }
+
+
+  /*
+   * --------------------------------------------------
+   * IMPRESORA CONFIGURADA
+   * --------------------------------------------------
+   */
+
+  const configuredPrinter =
+    getConfiguredLabelPrinter();
+
+
+  if (
+    !configuredPrinter
+  ) {
+
+    throw new Error(
+      "No hay ninguna impresora de etiquetas configurada en este ordenador."
+    );
+
+  }
+
+
+  /*
+   * --------------------------------------------------
+   * CONECTAR CON QZ
+   * --------------------------------------------------
+   */
+
+  await connectQz();
+
+
+  /*
+   * --------------------------------------------------
+   * COMPROBAR QUE LA IMPRESORA EXISTE
+   * --------------------------------------------------
+   */
+
+  const printer =
+    await findPrinter(
+      configuredPrinter
+    );
+
+
+  if (
+    !printer
+  ) {
+
+    throw new Error(
+      `No se ha encontrado la impresora configurada: ${configuredPrinter}`
+    );
+
+  }
+
+
+  /*
+   * --------------------------------------------------
+   * CONFIGURACIÓN FÍSICA
+   * --------------------------------------------------
+   *
+   * QZ Tray recibe:
+   *
+   * - unidades en milímetros
+   * - tamaño físico exacto
+   * - márgenes 0
+   * - una sola copia
+   *
+   * nearest-neighbor ayuda a conservar bordes
+   * definidos, especialmente en códigos de barras.
+   * --------------------------------------------------
+   */
+
+  const config =
+    qz.configs.create(
+      printer,
+      {
+        units:
+          "mm",
+
+        size: {
+          width:
+            labelWidthMm,
+
+          height:
+            labelHeightMm
+        },
+
+        margins: {
+          top:
+            0,
+
+          right:
+            0,
+
+          bottom:
+            0,
+
+          left:
+            0
+        },
+
+        copies:
+          1,
+
+        interpolation:
+          "nearest-neighbor",
+
+        jobName
+      }
+    );
+
+
+  /*
+   * --------------------------------------------------
+   * CONVERTIR DATA URL A BASE64
+   * --------------------------------------------------
+   */
+
+  const base64Image =
+    getBase64ImageData(
+      imageDataUrl
+    );
+
+
+  /*
+   * --------------------------------------------------
+   * DATOS DE IMPRESIÓN
+   * --------------------------------------------------
+   */
+
+  const data = [
+    {
+      type:
+        "pixel",
+
+      format:
+        "image",
+
+      flavor:
+        "base64",
+
+      data:
+        base64Image
+    }
+  ];
+
+
+  /*
+   * --------------------------------------------------
+   * ENVIAR A QZ TRAY
+   * --------------------------------------------------
+   *
+   * Esta promesa debe terminar correctamente ANTES
+   * de que OrderPrint incremente el contador.
+   * --------------------------------------------------
+   */
+
+  await qz.print(
+    config,
+    data
+  );
 
 }
 

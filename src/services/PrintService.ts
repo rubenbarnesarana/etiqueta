@@ -584,19 +584,24 @@ function buildPrintResult(
 
 
 //==================================================
-// IMPRIMIR UNA ETIQUETA NORMAL
+// PREPARAR SIGUIENTE ETIQUETA
 //==================================================
 //
-// Esta función:
+// Genera la siguiente etiqueta que corresponde
+// a la orden.
 //
-// 1. Calcula la siguiente bobina.
-// 2. Genera la etiqueta.
-// 3. Incrementa el contador.
-// 4. Finaliza la orden cuando corresponde.
+// MUY IMPORTANTE:
+//
+// NO incrementa order.printed.
+// NO cambia el estado.
+// NO modifica la planificación.
+//
+// Esta función se utiliza ANTES de enviar
+// físicamente la etiqueta a QZ Tray.
 //
 //==================================================
 
-export function printLabel(
+export function preparePrintLabel(
   order: ProductionOrder
 ): PrintResult {
 
@@ -640,27 +645,93 @@ export function printLabel(
 
 
   //------------------------------------------------
-  // GENERAR ETIQUETA
+  // GENERAR ETIQUETA SIN MODIFICAR LA ORDEN
   //------------------------------------------------
 
-  const result =
-    buildPrintResult(
-      order,
-      currentCoil
-    );
+  return buildPrintResult(
+    order,
+    currentCoil
+  );
+
+}
+
+
+//==================================================
+// CONFIRMAR ETIQUETA IMPRESA
+//==================================================
+//
+// Esta función debe ejecutarse SOLAMENTE
+// después de que qz.print() haya terminado
+// correctamente.
+//
+// Aquí es donde se incrementa el contador.
+//
+//==================================================
+
+export function commitPrintedLabel(
+  order: ProductionOrder,
+  coilNumber: number
+): PrintResult {
+
+
+  //------------------------------------------------
+  // VALIDAR NÚMERO DE BOBINA
+  //------------------------------------------------
+
+  const expectedCoil =
+    order.firstCoil +
+    order.printed;
 
 
   if (
-    !result.success
+    coilNumber !==
+    expectedCoil
   ) {
 
-    return result;
+    return {
+
+      success:
+        false,
+
+      message:
+        `La bobina ${coilNumber} ya no coincide con la siguiente bobina esperada (${expectedCoil}).`,
+
+      coilNumber
+
+    };
 
   }
 
 
   //------------------------------------------------
-  // ACTUALIZAR CONTADOR DE IMPRESIÓN
+  // COMPROBAR QUE LA ORDEN NO ESTÁ FINALIZADA
+  //------------------------------------------------
+
+  if (
+    order.printed >=
+    order.rolls
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "La orden ya está completamente impresa.",
+
+      coilNumber,
+
+      finished:
+        true
+
+    };
+
+  }
+
+
+  //------------------------------------------------
+  // ACTUALIZAR CONTADOR
   //------------------------------------------------
 
   const printed =
@@ -699,14 +770,112 @@ export function printLabel(
 
   return {
 
-    ...result,
+    success:
+      true,
 
     message:
       finished
         ? "ÚLTIMA_ETIQUETA"
         : "OK",
 
+    coilNumber,
+
     finished
+
+  };
+
+}
+
+
+//==================================================
+// IMPRIMIR UNA ETIQUETA NORMAL
+//==================================================
+//
+// FUNCIÓN LEGACY.
+//
+// Se mantiene temporalmente para que las pantallas
+// existentes continúen funcionando mientras se
+// integra la impresión física mediante QZ Tray.
+//
+// Esta función conserva exactamente el flujo anterior:
+// genera la etiqueta e incrementa inmediatamente
+// el contador.
+//
+// Cuando OrderPrint utilice completamente QZ Tray,
+// dejará de llamar a esta función.
+//
+//==================================================
+
+export function printLabel(
+  order: ProductionOrder
+): PrintResult {
+
+
+  //------------------------------------------------
+  // PREPARAR ETIQUETA
+  //------------------------------------------------
+
+  const result =
+    preparePrintLabel(
+      order
+    );
+
+
+  if (
+    !result.success
+  ) {
+
+    return result;
+
+  }
+
+
+  //------------------------------------------------
+  // CONFIRMAR IMPRESIÓN
+  //------------------------------------------------
+
+  const commitResult =
+    commitPrintedLabel(
+      order,
+      result.coilNumber
+    );
+
+
+  if (
+    !commitResult.success
+  ) {
+
+    return {
+
+      ...result,
+
+      success:
+        false,
+
+      message:
+        commitResult.message,
+
+      finished:
+        commitResult.finished
+
+    };
+
+  }
+
+
+  //------------------------------------------------
+  // RESPUESTA
+  //------------------------------------------------
+
+  return {
+
+    ...result,
+
+    message:
+      commitResult.message,
+
+    finished:
+      commitResult.finished
 
   };
 

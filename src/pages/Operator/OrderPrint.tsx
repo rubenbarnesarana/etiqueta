@@ -41,7 +41,8 @@ import {
 } from "../../services/OrderStorage";
 
 import {
-  printLabel,
+  preparePrintLabel,
+  commitPrintedLabel,
   reprintLabel
 } from "../../services/PrintService";
 
@@ -68,6 +69,15 @@ import {
 import type {
   DesignerElement
 } from "../../components/designer/DesignerTypes";
+
+import {
+  renderLabelToPng
+} from "../../services/LabelImageService";
+
+import {
+  getConfiguredLabelPrinter,
+  printLabelImage
+} from "../../services/QzPrintService";
 
 
 export default function OrderPrint() {
@@ -179,6 +189,25 @@ export default function OrderPrint() {
 
 
   /*
+   * Impide dos impresiones simultáneas.
+   */
+
+  const [
+    printing,
+    setPrinting
+  ] = useState(false);
+
+
+  /*
+   * Contenedor oculto utilizado para generar
+   * la imagen física de la etiqueta.
+   */
+
+  const labelRenderRef =
+    useRef<HTMLDivElement>(null);
+
+
+  /*
    * Guardamos el total final antes
    * de limpiar/actualizar la orden.
    */
@@ -264,15 +293,34 @@ export default function OrderPrint() {
    */
 
   async function savePrintHistory(
+
     productionOrder: ProductionOrder,
+
     coilNumber: number,
+
     printType:
       | "PRINT"
       | "REPRINT" =
       "PRINT"
+
   ) {
 
     try {
+
+      /*
+       * IMPORTANTE:
+       *
+       * Guardamos la impresora REAL configurada
+       * en este PC mediante QZ Tray.
+       *
+       * Ya no usamos productionOrder.printer,
+       * porque ese dato puede no coincidir con
+       * la impresora física que ha imprimido.
+       */
+
+      const configuredPrinter =
+        getConfiguredLabelPrinter();
+
 
       await registerPrint({
 
@@ -298,6 +346,7 @@ export default function OrderPrint() {
           1,
 
         printer:
+          configuredPrinter ??
           productionOrder.printer,
 
         templateId:
@@ -332,6 +381,7 @@ export default function OrderPrint() {
    */
 
   function loadPreview(
+
     result: {
       label?: any[];
       backgroundImage?: string;
@@ -340,6 +390,7 @@ export default function OrderPrint() {
         | "FORMATO_2";
       labelData?: any;
     }
+
   ) {
 
     setLabel(
@@ -385,51 +436,22 @@ export default function OrderPrint() {
 
   /*
    * ==================================================
-   * IMPRIMIR
+   * PREPARAR ETIQUETA PARA IMPRESIÓN FÍSICA
    * ==================================================
    */
 
-  function printCurrentLabel() {
+  function setLabelResult(
 
-    if (
-      !order
-    ) {
-
-      return;
-
+    result: {
+      label?: any[];
+      backgroundImage?: string;
+      labelFormat?:
+        | "FORMATO_1"
+        | "FORMATO_2";
+      labelData?: any;
     }
 
-
-    const printedCoil =
-      order.firstCoil +
-      order.printed;
-
-
-    const result =
-      printLabel(
-        order
-      );
-
-
-    if (
-      !result.success
-    ) {
-
-      alert(
-        result.message
-      );
-
-      return;
-
-    }
-
-
-    void savePrintHistory(
-      order,
-      printedCoil,
-      "PRINT"
-    );
-
+  ) {
 
     setLabel(
       result.label ??
@@ -452,75 +474,402 @@ export default function OrderPrint() {
       result.labelData
     );
 
+  }
 
-    const updated =
-      findOrder(
-        order.order
-      );
+
+  /*
+   * Esperamos dos frames.
+   *
+   * Esto permite que React pinte la etiqueta,
+   * el código de barras y el QR antes de
+   * convertir el DOM a PNG.
+   */
+
+  async function waitForLabelRender():
+    Promise<void> {
+
+    await new Promise<void>(
+      resolve => {
+
+        requestAnimationFrame(
+          () => {
+
+            requestAnimationFrame(
+              () => {
+
+                resolve();
+
+              }
+            );
+
+          }
+        );
+
+      }
+    );
+
+  }
+
+
+  /*
+   * LabelPreview genera:
+   *
+   * wrapper nuestro
+   *   -> contenedor preview
+   *      -> etiqueta física
+   *
+   * Necesitamos únicamente el elemento interior
+   * que tiene las dimensiones reales en mm.
+   */
+
+  function getPhysicalLabelElement():
+    HTMLElement | null {
+
+    const wrapper =
+      labelRenderRef.current;
 
 
     if (
-      updated
+      !wrapper
     ) {
 
-      setOrder(
-        updated
-      );
-
-
-      finalPrintedRef.current =
-        updated.printed;
+      return null;
 
     }
 
 
-    setPreviewOpen(
+    const previewContainer =
+      wrapper.firstElementChild;
+
+
+    const physicalLabel =
+      previewContainer?.firstElementChild;
+
+
+    return physicalLabel instanceof HTMLElement
+      ? physicalLabel
+      : null;
+
+  }
+
+
+  /*
+   * ==================================================
+   * DIMENSIONES FÍSICAS
+   * ==================================================
+   */
+
+  function getLabelDimensions(
+
+    format?:
+      | "FORMATO_1"
+      | "FORMATO_2"
+
+  ) {
+
+    if (
+      format ===
+      "FORMATO_2"
+    ) {
+
+      return {
+        width: 240,
+        height: 110
+      };
+
+    }
+
+
+    return {
+      width: 80,
+      height: 285
+    };
+
+  }
+
+
+  /*
+   * ==================================================
+   * IMPRIMIR
+   * ==================================================
+   *
+   * ORDEN DEL PROCESO:
+   *
+   * 1. Preparar etiqueta SIN tocar contador.
+   * 2. Renderizar etiqueta.
+   * 3. Convertir a PNG.
+   * 4. Enviar a QZ Tray.
+   * 5. Esperar qz.print().
+   * 6. Confirmar impresión en la orden.
+   * 7. Registrar historial.
+   *
+   * Si QZ falla antes del punto 5,
+   * el contador NO se modifica.
+   * ==================================================
+   */
+
+  async function printCurrentLabel() {
+
+    if (
+      !order ||
+      printing
+    ) {
+
+      return;
+
+    }
+
+
+    setPrinting(
       true
     );
 
 
-    setTimeout(
-      () => {
+    try {
 
-        setPreviewOpen(
-          false
+      /*
+       * Preparar etiqueta.
+       *
+       * NO modifica contador.
+       */
+
+      const result =
+        preparePrintLabel(
+          order
         );
 
 
-        const latest =
-          findOrder(
-            order.order
+      if (
+        !result.success
+      ) {
+
+        alert(
+          result.message
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Renderizar los datos exactos
+       * de esta bobina.
+       */
+
+      setLabelResult(
+        result
+      );
+
+
+      await waitForLabelRender();
+
+
+      /*
+       * Obtener únicamente la etiqueta física.
+       */
+
+      const physicalLabel =
+        getPhysicalLabelElement();
+
+
+      if (
+        !physicalLabel
+      ) {
+
+        throw new Error(
+          "No se ha podido preparar la etiqueta para imprimir."
+        );
+
+      }
+
+
+      /*
+       * Dimensiones según formato.
+       */
+
+      const dimensions =
+        getLabelDimensions(
+          result.labelFormat
+        );
+
+
+      /*
+       * Convertir etiqueta a PNG a 203 dpi.
+       */
+
+      const imageDataUrl =
+        await renderLabelToPng(
+          physicalLabel,
+          {
+
+            widthMm:
+              dimensions.width,
+
+            heightMm:
+              dimensions.height,
+
+            dpi:
+              203
+
+          }
+        );
+
+
+      /*
+       * IMPRESIÓN FÍSICA.
+       *
+       * Aquí esperamos a que QZ acepte
+       * correctamente el trabajo.
+       */
+
+      await printLabelImage(
+        imageDataUrl,
+        dimensions.width,
+        dimensions.height,
+        `Rivulis ${order.order} - Bobina ${result.coilNumber}`
+      );
+
+
+      /*
+       * QZ HA RESPONDIDO CORRECTAMENTE.
+       *
+       * Ahora sí podemos incrementar contador.
+       */
+
+      const commitResult =
+        commitPrintedLabel(
+          order,
+          result.coilNumber
+        );
+
+
+      if (
+        !commitResult.success
+      ) {
+
+        throw new Error(
+          commitResult.message
+        );
+
+      }
+
+
+      /*
+       * Registrar historial solamente
+       * después de imprimir.
+       */
+
+      await savePrintHistory(
+        order,
+        result.coilNumber,
+        "PRINT"
+      );
+
+
+      /*
+       * Recargar orden actualizada.
+       */
+
+      const updated =
+        findOrder(
+          order.order
+        );
+
+
+      if (
+        updated
+      ) {
+
+        setOrder(
+          updated
+        );
+
+
+        finalPrintedRef.current =
+          updated.printed;
+
+      }
+
+
+      /*
+       * Mostrar la misma vista previa
+       * que teníamos hasta ahora.
+       */
+
+      setPreviewOpen(
+        true
+      );
+
+
+      setTimeout(
+        () => {
+
+          setPreviewOpen(
+            false
           );
 
 
-        if (
-          latest
-        ) {
+          const latest =
+            findOrder(
+              order.order
+            );
 
-          setOrder(
+
+          if (
             latest
-          );
+          ) {
+
+            setOrder(
+              latest
+            );
 
 
-          finalPrintedRef.current =
-            latest.printed;
+            finalPrintedRef.current =
+              latest.printed;
 
-        }
+          }
 
 
-        if (
-          result.finished
-        ) {
+          if (
+            commitResult.finished
+          ) {
 
-          setFinishedOpen(
-            true
-          );
+            setFinishedOpen(
+              true
+            );
 
-        }
+          }
 
-      },
-      2000
-    );
+        },
+        2000
+      );
+
+    }
+    catch (
+      printError
+    ) {
+
+      console.error(
+        "Error imprimiendo etiqueta:",
+        printError
+      );
+
+
+      alert(
+        printError instanceof Error
+          ? printError.message
+          : "No se ha podido imprimir la etiqueta."
+      );
+
+    }
+    finally {
+
+      setPrinting(
+        false
+      );
+
+    }
 
   }
 
@@ -581,12 +930,26 @@ export default function OrderPrint() {
    * ==================================================
    * CONFIRMAR REIMPRESIÓN
    * ==================================================
+   *
+   * La reimpresión:
+   *
+   * - imprime físicamente
+   * - registra historial
+   *
+   * PERO NO:
+   *
+   * - incrementa impresos
+   * - cambia pendientes
+   * - cambia próxima bobina
+   * - cambia estado
+   * ==================================================
    */
 
-  function confirmReprint() {
+  async function confirmReprint() {
 
     if (
-      !order
+      !order ||
+      printing
     ) {
 
       return;
@@ -615,6 +978,12 @@ export default function OrderPrint() {
     }
 
 
+    /*
+     * Generamos exactamente la bobina solicitada.
+     *
+     * reprintLabel NO modifica contador.
+     */
+
     const result =
       reprintLabel(
         order,
@@ -635,36 +1004,125 @@ export default function OrderPrint() {
     }
 
 
-    /*
-     * IMPORTANTE:
-     *
-     * La reimpresión NO modifica:
-     *
-     * - Impresos
-     * - Pendientes
-     * - Próxima bobina
-     * - Estado
-     */
-
-
-    void savePrintHistory(
-      order,
-      coilNumber,
-      "REPRINT"
-    );
-
-
-    setReprintOpen(
-      false
+    setPrinting(
+      true
     );
 
 
     setReprintError("");
 
 
-    loadPreview(
-      result
-    );
+    try {
+
+      setLabelResult(
+        result
+      );
+
+
+      await waitForLabelRender();
+
+
+      const physicalLabel =
+        getPhysicalLabelElement();
+
+
+      if (
+        !physicalLabel
+      ) {
+
+        throw new Error(
+          "No se ha podido preparar la etiqueta para reimprimir."
+        );
+
+      }
+
+
+      const dimensions =
+        getLabelDimensions(
+          result.labelFormat
+        );
+
+
+      const imageDataUrl =
+        await renderLabelToPng(
+          physicalLabel,
+          {
+
+            widthMm:
+              dimensions.width,
+
+            heightMm:
+              dimensions.height,
+
+            dpi:
+              203
+
+          }
+        );
+
+
+      /*
+       * IMPRESIÓN FÍSICA.
+       */
+
+      await printLabelImage(
+        imageDataUrl,
+        dimensions.width,
+        dimensions.height,
+        `Rivulis ${order.order} - Reimpresión bobina ${coilNumber}`
+      );
+
+
+      /*
+       * Historial después de QZ.
+       *
+       * NO llamamos a commitPrintedLabel().
+       */
+
+      await savePrintHistory(
+        order,
+        coilNumber,
+        "REPRINT"
+      );
+
+
+      setReprintOpen(
+        false
+      );
+
+
+      setReprintError("");
+
+
+      loadPreview(
+        result
+      );
+
+    }
+    catch (
+      printError
+    ) {
+
+      console.error(
+        "Error reimprimiendo etiqueta:",
+        printError
+      );
+
+
+      setReprintError(
+        printError instanceof Error
+          ? printError.message
+          : "No se ha podido reimprimir la etiqueta."
+      );
+
+    }
+    finally {
+
+      setPrinting(
+        false
+      );
+
+    }
 
   }
 
@@ -931,8 +1389,10 @@ export default function OrderPrint() {
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 5px 14px rgba(11, 122, 59, 0.22)",
-                border: "2px solid #086530"
+                boxShadow:
+                  "0 5px 14px rgba(11, 122, 59, 0.22)",
+                border:
+                  "2px solid #086530"
               }}
             >
 
@@ -945,8 +1405,11 @@ export default function OrderPrint() {
                   mb: 0.5
                 }}
               >
+
                 LÍNEA
+
               </Typography>
+
 
               <Typography
                 sx={{
@@ -955,7 +1418,9 @@ export default function OrderPrint() {
                   lineHeight: 0.95
                 }}
               >
+
                 {order.productionLine}
+
               </Typography>
 
             </Box>
@@ -994,9 +1459,7 @@ export default function OrderPrint() {
         sx={{
           border:
             "1px solid #E0E0E0",
-
           borderRadius: 3,
-
           overflow: "hidden"
         }}
       >
@@ -1078,8 +1541,6 @@ export default function OrderPrint() {
               </Typography>
 
 
-              {/* CLIENTE */}
-
               <Typography
                 sx={{
                   mb: 1.5
@@ -1123,7 +1584,7 @@ export default function OrderPrint() {
               >
 
                 <b>Impresora:</b>{" "}
-                {order.printer}
+                {getConfiguredLabelPrinter() || order.printer}
 
               </Typography>
 
@@ -1220,7 +1681,8 @@ export default function OrderPrint() {
                     <PrintIcon />
                   }
                   disabled={
-                    finished
+                    finished ||
+                    printing
                   }
                   onClick={
                     printCurrentLabel
@@ -1239,7 +1701,11 @@ export default function OrderPrint() {
                   }}
                 >
 
-                  IMPRIMIR
+                  {
+                    printing
+                      ? "IMPRIMIENDO..."
+                      : "IMPRIMIR"
+                  }
 
                 </Button>
 
@@ -1251,7 +1717,8 @@ export default function OrderPrint() {
                     <ReplayIcon />
                   }
                   disabled={
-                    order.printed <= 0
+                    order.printed <= 0 ||
+                    printing
                   }
                   onClick={
                     repeatLabel
@@ -1275,11 +1742,6 @@ export default function OrderPrint() {
 
                 </Button>
 
-
-                {/* =====================================
-                    ETIQUETA DE PALET
-                    SOLO FORMATO 2
-                    ===================================== */}
 
                 {
                   isFormat2
@@ -1461,8 +1923,6 @@ export default function OrderPrint() {
               </Card>
 
 
-              {/* PRÓXIMA BOBINA */}
-
               <Card
                 elevation={0}
                 sx={{
@@ -1550,10 +2010,19 @@ export default function OrderPrint() {
           reprintOpen
         }
         onClose={
-          () =>
-            setReprintOpen(
-              false
-            )
+          () => {
+
+            if (
+              !printing
+            ) {
+
+              setReprintOpen(
+                false
+              );
+
+            }
+
+          }
         }
         fullWidth
         maxWidth="sm"
@@ -1622,6 +2091,7 @@ export default function OrderPrint() {
                   {lastReprintCoil}
                 </b>.
 
+                {" "}
                 La reimpresión no modificará los contadores de la orden.
 
               </Alert>
@@ -1658,6 +2128,9 @@ export default function OrderPrint() {
             value={
               reprintCoil
             }
+            disabled={
+              printing
+            }
             onChange={
               event => {
 
@@ -1674,10 +2147,11 @@ export default function OrderPrint() {
 
                 if (
                   event.key ===
-                  "Enter"
+                    "Enter" &&
+                  !printing
                 ) {
 
-                  confirmReprint();
+                  void confirmReprint();
 
                 }
 
@@ -1685,6 +2159,7 @@ export default function OrderPrint() {
             }
             slotProps={{
               htmlInput: {
+
                 min:
                   firstReprintCoil,
 
@@ -1694,6 +2169,7 @@ export default function OrderPrint() {
 
                 step:
                   1
+
               }
             }}
             sx={{
@@ -1719,6 +2195,9 @@ export default function OrderPrint() {
         >
 
           <Button
+            disabled={
+              printing
+            }
             onClick={
               () =>
                 setReprintOpen(
@@ -1740,6 +2219,9 @@ export default function OrderPrint() {
             startIcon={
               <ReplayIcon />
             }
+            disabled={
+              printing
+            }
             onClick={
               confirmReprint
             }
@@ -1757,7 +2239,11 @@ export default function OrderPrint() {
             }}
           >
 
-            REIMPRIMIR BOBINA
+            {
+              printing
+                ? "REIMPRIMIENDO..."
+                : "REIMPRIMIR BOBINA"
+            }
 
           </Button>
 
@@ -1790,6 +2276,50 @@ export default function OrderPrint() {
             )
         }
       />
+
+
+      {/* =============================================
+          RENDER OCULTO PARA IMPRESIÓN FÍSICA
+          ============================================= */}
+
+      <Box
+        ref={
+          labelRenderRef
+        }
+        sx={{
+          position:
+            "fixed",
+
+          left:
+            "-10000px",
+
+          top:
+            0,
+
+          pointerEvents:
+            "none",
+
+          zIndex:
+            -1
+        }}
+      >
+
+        <LabelPreview
+          elements={
+            label
+          }
+          backgroundImage={
+            backgroundImage
+          }
+          labelFormat={
+            labelFormat
+          }
+          labelData={
+            labelData
+          }
+        />
+
+      </Box>
 
 
       {/* =============================================
