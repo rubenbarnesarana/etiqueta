@@ -1,4 +1,12 @@
-import { getTemplates } from "./TemplateStorage";
+import {
+  getTemplates
+} from "./TemplateStorage";
+
+import {
+  deleteSupabaseAssignment,
+  saveSupabaseAssignments
+} from "./SupabaseProductTemplateService";
+
 
 export interface ProductTemplateAssignment {
 
@@ -8,8 +16,41 @@ export interface ProductTemplateAssignment {
 
 }
 
+
 const STORAGE_KEY =
   "productTemplateAssignments";
+
+const ASSIGNMENTS_UPDATED_EVENT =
+  "productTemplateAssignmentsUpdated";
+
+
+let supabaseQueue:
+  Promise<void> =
+    Promise.resolve();
+
+
+function queueSupabaseOperation(
+  operation: () => Promise<void>
+) {
+
+  supabaseQueue =
+    supabaseQueue
+      .then(
+        operation
+      )
+      .catch(
+        error => {
+
+          console.error(
+            "Error sincronizando asignaciones SKU-plantilla con Supabase:",
+            error
+          );
+
+        }
+      );
+
+}
+
 
 export function getAssignments():
   ProductTemplateAssignment[] {
@@ -19,47 +60,133 @@ export function getAssignments():
       STORAGE_KEY
     );
 
-  if (!data) {
+
+  if (
+    !data
+  ) {
 
     return [];
 
   }
 
+
   try {
 
     const assignments =
-      JSON.parse(data);
+      JSON.parse(
+        data
+      );
+
 
     if (
-      Array.isArray(assignments)
+      Array.isArray(
+        assignments
+      )
     ) {
 
-      return assignments;
+      return assignments
+        .map(
+          item => ({
+
+            sku:
+              String(
+                item.sku ?? ""
+              ).trim(),
+
+            templateId:
+              Number(
+                item.templateId
+              )
+
+          })
+        )
+        .filter(
+          item =>
+            item.sku !== "" &&
+            Number.isFinite(
+              item.templateId
+            )
+        );
 
     }
 
-  } catch {
+  }
+  catch {
 
     // Datos corruptos
 
   }
 
+
   return [];
 
 }
 
+
 export function saveAssignments(
-  assignments: ProductTemplateAssignment[]
+  assignments:
+    ProductTemplateAssignment[]
 ) {
+
+  const normalizedAssignments =
+    assignments
+      .map(
+        assignment => ({
+
+          sku:
+            String(
+              assignment.sku
+            ).trim(),
+
+          templateId:
+            Number(
+              assignment.templateId
+            )
+
+        })
+      )
+      .filter(
+        assignment =>
+          assignment.sku !== "" &&
+          Number.isFinite(
+            assignment.templateId
+          )
+      );
+
 
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify(
-      assignments
+      normalizedAssignments
     )
   );
 
+
+  window.dispatchEvent(
+    new Event(
+      ASSIGNMENTS_UPDATED_EVENT
+    )
+  );
+
+
+  const snapshot:
+    ProductTemplateAssignment[] =
+      JSON.parse(
+        JSON.stringify(
+          normalizedAssignments
+        )
+      );
+
+
+  queueSupabaseOperation(
+    () =>
+      saveSupabaseAssignments(
+        snapshot
+      )
+  );
+
 }
+
 
 export function getTemplateForSku(
   sku: string
@@ -68,18 +195,27 @@ export function getTemplateForSku(
   const assignments =
     getAssignments();
 
+
   const found =
     assignments.find(
       item =>
-        String(item.sku).trim() ===
-        String(sku).trim()
+        String(
+          item.sku
+        ).trim() ===
+        String(
+          sku
+        ).trim()
     );
 
-  if (!found) {
+
+  if (
+    !found
+  ) {
 
     return null;
 
   }
+
 
   return Number(
     found.templateId
@@ -87,67 +223,101 @@ export function getTemplateForSku(
 
 }
 
+
 export function assignTemplateToSku(
   sku: string,
   templateId: number
 ) {
 
   const cleanSku =
-    String(sku).trim();
+    String(
+      sku
+    ).trim();
+
 
   const assignments =
     getAssignments();
 
+
   const existing =
     assignments.find(
       item =>
-        String(item.sku).trim() ===
+        String(
+          item.sku
+        ).trim() ===
         cleanSku
     );
 
-  if (existing) {
+
+  if (
+    existing
+  ) {
 
     existing.templateId =
-      Number(templateId);
+      Number(
+        templateId
+      );
 
-  } else {
+  }
+  else {
 
     assignments.push({
 
-      sku: cleanSku,
+      sku:
+        cleanSku,
 
       templateId:
-        Number(templateId)
+        Number(
+          templateId
+        )
 
     });
 
   }
+
 
   saveAssignments(
     assignments
   );
 
 }
+
 
 export function removeAssignment(
   sku: string
 ) {
 
   const cleanSku =
-    String(sku).trim();
+    String(
+      sku
+    ).trim();
+
 
   const assignments =
-    getAssignments().filter(
-      item =>
-        String(item.sku).trim() !==
-        cleanSku
-    );
+    getAssignments()
+      .filter(
+        item =>
+          String(
+            item.sku
+          ).trim() !==
+          cleanSku
+      );
+
 
   saveAssignments(
     assignments
   );
 
+
+  queueSupabaseOperation(
+    () =>
+      deleteSupabaseAssignment(
+        cleanSku
+      )
+  );
+
 }
+
 
 export function getAssignedTemplate(
   sku: string
@@ -158,20 +328,29 @@ export function getAssignedTemplate(
       sku
     );
 
-  if (templateId === null) {
+
+  if (
+    templateId === null
+  ) {
 
     return null;
 
   }
 
+
   const templates =
     getTemplates();
+
 
   return (
     templates.find(
       template =>
-        Number(template.id) ===
-        Number(templateId)
+        Number(
+          template.id
+        ) ===
+        Number(
+          templateId
+        )
     ) ?? null
   );
 

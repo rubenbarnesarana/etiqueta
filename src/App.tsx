@@ -30,6 +30,15 @@ import {
 } from "./services/TemplateStorage";
 
 import {
+  getSupabaseAssignments,
+  saveSupabaseAssignments
+} from "./services/SupabaseProductTemplateService";
+
+import {
+  getAssignments
+} from "./services/ProductTemplateStorage";
+
+import {
   supabase
 } from "./services/Supabase";
 
@@ -48,6 +57,13 @@ const TEMPLATES_UPDATED_EVENT =
   "templatesUpdated";
 
 
+const ASSIGNMENTS_STORAGE_KEY =
+  "productTemplateAssignments";
+
+const ASSIGNMENTS_UPDATED_EVENT =
+  "productTemplateAssignmentsUpdated";
+
+
 function Application() {
 
   const {
@@ -64,15 +80,6 @@ function Application() {
   /*
    * ==================================================
    * ACTUALIZAR ÓRDENES DESDE SUPABASE
-   * ==================================================
-   *
-   * IMPORTANTE:
-   *
-   * Aquí NO utilizamos saveOrders().
-   *
-   * saveOrders() vuelve a enviar los datos
-   * a Supabase y provocaría un bucle.
-   *
    * ==================================================
    */
 
@@ -98,9 +105,10 @@ function Application() {
 
 
     /*
-     * Compatibilidad con algunas pantallas
-     * antiguas que todavía escuchan focus.
+     * Compatibilidad con pantallas
+     * que todavía escuchan focus.
      */
+
     window.dispatchEvent(
       new Event(
         "focus"
@@ -113,15 +121,6 @@ function Application() {
   /*
    * ==================================================
    * ACTUALIZAR PLANTILLAS DESDE SUPABASE
-   * ==================================================
-   *
-   * IMPORTANTE:
-   *
-   * Aquí NO utilizamos saveTemplates().
-   *
-   * saveTemplates() vuelve a enviar los datos
-   * a Supabase y provocaría un bucle Realtime.
-   *
    * ==================================================
    */
 
@@ -150,19 +149,42 @@ function Application() {
 
   /*
    * ==================================================
-   * SINCRONIZACIÓN INICIAL DE PLANTILLAS
+   * ACTUALIZAR ASIGNACIONES SKU -> PLANTILLA
+   * DESDE SUPABASE
    * ==================================================
    *
-   * REGLAS:
+   * No utilizamos saveAssignments()
+   * porque volvería a escribir en Supabase.
    *
-   * 1. Si Supabase ya tiene plantillas:
-   *    Supabase manda.
-   *
-   * 2. Si Supabase está vacío:
-   *    utilizamos las plantillas locales de este PC.
-   *
-   * 3. currentTemplateId continúa siendo LOCAL.
-   *
+   * ==================================================
+   */
+
+  async function refreshAssignmentsFromSupabase() {
+
+    const assignments =
+      await getSupabaseAssignments();
+
+
+    localStorage.setItem(
+      ASSIGNMENTS_STORAGE_KEY,
+      JSON.stringify(
+        assignments
+      )
+    );
+
+
+    window.dispatchEvent(
+      new Event(
+        ASSIGNMENTS_UPDATED_EVENT
+      )
+    );
+
+  }
+
+
+  /*
+   * ==================================================
+   * SINCRONIZACIÓN INICIAL DE PLANTILLAS
    * ==================================================
    */
 
@@ -173,9 +195,7 @@ function Application() {
 
 
     /*
-     * ==================================================
-     * SUPABASE YA TIENE PLANTILLAS
-     * ==================================================
+     * Supabase ya contiene plantillas.
      */
 
     if (
@@ -204,9 +224,7 @@ function Application() {
 
 
     /*
-     * ==================================================
-     * SUPABASE ESTÁ VACÍO
-     * ==================================================
+     * Supabase está vacío.
      */
 
     const localTemplates =
@@ -227,10 +245,6 @@ function Application() {
     }
 
 
-    /*
-     * Subir plantillas locales.
-     */
-
     await saveSupabaseTemplates(
       localTemplates
     );
@@ -238,6 +252,82 @@ function Application() {
 
     console.log(
       `${localTemplates.length} plantillas migradas a Supabase.`
+    );
+
+  }
+
+
+  /*
+   * ==================================================
+   * SINCRONIZACIÓN INICIAL DE ASIGNACIONES
+   * SKU -> PLANTILLA
+   * ==================================================
+   */
+
+  async function synchronizeAssignments() {
+
+    const supabaseAssignments =
+      await getSupabaseAssignments();
+
+
+    /*
+     * Supabase ya contiene asignaciones.
+     */
+
+    if (
+      supabaseAssignments.length >
+      0
+    ) {
+
+      localStorage.setItem(
+        ASSIGNMENTS_STORAGE_KEY,
+        JSON.stringify(
+          supabaseAssignments
+        )
+      );
+
+
+      window.dispatchEvent(
+        new Event(
+          ASSIGNMENTS_UPDATED_EVENT
+        )
+      );
+
+
+      return;
+
+    }
+
+
+    /*
+     * Supabase está vacío.
+     */
+
+    const localAssignments =
+      getAssignments();
+
+
+    if (
+      localAssignments.length ===
+      0
+    ) {
+
+      console.log(
+        "No existen asignaciones SKU-plantilla locales para migrar a Supabase."
+      );
+
+      return;
+
+    }
+
+
+    await saveSupabaseAssignments(
+      localAssignments
+    );
+
+
+    console.log(
+      `${localAssignments.length} asignaciones SKU-plantilla migradas a Supabase.`
     );
 
   }
@@ -311,6 +401,29 @@ function Application() {
 
           console.error(
             "No se pudieron sincronizar las plantillas con Supabase:",
+            error
+          );
+
+        }
+
+
+        /*
+         * ==================================================
+         * ASIGNACIONES SKU -> PLANTILLA
+         * ==================================================
+         */
+
+        try {
+
+          await synchronizeAssignments();
+
+        }
+        catch (
+          error
+        ) {
+
+          console.error(
+            "No se pudieron sincronizar las asignaciones SKU-plantilla con Supabase:",
             error
           );
 
@@ -475,23 +588,6 @@ function Application() {
    * ==================================================
    * SUPABASE REALTIME - PLANTILLAS
    * ==================================================
-   *
-   * Escucha:
-   *
-   * - INSERT
-   * - UPDATE
-   * - DELETE
-   *
-   * sobre label_templates.
-   *
-   * Cuando cualquier PC modifica una plantilla:
-   *
-   * 1. Supabase envía el aviso.
-   * 2. Descargamos todas las plantillas.
-   * 3. Actualizamos localStorage.
-   * 4. Lanzamos templatesUpdated.
-   *
-   * ==================================================
    */
 
   useEffect(
@@ -512,12 +608,6 @@ function Application() {
           null;
 
 
-      /*
-       * Agrupamos eventos próximos.
-       *
-       * Una edición del diseñador puede provocar
-       * varias operaciones cercanas.
-       */
       function scheduleRefresh() {
 
         if (
@@ -570,6 +660,121 @@ function Application() {
               event: "*",
               schema: "public",
               table: "label_templates"
+            },
+            () => {
+
+              scheduleRefresh();
+
+            }
+          )
+          .subscribe();
+
+
+      return () => {
+
+        if (
+          refreshTimeout !==
+          null
+        ) {
+
+          window.clearTimeout(
+            refreshTimeout
+          );
+
+        }
+
+
+        void supabase.removeChannel(
+          channel
+        );
+
+      };
+
+    },
+    [
+      user
+    ]
+  );
+
+
+  /*
+   * ==================================================
+   * SUPABASE REALTIME
+   * ASIGNACIONES SKU -> PLANTILLA
+   * ==================================================
+   */
+
+  useEffect(
+    () => {
+
+      if (
+        !user
+      ) {
+
+        return;
+
+      }
+
+
+      let refreshTimeout:
+        number |
+        null =
+          null;
+
+
+      function scheduleRefresh() {
+
+        if (
+          refreshTimeout !==
+          null
+        ) {
+
+          window.clearTimeout(
+            refreshTimeout
+          );
+
+        }
+
+
+        refreshTimeout =
+          window.setTimeout(
+            () => {
+
+              refreshTimeout =
+                null;
+
+
+              void refreshAssignmentsFromSupabase()
+                .catch(
+                  error => {
+
+                    console.error(
+                      "Error actualizando asignaciones SKU-plantilla en tiempo real:",
+                      error
+                    );
+
+                  }
+                );
+
+            },
+            200
+          );
+
+      }
+
+
+      const channel =
+        supabase
+          .channel(
+            "product-template-assignments-realtime"
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table:
+                "product_template_assignments"
             },
             () => {
 
