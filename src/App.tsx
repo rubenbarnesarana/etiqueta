@@ -21,6 +21,10 @@ import {
 } from "./services/SupabaseOrderService";
 
 import {
+  getSupabaseProducts
+} from "./services/SupabaseProductService";
+
+import {
   getSupabaseTemplates,
   saveSupabaseTemplates
 } from "./services/SupabaseTemplateService";
@@ -48,6 +52,13 @@ const ORDERS_STORAGE_KEY =
 
 const ORDERS_UPDATED_EVENT =
   "productionOrdersUpdated";
+
+
+const PRODUCTS_STORAGE_KEY =
+  "products";
+
+const PRODUCTS_UPDATED_EVENT =
+  "productsUpdated";
 
 
 const TEMPLATES_STORAGE_KEY =
@@ -104,14 +115,45 @@ function Application() {
     );
 
 
-    /*
-     * Compatibilidad con pantallas
-     * que todavía escuchan focus.
-     */
-
     window.dispatchEvent(
       new Event(
         "focus"
+      )
+    );
+
+  }
+
+
+  /*
+   * ==================================================
+   * ACTUALIZAR PRODUCTOS DESDE SUPABASE
+   * ==================================================
+   *
+   * No utilizamos saveProducts().
+   *
+   * Actualizamos directamente la caché local
+   * para evitar cualquier escritura adicional.
+   *
+   * ==================================================
+   */
+
+  async function refreshProductsFromSupabase() {
+
+    const products =
+      await getSupabaseProducts();
+
+
+    localStorage.setItem(
+      PRODUCTS_STORAGE_KEY,
+      JSON.stringify(
+        products
+      )
+    );
+
+
+    window.dispatchEvent(
+      new Event(
+        PRODUCTS_UPDATED_EVENT
       )
     );
 
@@ -152,11 +194,6 @@ function Application() {
    * ACTUALIZAR ASIGNACIONES SKU -> PLANTILLA
    * DESDE SUPABASE
    * ==================================================
-   *
-   * No utilizamos saveAssignments()
-   * porque volvería a escribir en Supabase.
-   *
-   * ==================================================
    */
 
   async function refreshAssignmentsFromSupabase() {
@@ -194,10 +231,6 @@ function Application() {
       await getSupabaseTemplates();
 
 
-    /*
-     * Supabase ya contiene plantillas.
-     */
-
     if (
       supabaseTemplates.length >
       0
@@ -222,10 +255,6 @@ function Application() {
 
     }
 
-
-    /*
-     * Supabase está vacío.
-     */
 
     const localTemplates =
       getTemplates();
@@ -270,10 +299,6 @@ function Application() {
       await getSupabaseAssignments();
 
 
-    /*
-     * Supabase ya contiene asignaciones.
-     */
-
     if (
       supabaseAssignments.length >
       0
@@ -298,10 +323,6 @@ function Application() {
 
     }
 
-
-    /*
-     * Supabase está vacío.
-     */
 
     const localAssignments =
       getAssignments();
@@ -386,6 +407,29 @@ function Application() {
 
         /*
          * ==================================================
+         * PRODUCTOS
+         * ==================================================
+         */
+
+        try {
+
+          await refreshProductsFromSupabase();
+
+        }
+        catch (
+          error
+        ) {
+
+          console.error(
+            "No se pudieron sincronizar los productos desde Supabase:",
+            error
+          );
+
+        }
+
+
+        /*
+         * ==================================================
          * PLANTILLAS
          * ==================================================
          */
@@ -429,12 +473,6 @@ function Application() {
 
         }
 
-
-        /*
-         * ==================================================
-         * APLICACIÓN LISTA
-         * ==================================================
-         */
 
         if (
           !cancelled
@@ -547,6 +585,119 @@ function Application() {
               event: "*",
               schema: "public",
               table: "production_orders"
+            },
+            () => {
+
+              scheduleRefresh();
+
+            }
+          )
+          .subscribe();
+
+
+      return () => {
+
+        if (
+          refreshTimeout !==
+          null
+        ) {
+
+          window.clearTimeout(
+            refreshTimeout
+          );
+
+        }
+
+
+        void supabase.removeChannel(
+          channel
+        );
+
+      };
+
+    },
+    [
+      user
+    ]
+  );
+
+
+  /*
+   * ==================================================
+   * SUPABASE REALTIME - PRODUCTOS
+   * ==================================================
+   */
+
+  useEffect(
+    () => {
+
+      if (
+        !user
+      ) {
+
+        return;
+
+      }
+
+
+      let refreshTimeout:
+        number |
+        null =
+          null;
+
+
+      function scheduleRefresh() {
+
+        if (
+          refreshTimeout !==
+          null
+        ) {
+
+          window.clearTimeout(
+            refreshTimeout
+          );
+
+        }
+
+
+        refreshTimeout =
+          window.setTimeout(
+            () => {
+
+              refreshTimeout =
+                null;
+
+
+              void refreshProductsFromSupabase()
+                .catch(
+                  error => {
+
+                    console.error(
+                      "Error actualizando productos en tiempo real:",
+                      error
+                    );
+
+                  }
+                );
+
+            },
+            200
+          );
+
+      }
+
+
+      const channel =
+        supabase
+          .channel(
+            "products-realtime"
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "products"
             },
             () => {
 
