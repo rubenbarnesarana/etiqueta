@@ -52,6 +52,13 @@ import {
 } from "../../services/ProductStorage";
 
 import {
+  getSupabaseProducts,
+  saveSupabaseProduct,
+  saveSupabaseProducts,
+  deleteSupabaseProduct
+} from "../../services/SupabaseProductService";
+
+import {
   getTemplates
 } from "../../services/TemplateStorage";
 
@@ -186,23 +193,57 @@ export default function Products() {
    * ==================================================
    */
 
-  function loadData() {
-
-    setProducts(
-      getProducts()
-    );
-
+  async function loadData() {
 
     setTemplates(
       getTemplates()
     );
+
+    try {
+
+      const supabaseProducts =
+        await getSupabaseProducts();
+
+      setProducts(
+        supabaseProducts
+      );
+
+      /*
+       * Copia local temporal para mantener
+       * compatibles las pantallas que aún
+       * utilizan ProductStorage.
+       */
+      saveProducts(
+        supabaseProducts
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      const localProducts =
+        getProducts();
+
+      setProducts(
+        localProducts
+      );
+
+      setMessageType(
+        "warning"
+      );
+
+      setMessage(
+        "No se han podido cargar los productos desde Supabase. Se muestra temporalmente la copia local de este ordenador."
+      );
+
+    }
 
   }
 
 
   useEffect(() => {
 
-    loadData();
+    void loadData();
 
   }, []);
 
@@ -218,7 +259,6 @@ export default function Products() {
     setSelectedProduct(
       undefined
     );
-
 
     setDialogOpen(
       true
@@ -241,7 +281,6 @@ export default function Products() {
       product
     );
 
-
     setDialogOpen(
       true
     );
@@ -255,79 +294,87 @@ export default function Products() {
    * ==================================================
    */
 
-  function handleSaveProduct(
+  async function handleSaveProduct(
     product: Product
   ) {
 
-    const current =
-      getProducts();
+    try {
 
-
-    const exists =
-      current.some(
-        item =>
-          item.id ===
-          product.id
+      await saveSupabaseProduct(
+        product
       );
 
-
-    let updated:
-      Product[];
-
-
-    if (
-      exists
-    ) {
-
-      updated =
-        current.map(
+      const exists =
+        products.some(
           item =>
             item.id ===
             product.id
-              ? product
-              : item
         );
 
-    } else {
+      const updated =
+        exists
+          ? products.map(
+              item =>
+                item.id ===
+                product.id
+                  ? product
+                  : item
+            )
+          : [
+              ...products,
+              product
+            ];
 
-      updated = [
-        ...current,
-        product
-      ];
+      saveProducts(
+        updated
+      );
 
-    }
-
-
-    saveProducts(
-      updated
-    );
-
-
-    if (
-      product.templateId
-    ) {
-
-      assignTemplateToSku(
-        product.sapCode,
+      if (
         product.templateId
+      ) {
+
+        assignTemplateToSku(
+          product.sapCode,
+          product.templateId
+        );
+
+      }
+
+      setProducts(
+        updated
+      );
+
+      setDialogOpen(
+        false
+      );
+
+      setSelectedProduct(
+        undefined
+      );
+
+      setMessageType(
+        "success"
+      );
+
+      setMessage(
+        "Producto guardado correctamente en Supabase."
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      setMessageType(
+        "error"
+      );
+
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No se ha podido guardar el producto en Supabase."
       );
 
     }
-
-
-    setProducts(
-      updated
-    );
-
-
-    setDialogOpen(
-      false
-    );
-
-
-    setSelectedProduct(
-      undefined
-    );
 
   }
 
@@ -338,7 +385,7 @@ export default function Products() {
    * ==================================================
    */
 
-  function handleDeleteProduct(
+  async function handleDeleteProduct(
     product: Product
   ) {
 
@@ -346,7 +393,6 @@ export default function Products() {
       window.confirm(
         `¿Eliminar el producto ${product.sapCode}?`
       );
-
 
     if (
       !confirmed
@@ -356,23 +402,50 @@ export default function Products() {
 
     }
 
+    try {
 
-    const updated =
-      getProducts().filter(
-        item =>
-          item.id !==
-          product.id
+      await deleteSupabaseProduct(
+        product.id
       );
 
+      const updated =
+        products.filter(
+          item =>
+            item.id !==
+            product.id
+        );
 
-    saveProducts(
-      updated
-    );
+      saveProducts(
+        updated
+      );
 
+      setProducts(
+        updated
+      );
 
-    setProducts(
-      updated
-    );
+      setMessageType(
+        "success"
+      );
+
+      setMessage(
+        `Producto ${product.sapCode} eliminado.`
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      setMessageType(
+        "error"
+      );
+
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No se ha podido eliminar el producto en Supabase."
+      );
+
+    }
 
   }
 
@@ -383,7 +456,7 @@ export default function Products() {
    * ==================================================
    */
 
-  function handleTemplateChange(
+  async function handleTemplateChange(
     product: Product,
     templateId: number
   ) {
@@ -393,31 +466,49 @@ export default function Products() {
       templateId
     };
 
+    try {
 
-    const updated =
-      getProducts().map(
-        item =>
-          item.id ===
-          product.id
-            ? updatedProduct
-            : item
+      await saveSupabaseProduct(
+        updatedProduct
       );
 
+      const updated =
+        products.map(
+          item =>
+            item.id ===
+            product.id
+              ? updatedProduct
+              : item
+        );
 
-    saveProducts(
-      updated
-    );
+      saveProducts(
+        updated
+      );
 
+      assignTemplateToSku(
+        product.sapCode,
+        templateId
+      );
 
-    assignTemplateToSku(
-      product.sapCode,
-      templateId
-    );
+      setProducts(
+        updated
+      );
 
+    } catch (error) {
 
-    setProducts(
-      updated
-    );
+      console.error(error);
+
+      setMessageType(
+        "error"
+      );
+
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No se ha podido actualizar la plantilla del producto en Supabase."
+      );
+
+    }
 
   }
 
@@ -436,7 +527,6 @@ export default function Products() {
 
       fileInputRef.current.value =
         "";
-
 
       fileInputRef.current.click();
 
@@ -459,7 +549,6 @@ export default function Products() {
     const file =
       event.target.files?.[0];
 
-
     if (
       !file
     ) {
@@ -468,10 +557,8 @@ export default function Products() {
 
     }
 
-
     const fileName =
       file.name.toLowerCase();
-
 
     const validFile =
       fileName.endsWith(
@@ -494,7 +581,6 @@ export default function Products() {
         ".txt"
       );
 
-
     if (
       !validFile
     ) {
@@ -503,50 +589,41 @@ export default function Products() {
         "error"
       );
 
-
       setMessage(
         "Formato no admitido. Selecciona un archivo XLS, XLSX, XLSM, CSV o TXT."
       );
-
 
       return;
 
     }
 
-
     setImportFile(
       file
     );
-
 
     setReadingFile(
       true
     );
 
-
     setPreviewSearch(
       ""
     );
 
-
     setPreviewFilter(
       "ALL"
     );
-
 
     try {
 
       const result =
         await previewSapProducts(
           file,
-          getProducts()
+          products
         );
-
 
       setPreview(
         result
       );
-
 
       setPreviewOpen(
         true
@@ -560,21 +637,17 @@ export default function Products() {
         error
       );
 
-
       setImportFile(
         null
       );
-
 
       setPreview(
         null
       );
 
-
       setMessageType(
         "error"
       );
-
 
       setMessage(
         error instanceof Error
@@ -609,26 +682,21 @@ export default function Products() {
 
     }
 
-
     setPreviewOpen(
       false
     );
-
 
     setPreview(
       null
     );
 
-
     setImportFile(
       null
     );
 
-
     setPreviewSearch(
       ""
     );
-
 
     setPreviewFilter(
       "ALL"
@@ -643,7 +711,7 @@ export default function Products() {
    * ==================================================
    */
 
-  function handleConfirmImport() {
+  async function handleConfirmImport() {
 
     if (
       !preview
@@ -653,34 +721,29 @@ export default function Products() {
 
     }
 
-
     setImporting(
       true
     );
 
-
     try {
-
-      const currentProducts =
-        getProducts();
-
 
       const result =
         confirmSapProducts(
           preview.rows,
-          currentProducts
+          products
         );
 
-
-      saveProducts(
+      await saveSupabaseProducts(
         result.products
       );
 
-
       /*
-       * Conservamos / sincronizamos
-       * las plantillas asignadas.
+       * Copia local temporal para mantener
+       * compatibles las demás pantallas.
        */
+      saveProducts(
+        result.products
+      );
 
       result.products.forEach(
         product => {
@@ -699,64 +762,50 @@ export default function Products() {
         }
       );
 
-
       setProducts(
         result.products
       );
-
 
       setPreviewOpen(
         false
       );
 
-
       setPreview(
         null
       );
-
 
       setImportFile(
         null
       );
 
-
       setPreviewSearch(
         ""
       );
-
 
       setPreviewFilter(
         "ALL"
       );
 
-
       setMessageType(
         "success"
       );
 
-
       setMessage(
-        `Importación completada: ${result.created} nuevos · ${result.updated} actualizados · Total en Productos: ${result.products.length}.`
+        `Importación completada en Supabase: ${result.created} nuevos · ${result.updated} actualizados · Total en Productos: ${result.products.length}.`
       );
 
-    } catch (
-      error
-    ) {
+    } catch (error) {
 
-      console.error(
-        error
-      );
-
+      console.error(error);
 
       setMessageType(
         "error"
       );
 
-
       setMessage(
         error instanceof Error
           ? error.message
-          : "No se ha podido completar la importación."
+          : "No se ha podido completar la importación en Supabase."
       );
 
     } finally {
@@ -793,7 +842,6 @@ export default function Products() {
           return true;
 
         }
-
 
         return (
           product.sapCode
@@ -847,7 +895,6 @@ export default function Products() {
               normalizedPreviewSearch
             );
 
-
         if (
           !matchesSearch
         ) {
@@ -855,7 +902,6 @@ export default function Products() {
           return false;
 
         }
-
 
         if (
           previewFilter ===
@@ -869,7 +915,6 @@ export default function Products() {
 
         }
 
-
         if (
           previewFilter ===
           "UPDATE"
@@ -882,7 +927,6 @@ export default function Products() {
 
         }
 
-
         if (
           previewFilter ===
           "INCOMPLETE"
@@ -893,7 +937,6 @@ export default function Products() {
           );
 
         }
-
 
         return true;
 
@@ -970,7 +1013,7 @@ export default function Products() {
             onChange={
               event => {
 
-                handleTemplateChange(
+                void handleTemplateChange(
                   params.row,
                   Number(
                     event.target.value
@@ -1057,7 +1100,6 @@ export default function Products() {
 
                     event.stopPropagation();
 
-
                     handleEditProduct(
                       params.row
                     );
@@ -1087,8 +1129,7 @@ export default function Products() {
 
                     event.stopPropagation();
 
-
-                    handleDeleteProduct(
+                    void handleDeleteProduct(
                       params.row
                     );
 
@@ -1572,7 +1613,6 @@ export default function Products() {
               false
             );
 
-
             setSelectedProduct(
               undefined
             );
@@ -1580,7 +1620,11 @@ export default function Products() {
           }
         }
         onSave={
-          handleSaveProduct
+          product => {
+            void handleSaveProduct(
+              product
+            );
+          }
         }
       />
 
@@ -1998,7 +2042,9 @@ export default function Products() {
               preview.totalRows === 0
             }
             onClick={
-              handleConfirmImport
+              () => {
+                void handleConfirmImport();
+              }
             }
             sx={{
               backgroundColor: "#0B7A3B",
