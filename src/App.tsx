@@ -21,6 +21,15 @@ import {
 } from "./services/SupabaseOrderService";
 
 import {
+  getSupabaseTemplates,
+  saveSupabaseTemplates
+} from "./services/SupabaseTemplateService";
+
+import {
+  getTemplates
+} from "./services/TemplateStorage";
+
+import {
   supabase
 } from "./services/Supabase";
 
@@ -30,6 +39,13 @@ const ORDERS_STORAGE_KEY =
 
 const ORDERS_UPDATED_EVENT =
   "productionOrdersUpdated";
+
+
+const TEMPLATES_STORAGE_KEY =
+  "templates";
+
+const TEMPLATES_UPDATED_EVENT =
+  "templatesUpdated";
 
 
 function Application() {
@@ -47,18 +63,16 @@ function Application() {
 
   /*
    * ==================================================
-   * GUARDAR COPIA LOCAL
+   * ACTUALIZAR ÓRDENES DESDE SUPABASE
    * ==================================================
    *
    * IMPORTANTE:
    *
    * Aquí NO utilizamos saveOrders().
    *
-   * saveOrders() envía datos otra vez a Supabase.
-   * Como estos datos vienen precisamente de Supabase,
-   * eso provocaría un bucle de sincronización.
+   * saveOrders() vuelve a enviar los datos
+   * a Supabase y provocaría un bucle.
    *
-   * Por eso actualizamos únicamente localStorage.
    * ==================================================
    */
 
@@ -76,12 +90,6 @@ function Application() {
     );
 
 
-    /*
-     * Evento propio de la aplicación.
-     *
-     * Lo utilizaremos progresivamente en las
-     * pantallas que dependen de las órdenes.
-     */
     window.dispatchEvent(
       new Event(
         ORDERS_UPDATED_EVENT
@@ -90,17 +98,146 @@ function Application() {
 
 
     /*
-     * Varias pantallas actuales ya escuchan
-     * el evento focus para volver a cargar órdenes.
-     *
-     * Esto nos permite que esas pantallas se
-     * actualicen inmediatamente sin esperar
-     * a modificarlas una por una.
+     * Compatibilidad con algunas pantallas
+     * antiguas que todavía escuchan focus.
      */
     window.dispatchEvent(
       new Event(
         "focus"
       )
+    );
+
+  }
+
+
+  /*
+   * ==================================================
+   * ACTUALIZAR PLANTILLAS DESDE SUPABASE
+   * ==================================================
+   *
+   * IMPORTANTE:
+   *
+   * Aquí NO utilizamos saveTemplates().
+   *
+   * saveTemplates() vuelve a enviar los datos
+   * a Supabase y provocaría un bucle Realtime.
+   *
+   * ==================================================
+   */
+
+  async function refreshTemplatesFromSupabase() {
+
+    const templates =
+      await getSupabaseTemplates();
+
+
+    localStorage.setItem(
+      TEMPLATES_STORAGE_KEY,
+      JSON.stringify(
+        templates
+      )
+    );
+
+
+    window.dispatchEvent(
+      new Event(
+        TEMPLATES_UPDATED_EVENT
+      )
+    );
+
+  }
+
+
+  /*
+   * ==================================================
+   * SINCRONIZACIÓN INICIAL DE PLANTILLAS
+   * ==================================================
+   *
+   * REGLAS:
+   *
+   * 1. Si Supabase ya tiene plantillas:
+   *    Supabase manda.
+   *
+   * 2. Si Supabase está vacío:
+   *    utilizamos las plantillas locales de este PC.
+   *
+   * 3. currentTemplateId continúa siendo LOCAL.
+   *
+   * ==================================================
+   */
+
+  async function synchronizeTemplates() {
+
+    const supabaseTemplates =
+      await getSupabaseTemplates();
+
+
+    /*
+     * ==================================================
+     * SUPABASE YA TIENE PLANTILLAS
+     * ==================================================
+     */
+
+    if (
+      supabaseTemplates.length >
+      0
+    ) {
+
+      localStorage.setItem(
+        TEMPLATES_STORAGE_KEY,
+        JSON.stringify(
+          supabaseTemplates
+        )
+      );
+
+
+      window.dispatchEvent(
+        new Event(
+          TEMPLATES_UPDATED_EVENT
+        )
+      );
+
+
+      return;
+
+    }
+
+
+    /*
+     * ==================================================
+     * SUPABASE ESTÁ VACÍO
+     * ==================================================
+     */
+
+    const localTemplates =
+      getTemplates();
+
+
+    if (
+      localTemplates.length ===
+      0
+    ) {
+
+      console.log(
+        "No existen plantillas locales para migrar a Supabase."
+      );
+
+      return;
+
+    }
+
+
+    /*
+     * Subir plantillas locales.
+     */
+
+    await saveSupabaseTemplates(
+      localTemplates
+    );
+
+
+    console.log(
+      `${localTemplates.length} plantillas migradas a Supabase.`
     );
 
   }
@@ -134,6 +271,12 @@ function Application() {
 
       async function synchronizeInitialData() {
 
+        /*
+         * ==================================================
+         * ÓRDENES
+         * ==================================================
+         */
+
         try {
 
           await refreshOrdersFromSupabase();
@@ -149,17 +292,44 @@ function Application() {
           );
 
         }
-        finally {
 
-          if (
-            !cancelled
-          ) {
 
-            setDataReady(
-              true
-            );
+        /*
+         * ==================================================
+         * PLANTILLAS
+         * ==================================================
+         */
 
-          }
+        try {
+
+          await synchronizeTemplates();
+
+        }
+        catch (
+          error
+        ) {
+
+          console.error(
+            "No se pudieron sincronizar las plantillas con Supabase:",
+            error
+          );
+
+        }
+
+
+        /*
+         * ==================================================
+         * APLICACIÓN LISTA
+         * ==================================================
+         */
+
+        if (
+          !cancelled
+        ) {
+
+          setDataReady(
+            true
+          );
 
         }
 
@@ -190,24 +360,7 @@ function Application() {
 
   /*
    * ==================================================
-   * SUPABASE REALTIME
-   * ==================================================
-   *
-   * Escucha:
-   *
-   * - INSERT
-   * - UPDATE
-   * - DELETE
-   *
-   * sobre production_orders.
-   *
-   * Cuando cualquier PC modifica una orden:
-   *
-   * 1. Supabase envía el aviso.
-   * 2. Descargamos el estado completo.
-   * 3. Actualizamos localStorage.
-   * 4. Avisamos a las pantallas abiertas.
-   *
+   * SUPABASE REALTIME - ÓRDENES
    * ==================================================
    */
 
@@ -229,15 +382,6 @@ function Application() {
           null;
 
 
-      /*
-       * Agrupamos eventos cercanos.
-       *
-       * Por ejemplo, mover una orden puede modificar
-       * varias posiciones y Supabase puede emitir
-       * varios eventos casi simultáneamente.
-       *
-       * Esperamos 200 ms y hacemos una sola descarga.
-       */
       function scheduleRefresh() {
 
         if (
@@ -290,6 +434,142 @@ function Application() {
               event: "*",
               schema: "public",
               table: "production_orders"
+            },
+            () => {
+
+              scheduleRefresh();
+
+            }
+          )
+          .subscribe();
+
+
+      return () => {
+
+        if (
+          refreshTimeout !==
+          null
+        ) {
+
+          window.clearTimeout(
+            refreshTimeout
+          );
+
+        }
+
+
+        void supabase.removeChannel(
+          channel
+        );
+
+      };
+
+    },
+    [
+      user
+    ]
+  );
+
+
+  /*
+   * ==================================================
+   * SUPABASE REALTIME - PLANTILLAS
+   * ==================================================
+   *
+   * Escucha:
+   *
+   * - INSERT
+   * - UPDATE
+   * - DELETE
+   *
+   * sobre label_templates.
+   *
+   * Cuando cualquier PC modifica una plantilla:
+   *
+   * 1. Supabase envía el aviso.
+   * 2. Descargamos todas las plantillas.
+   * 3. Actualizamos localStorage.
+   * 4. Lanzamos templatesUpdated.
+   *
+   * ==================================================
+   */
+
+  useEffect(
+    () => {
+
+      if (
+        !user
+      ) {
+
+        return;
+
+      }
+
+
+      let refreshTimeout:
+        number |
+        null =
+          null;
+
+
+      /*
+       * Agrupamos eventos próximos.
+       *
+       * Una edición del diseñador puede provocar
+       * varias operaciones cercanas.
+       */
+      function scheduleRefresh() {
+
+        if (
+          refreshTimeout !==
+          null
+        ) {
+
+          window.clearTimeout(
+            refreshTimeout
+          );
+
+        }
+
+
+        refreshTimeout =
+          window.setTimeout(
+            () => {
+
+              refreshTimeout =
+                null;
+
+
+              void refreshTemplatesFromSupabase()
+                .catch(
+                  error => {
+
+                    console.error(
+                      "Error actualizando plantillas en tiempo real:",
+                      error
+                    );
+
+                  }
+                );
+
+            },
+            200
+          );
+
+      }
+
+
+      const channel =
+        supabase
+          .channel(
+            "label-templates-realtime"
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "label_templates"
             },
             () => {
 

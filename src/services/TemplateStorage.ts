@@ -2,6 +2,11 @@ import type {
   DesignerElement
 } from "../components/designer/DesignerTypes";
 
+import {
+  deleteSupabaseTemplate,
+  saveSupabaseTemplates
+} from "./SupabaseTemplateService";
+
 
 export type LabelFormat =
   | "FORMATO_1"
@@ -9,17 +14,11 @@ export type LabelFormat =
 
 
 export interface Template {
-
   id: number;
-
   name: string;
-
   labelFormat: LabelFormat;
-
   backgroundImage?: string;
-
   elements: DesignerElement[];
-
 }
 
 
@@ -28,6 +27,38 @@ const STORAGE_KEY =
 
 const CURRENT_TEMPLATE_KEY =
   "currentTemplateId";
+
+const TEMPLATES_UPDATED_EVENT =
+  "templatesUpdated";
+
+
+let supabaseQueue:
+  Promise<void> =
+    Promise.resolve();
+
+
+function queueSupabaseOperation(
+  operation:
+    () => Promise<void>
+) {
+
+  supabaseQueue =
+    supabaseQueue
+      .then(
+        operation
+      )
+      .catch(
+        error => {
+
+          console.error(
+            "Error sincronizando plantillas con Supabase:",
+            error
+          );
+
+        }
+      );
+
+}
 
 
 /*
@@ -557,13 +588,6 @@ export function applyAmnonFormat1Layout(
 
   }
 
-
-  /*
-   * Ahora no forzamos siempre AMNON.
-   *
-   * Buscamos automáticamente el fondo correcto
-   * según el nombre de la plantilla.
-   */
 
   const detectedBackground =
     getFormat1Background(
@@ -1256,7 +1280,9 @@ export function getTemplates():
           LabelFormat =
           template.labelFormat ===
           "FORMATO_2"
+
             ? "FORMATO_2"
+
             : "FORMATO_1";
 
 
@@ -1311,7 +1337,9 @@ export function getTemplates():
             (
               typeof template.backgroundImage ===
               "string"
+
                 ? template.backgroundImage
+
                 : undefined
             ),
 
@@ -1319,7 +1347,9 @@ export function getTemplates():
             Array.isArray(
               template.elements
             )
+
               ? template.elements
+
               : []
 
         };
@@ -1345,6 +1375,12 @@ export function getTemplates():
  * ==================================================
  * GUARDAR PLANTILLAS
  * ==================================================
+ *
+ * Primero guardamos en localStorage para que
+ * la aplicación responda inmediatamente.
+ *
+ * Después enviamos una copia a Supabase.
+ * ==================================================
  */
 
 export function saveTemplates(
@@ -1357,6 +1393,39 @@ export function saveTemplates(
     JSON.stringify(
       templates
     )
+  );
+
+
+  /*
+   * Avisar a las pantallas abiertas en este PC.
+   */
+  window.dispatchEvent(
+    new Event(
+      TEMPLATES_UPDATED_EVENT
+    )
+  );
+
+
+  /*
+   * Creamos una copia independiente de los datos.
+   *
+   * De esta forma, si React o el diseñador modifica
+   * posteriormente algún objeto, la operación que está
+   * esperando para enviarse a Supabase no cambia.
+   */
+  const snapshot =
+    JSON.parse(
+      JSON.stringify(
+        templates
+      )
+    ) as Template[];
+
+
+  queueSupabaseOperation(
+    () =>
+      saveSupabaseTemplates(
+        snapshot
+      )
   );
 
 }
@@ -1410,7 +1479,9 @@ export function updateTemplate(
           Number(
             template.id
           )
+
             ? template
+
             : item
       );
 
@@ -1446,8 +1517,27 @@ export function deleteTemplate(
       );
 
 
+  /*
+   * Guarda primero el nuevo listado local y
+   * sincroniza las plantillas restantes.
+   */
   saveTemplates(
     templates
+  );
+
+
+  /*
+   * Después eliminamos específicamente la plantilla
+   * de Supabase.
+   *
+   * Al utilizar la misma cola, ambas operaciones
+   * se ejecutan siempre en el orden correcto.
+   */
+  queueSupabaseOperation(
+    () =>
+      deleteSupabaseTemplate(
+        id
+      )
   );
 
 }
@@ -1487,6 +1577,11 @@ export function findTemplate(
 /*
  * ==================================================
  * SELECCIONAR PLANTILLA ACTUAL
+ * ==================================================
+ *
+ * Esta selección sigue siendo LOCAL.
+ *
+ * No debe sincronizarse entre PCs.
  * ==================================================
  */
 
