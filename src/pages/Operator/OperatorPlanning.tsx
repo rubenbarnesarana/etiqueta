@@ -91,9 +91,22 @@ export default function OperatorPlanning() {
     }
 
 
+    function handleOrdersUpdated() {
+
+      loadOrders();
+
+    }
+
+
     window.addEventListener(
       "focus",
       handleFocus
+    );
+
+
+    window.addEventListener(
+      "productionOrdersUpdated",
+      handleOrdersUpdated
     );
 
 
@@ -102,6 +115,12 @@ export default function OperatorPlanning() {
       window.removeEventListener(
         "focus",
         handleFocus
+      );
+
+
+      window.removeEventListener(
+        "productionOrdersUpdated",
+        handleOrdersUpdated
       );
 
     };

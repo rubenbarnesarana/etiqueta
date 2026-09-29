@@ -17,12 +17,19 @@ import {
 } from "./components/designer/DesignerContext";
 
 import {
-  saveOrders
-} from "./services/OrderStorage";
-
-import {
   getSupabaseOrders
 } from "./services/SupabaseOrderService";
+
+import {
+  supabase
+} from "./services/Supabase";
+
+
+const ORDERS_STORAGE_KEY =
+  "productionOrders";
+
+const ORDERS_UPDATED_EVENT =
+  "productionOrdersUpdated";
 
 
 function Application() {
@@ -40,19 +47,68 @@ function Application() {
 
   /*
    * ==================================================
-   * SINCRONIZAR DATOS AL ENTRAR
+   * GUARDAR COPIA LOCAL
    * ==================================================
    *
-   * Supabase es la fuente central.
+   * IMPORTANTE:
    *
-   * Al iniciar sesión:
+   * Aquí NO utilizamos saveOrders().
    *
-   * 1. Descargamos las órdenes de Supabase.
-   * 2. Actualizamos la copia local del navegador.
-   * 3. Las pantallas actuales pueden seguir utilizando
-   *    OrderStorage sin necesidad de modificarlas todavía.
+   * saveOrders() envía datos otra vez a Supabase.
+   * Como estos datos vienen precisamente de Supabase,
+   * eso provocaría un bucle de sincronización.
    *
-   * Si Supabase falla, NO borramos los datos locales.
+   * Por eso actualizamos únicamente localStorage.
+   * ==================================================
+   */
+
+  async function refreshOrdersFromSupabase() {
+
+    const orders =
+      await getSupabaseOrders();
+
+
+    localStorage.setItem(
+      ORDERS_STORAGE_KEY,
+      JSON.stringify(
+        orders
+      )
+    );
+
+
+    /*
+     * Evento propio de la aplicación.
+     *
+     * Lo utilizaremos progresivamente en las
+     * pantallas que dependen de las órdenes.
+     */
+    window.dispatchEvent(
+      new Event(
+        ORDERS_UPDATED_EVENT
+      )
+    );
+
+
+    /*
+     * Varias pantallas actuales ya escuchan
+     * el evento focus para volver a cargar órdenes.
+     *
+     * Esto nos permite que esas pantallas se
+     * actualicen inmediatamente sin esperar
+     * a modificarlas una por una.
+     */
+    window.dispatchEvent(
+      new Event(
+        "focus"
+      )
+    );
+
+  }
+
+
+  /*
+   * ==================================================
+   * SINCRONIZACIÓN INICIAL
    * ==================================================
    */
 
@@ -76,26 +132,11 @@ function Application() {
         false;
 
 
-      async function synchronizeData() {
+      async function synchronizeInitialData() {
 
         try {
 
-          const orders =
-            await getSupabaseOrders();
-
-
-          if (
-            cancelled
-          ) {
-
-            return;
-
-          }
-
-
-          saveOrders(
-            orders
-          );
+          await refreshOrdersFromSupabase();
 
         }
         catch (
@@ -130,13 +171,152 @@ function Application() {
       );
 
 
-      void synchronizeData();
+      void synchronizeInitialData();
 
 
       return () => {
 
         cancelled =
           true;
+
+      };
+
+    },
+    [
+      user
+    ]
+  );
+
+
+  /*
+   * ==================================================
+   * SUPABASE REALTIME
+   * ==================================================
+   *
+   * Escucha:
+   *
+   * - INSERT
+   * - UPDATE
+   * - DELETE
+   *
+   * sobre production_orders.
+   *
+   * Cuando cualquier PC modifica una orden:
+   *
+   * 1. Supabase envía el aviso.
+   * 2. Descargamos el estado completo.
+   * 3. Actualizamos localStorage.
+   * 4. Avisamos a las pantallas abiertas.
+   *
+   * ==================================================
+   */
+
+  useEffect(
+    () => {
+
+      if (
+        !user
+      ) {
+
+        return;
+
+      }
+
+
+      let refreshTimeout:
+        number |
+        null =
+          null;
+
+
+      /*
+       * Agrupamos eventos cercanos.
+       *
+       * Por ejemplo, mover una orden puede modificar
+       * varias posiciones y Supabase puede emitir
+       * varios eventos casi simultáneamente.
+       *
+       * Esperamos 200 ms y hacemos una sola descarga.
+       */
+      function scheduleRefresh() {
+
+        if (
+          refreshTimeout !==
+          null
+        ) {
+
+          window.clearTimeout(
+            refreshTimeout
+          );
+
+        }
+
+
+        refreshTimeout =
+          window.setTimeout(
+            () => {
+
+              refreshTimeout =
+                null;
+
+
+              void refreshOrdersFromSupabase()
+                .catch(
+                  error => {
+
+                    console.error(
+                      "Error actualizando órdenes en tiempo real:",
+                      error
+                    );
+
+                  }
+                );
+
+            },
+            200
+          );
+
+      }
+
+
+      const channel =
+        supabase
+          .channel(
+            "production-orders-realtime"
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "production_orders"
+            },
+            () => {
+
+              scheduleRefresh();
+
+            }
+          )
+          .subscribe();
+
+
+      return () => {
+
+        if (
+          refreshTimeout !==
+          null
+        ) {
+
+          window.clearTimeout(
+            refreshTimeout
+          );
+
+        }
+
+
+        void supabase.removeChannel(
+          channel
+        );
 
       };
 
@@ -166,7 +346,7 @@ function Application() {
 
   /*
    * ==================================================
-   * ESPERAR SINCRONIZACIÓN
+   * ESPERAR SINCRONIZACIÓN INICIAL
    * ==================================================
    */
 
