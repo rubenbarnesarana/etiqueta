@@ -1,3 +1,9 @@
+import {
+  deleteSupabaseOrder,
+  saveSupabaseOrders
+} from "./SupabaseOrderService";
+
+
 export interface ProductionOrder {
 
   id: number;
@@ -53,14 +59,9 @@ export interface ProductionOrder {
 
   /*
    * Posición dentro de la planificación
-   * de la línea de producción.
-   *
-   * 1 = Primera orden
-   * 2 = Segunda orden
-   * 3 = Tercera orden
-   * ...
    *
    * 0 = Sin planificar
+   * 1, 2, 3... = Orden de fabricación
    */
   planningPosition: number;
 
@@ -72,10 +73,10 @@ export interface ProductionOrder {
     | "FINALIZADA";
 
   /*
-   * Número de etiquetas
-   * ya impresas
+   * Número de etiquetas ya impresas
    */
   printed: number;
+
 }
 
 
@@ -85,17 +86,53 @@ const STORAGE_KEY =
 
 /*
  * ==================================================
- * NORMALIZAR ORDEN
+ * COLA DE SINCRONIZACIÓN SUPABASE
  * ==================================================
  *
- * Permite seguir utilizando órdenes antiguas
- * creadas antes de incorporar:
+ * Las operaciones se ejecutan una detrás de otra.
  *
- * - Lot Number
- * - Cliente
- * - Línea de producción
- * - Posición de planificación
+ * Esto evita que, por ejemplo:
  *
+ * - mover varias órdenes rápidamente
+ * - imprimir varias etiquetas
+ * - cambiar una orden de línea
+ *
+ * pueda provocar que una petición antigua termine
+ * después de una nueva y sobrescriba el estado final.
+ * ==================================================
+ */
+
+let supabaseQueue:
+  Promise<void> =
+    Promise.resolve();
+
+
+function queueSupabaseOperation(
+  operation: () => Promise<void>
+) {
+
+  supabaseQueue =
+    supabaseQueue
+      .then(
+        operation
+      )
+      .catch(
+        error => {
+
+          console.error(
+            "Error sincronizando órdenes con Supabase:",
+            error
+          );
+
+        }
+      );
+
+}
+
+
+/*
+ * ==================================================
+ * NORMALIZAR ORDEN
  * ==================================================
  */
 
@@ -105,13 +142,15 @@ function normalizeOrder(
 
   const productionLine =
     Number(
-      order.productionLine ?? 0
+      order.productionLine ??
+      0
     );
 
 
   const planningPosition =
     Number(
-      order.planningPosition ?? 0
+      order.planningPosition ??
+      0
     );
 
 
@@ -124,42 +163,50 @@ function normalizeOrder(
 
     order:
       String(
-        order.order ?? ""
+        order.order ??
+        ""
       ),
 
     lot:
       String(
-        order.lot ?? ""
+        order.lot ??
+        ""
       ),
 
     customer:
       String(
-        order.customer ?? ""
+        order.customer ??
+        ""
       ),
 
     sku:
       String(
-        order.sku ?? ""
+        order.sku ??
+        ""
       ),
 
     product:
       String(
-        order.product ?? ""
+        order.product ??
+        ""
       ),
 
     templateId:
       Number(
-        order.templateId ?? 0
+        order.templateId ??
+        0
       ),
 
     rolls:
       Number(
-        order.rolls ?? 0
+        order.rolls ??
+        0
       ),
 
     firstCoil:
       Number(
-        order.firstCoil ?? 1
+        order.firstCoil ??
+        1
       ),
 
     printer:
@@ -181,13 +228,14 @@ function normalizeOrder(
 
     status:
       order.status ===
-      "FINALIZADA"
+        "FINALIZADA"
         ? "FINALIZADA"
         : "ABIERTA",
 
     printed:
       Number(
-        order.printed ?? 0
+        order.printed ??
+        0
       )
 
   };
@@ -202,7 +250,7 @@ function normalizeOrder(
  */
 
 export function getOrders():
-  ProductionOrder[] {
+ProductionOrder[] {
 
   const data =
     localStorage.getItem(
@@ -210,7 +258,9 @@ export function getOrders():
     );
 
 
-  if (!data) {
+  if (
+    !data
+  ) {
 
     return [];
 
@@ -240,7 +290,8 @@ export function getOrders():
       normalizeOrder
     );
 
-  } catch {
+  }
+  catch {
 
     return [];
 
@@ -253,6 +304,14 @@ export function getOrders():
  * ==================================================
  * GUARDAR ÓRDENES
  * ==================================================
+ *
+ * 1. Guarda inmediatamente en localStorage.
+ * 2. Envía una copia a Supabase.
+ *
+ * La aplicación sigue siendo síncrona localmente,
+ * por lo que no rompemos Producción, Planificación
+ * ni Impresión.
+ * ==================================================
  */
 
 export function saveOrders(
@@ -264,6 +323,29 @@ export function saveOrders(
     JSON.stringify(
       orders
     )
+  );
+
+
+  /*
+   * Creamos una copia independiente.
+   *
+   * Así una modificación posterior del array
+   * no puede alterar una operación que esté
+   * esperando en la cola.
+   */
+  const snapshot =
+    orders.map(
+      order => ({
+        ...order
+      })
+    );
+
+
+  queueSupabaseOperation(
+    () =>
+      saveSupabaseOrders(
+        snapshot
+      )
   );
 
 }
@@ -290,11 +372,9 @@ export function addOrder(
 
 
   /*
-   * Si tiene línea asignada pero todavía
-   * no tiene posición, la añadimos al final
-   * de la planificación de esa línea.
+   * Si tiene línea pero todavía no tiene posición,
+   * la colocamos al final de esa línea.
    */
-
   if (
     normalized.productionLine >= 1 &&
     normalized.productionLine <= 8 &&
@@ -394,18 +474,18 @@ export function updateOrder(
 
 
   /*
-   * Si estamos asignando por primera vez
-   * una línea o hemos cambiado la orden
-   * a otra línea, la colocamos al final
-   * de la nueva línea.
+   * Detectamos si la orden cambia de línea.
    */
-
   const changedLine =
     previousOrder &&
     previousOrder.productionLine !==
-    normalized.productionLine;
+      normalized.productionLine;
 
 
+  /*
+   * Si se asigna por primera vez o cambia
+   * de línea, se coloca al final.
+   */
   if (
     normalized.productionLine >= 1 &&
     normalized.productionLine <= 8 &&
@@ -451,10 +531,9 @@ export function updateOrder(
 
 
   /*
-   * Si quitamos la línea, también
-   * quitamos su posición.
+   * Si queda sin línea, queda también
+   * sin posición.
    */
-
   if (
     normalized.productionLine ===
     0
@@ -472,9 +551,9 @@ export function updateOrder(
         Number(
           item.id
         ) ===
-        Number(
-          normalized.id
-        )
+          Number(
+            normalized.id
+          )
           ? normalized
           : item
     );
@@ -486,11 +565,9 @@ export function updateOrder(
 
 
   /*
-   * Si la orden cambió de línea,
-   * reorganizamos la línea anterior
-   * para que no queden huecos.
+   * Si cambió de línea, reorganizamos
+   * la línea anterior.
    */
-
   if (
     previousOrder &&
     changedLine &&
@@ -505,9 +582,8 @@ export function updateOrder(
 
 
   /*
-   * Reorganizamos también la nueva línea.
+   * Reorganizamos la nueva línea.
    */
-
   if (
     normalized.productionLine >= 1
   ) {
@@ -559,6 +635,10 @@ export function deleteOrder(
     );
 
 
+  /*
+   * Primero actualizamos almacenamiento local
+   * y el resto de órdenes en Supabase.
+   */
   saveOrders(
     filtered
   );
@@ -566,9 +646,8 @@ export function deleteOrder(
 
   /*
    * Al borrar una orden reorganizamos
-   * las posiciones de su línea.
+   * su antigua línea.
    */
-
   if (
     orderToDelete &&
     orderToDelete.productionLine >= 1
@@ -579,6 +658,20 @@ export function deleteOrder(
     );
 
   }
+
+
+  /*
+   * La eliminación se añade al final de la cola.
+   *
+   * Así garantizamos que cualquier guardado
+   * anterior termina antes de borrar la fila.
+   */
+  queueSupabaseOperation(
+    () =>
+      deleteSupabaseOrder(
+        id
+      )
+  );
 
 }
 
@@ -592,7 +685,7 @@ export function deleteOrder(
 export function getOrdersByLine(
   productionLine: number
 ):
-  ProductionOrder[] {
+ProductionOrder[] {
 
   return getOrders()
     .filter(
@@ -605,14 +698,6 @@ export function getOrdersByLine(
         a,
         b
       ) => {
-
-        /*
-         * Utilizamos el mismo criterio que
-         * la pantalla de Planificación.
-         *
-         * Las posiciones antiguas 0 aparecen
-         * antes que 1, 2, 3...
-         */
 
         if (
           a.planningPosition !==
@@ -642,7 +727,7 @@ export function getOrdersByLine(
  */
 
 export function getUnassignedOrders():
-  ProductionOrder[] {
+ProductionOrder[] {
 
   return getOrders()
     .filter(
@@ -667,7 +752,7 @@ export function getPendingQuantity(
   return Math.max(
     0,
     order.rolls -
-    order.printed
+      order.printed
   );
 
 }
@@ -675,21 +760,7 @@ export function getPendingQuantity(
 
 /*
  * ==================================================
- * NORMALIZAR POSICIONES DE UNA LÍNEA
- * ==================================================
- *
- * Convierte cualquier planificación existente:
- *
- * 0, 1
- * 1, 1, 3
- * 2, 5, 9
- *
- * en:
- *
- * 1, 2, 3...
- *
- * respetando el orden visual actual.
- *
+ * NORMALIZAR POSICIONES
  * ==================================================
  */
 
@@ -712,11 +783,10 @@ export function normalizePlanningPositions(
 
 
   /*
-   * Guardamos también el índice original
-   * para tener un desempate estable cuando
-   * existen posiciones duplicadas.
+   * Guardamos el índice original para mantener
+   * un desempate estable cuando existen
+   * posiciones duplicadas.
    */
-
   const lineOrders =
     orders
       .map(
@@ -845,11 +915,6 @@ export function normalizePlanningPositions(
  * ==================================================
  * CAMBIAR ORDEN DE PLANIFICACIÓN
  * ==================================================
- *
- * Recibe los IDs exactamente en el orden
- * en que queremos fabricar.
- *
- * ==================================================
  */
 
 export function reorderProductionLine(
@@ -951,22 +1016,6 @@ export function reorderProductionLine(
  * ==================================================
  * MOVER ORDEN DENTRO DE SU LÍNEA
  * ==================================================
- *
- * La función trabaja exactamente con el mismo
- * orden que se muestra en Planificación.
- *
- * Después de cada movimiento reescribe TODAS
- * las posiciones de la línea:
- *
- * 1, 2, 3, 4...
- *
- * De esta forma también repara automáticamente:
- *
- * - posiciones 0 antiguas
- * - posiciones duplicadas
- * - huecos
- *
- * ==================================================
  */
 
 export function moveOrderInPlanning(
@@ -1004,10 +1053,9 @@ export function moveOrderInPlanning(
 
 
   /*
-   * Obtenemos las órdenes de la línea
-   * exactamente en el orden visual actual.
+   * Obtenemos las órdenes exactamente
+   * en el mismo orden visual.
    */
-
   const lineOrders =
     orders
       .map(
@@ -1043,12 +1091,6 @@ export function moveOrderInPlanning(
           }
 
 
-          /*
-           * Si dos órdenes tienen la misma
-           * planningPosition mantenemos el
-           * orden en el que estaban guardadas.
-           */
-
           return (
             a.storageIndex -
             b.storageIndex
@@ -1061,10 +1103,6 @@ export function moveOrderInPlanning(
           item.order
       );
 
-
-  /*
-   * Localizamos la orden seleccionada.
-   */
 
   const currentIndex =
     lineOrders.findIndex(
@@ -1088,22 +1126,17 @@ export function moveOrderInPlanning(
   }
 
 
-  /*
-   * Calculamos la nueva posición.
-   */
-
   const newIndex =
     direction ===
-    "UP"
+      "UP"
       ? currentIndex - 1
       : currentIndex + 1;
 
 
   /*
-   * Si intentamos subir la primera
-   * o bajar la última, no hacemos nada.
+   * No hacemos nada si intenta subir la primera
+   * o bajar la última.
    */
-
   if (
     newIndex < 0 ||
     newIndex >=
@@ -1115,15 +1148,9 @@ export function moveOrderInPlanning(
   }
 
 
-  /*
-   * Copiamos el array y movemos físicamente
-   * la orden a su nueva posición.
-   */
-
-  const reordered =
-    [
-      ...lineOrders
-    ];
+  const reordered = [
+    ...lineOrders
+  ];
 
 
   const [
@@ -1141,15 +1168,6 @@ export function moveOrderInPlanning(
     moved
   );
 
-
-  /*
-   * Generamos nuevamente:
-   *
-   * 1
-   * 2
-   * 3
-   * ...
-   */
 
   const positions =
     new Map<
@@ -1174,11 +1192,6 @@ export function moveOrderInPlanning(
     }
   );
 
-
-  /*
-   * Modificamos únicamente las órdenes
-   * pertenecientes a esta línea.
-   */
 
   const updated =
     orders.map(
@@ -1224,10 +1237,6 @@ export function moveOrderInPlanning(
       }
     );
 
-
-  /*
-   * Guardamos una sola vez.
-   */
 
   saveOrders(
     updated
