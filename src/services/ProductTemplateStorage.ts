@@ -105,7 +105,8 @@ export function getAssignments():
             item.sku !== "" &&
             Number.isFinite(
               item.templateId
-            )
+            ) &&
+            item.templateId > 0
         );
 
     }
@@ -150,7 +151,8 @@ export function saveAssignments(
           assignment.sku !== "" &&
           Number.isFinite(
             assignment.templateId
-          )
+          ) &&
+          assignment.templateId > 0
       );
 
 
@@ -235,6 +237,43 @@ export function assignTemplateToSku(
     ).trim();
 
 
+  const cleanTemplateId =
+    Number(
+      templateId
+    );
+
+
+  /*
+   * ==================================================
+   * SIN PLANTILLA
+   * ==================================================
+   *
+   * templateId 0 significa que el SKU no tiene
+   * ninguna plantilla asignada.
+   *
+   * No guardamos una asignación SKU -> 0.
+   * Eliminamos completamente la asignación.
+   *
+   * ==================================================
+   */
+
+  if (
+    !Number.isFinite(
+      cleanTemplateId
+    )
+    ||
+    cleanTemplateId <= 0
+  ) {
+
+    removeAssignment(
+      cleanSku
+    );
+
+    return;
+
+  }
+
+
   const assignments =
     getAssignments();
 
@@ -254,9 +293,7 @@ export function assignTemplateToSku(
   ) {
 
     existing.templateId =
-      Number(
-        templateId
-      );
+      cleanTemplateId;
 
   }
   else {
@@ -267,9 +304,7 @@ export function assignTemplateToSku(
         cleanSku,
 
       templateId:
-        Number(
-          templateId
-        )
+        cleanTemplateId
 
     });
 
