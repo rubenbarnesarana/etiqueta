@@ -5,7 +5,8 @@ import {
 
 export type PrintType =
   | "PRINT"
-  | "REPRINT";
+  | "REPRINT"
+  | "PALLET";
 
 
 export interface PrintHistoryRecord {

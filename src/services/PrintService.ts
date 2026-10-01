@@ -125,7 +125,6 @@ function buildPrintResult(
   coilNumber: number
 ): PrintResult {
 
-
   //------------------------------------------------
   // BUSCAR PRODUCTO
   //------------------------------------------------
@@ -396,7 +395,6 @@ function buildPrintResult(
   const labelData:
     PrintLabelData = {
 
-
     //------------------------------------------------
     // PRODUCTION ORDER
     //------------------------------------------------
@@ -584,6 +582,58 @@ function buildPrintResult(
 
 
 //==================================================
+// PREPARAR ETIQUETA RESERVADA POR SUPABASE
+//==================================================
+//
+// Esta función se utilizará cuando Supabase ya haya
+// reservado atómicamente el número de bobina.
+//
+// MUY IMPORTANTE:
+//
+// - NO calcula la siguiente bobina localmente.
+// - NO incrementa printed.
+// - NO modifica estado.
+// - NO modifica planificación.
+// - Utiliza exactamente el coilNumber recibido.
+//
+//==================================================
+
+export function prepareReservedPrintLabel(
+  order: ProductionOrder,
+  coilNumber: number
+): PrintResult {
+
+  if (
+    !Number.isInteger(
+      coilNumber
+    ) ||
+    coilNumber < 1
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "El número de bobina reservado no es válido.",
+
+      coilNumber
+
+    };
+
+  }
+
+
+  return buildPrintResult(
+    order,
+    coilNumber
+  );
+
+}
+
+
+//==================================================
 // PREPARAR SIGUIENTE ETIQUETA
 //==================================================
 //
@@ -604,7 +654,6 @@ function buildPrintResult(
 export function preparePrintLabel(
   order: ProductionOrder
 ): PrintResult {
-
 
   //------------------------------------------------
   // LA ORDEN YA TERMINÓ
@@ -666,13 +715,20 @@ export function preparePrintLabel(
 //
 // Aquí es donde se incrementa el contador.
 //
+// IMPORTANTE:
+//
+// Se mantiene temporalmente para compatibilidad
+// con cualquier flujo antiguo.
+//
+// OrderPrint dejará de utilizar esta función cuando
+// integremos la confirmación atómica de Supabase.
+//
 //==================================================
 
 export function commitPrintedLabel(
   order: ProductionOrder,
   coilNumber: number
 ): PrintResult {
-
 
   //------------------------------------------------
   // VALIDAR NÚMERO DE BOBINA
@@ -810,7 +866,6 @@ export function printLabel(
   order: ProductionOrder
 ): PrintResult {
 
-
   //------------------------------------------------
   // PREPARAR ETIQUETA
   //------------------------------------------------
@@ -901,7 +956,6 @@ export function reprintLabel(
   order: ProductionOrder,
   coilNumber: number
 ): PrintResult {
-
 
   //------------------------------------------------
   // VALIDAR NÚMERO

@@ -44,6 +44,94 @@ interface ProductionOrderRow {
 
 /*
  * ==================================================
+ * RESULTADO RESERVA DE IMPRESIÓN
+ * ==================================================
+ */
+
+interface OrderPrintLockRow {
+
+  success: boolean;
+
+  message: string;
+
+  coil_number: number;
+
+  printed: number;
+
+  rolls: number;
+
+  status: string;
+
+}
+
+
+export interface OrderPrintLockResult {
+
+  success: boolean;
+
+  message: string;
+
+  coilNumber: number;
+
+  printed: number;
+
+  rolls: number;
+
+  status:
+    | "ABIERTA"
+    | "FINALIZADA";
+
+}
+
+
+/*
+ * ==================================================
+ * RESULTADO CONFIRMACIÓN DE IMPRESIÓN
+ * ==================================================
+ */
+
+interface OrderPrintCommitRow {
+
+  success: boolean;
+
+  message: string;
+
+  coil_number: number;
+
+  printed: number;
+
+  rolls: number;
+
+  status: string;
+
+  finished: boolean;
+
+}
+
+
+export interface OrderPrintCommitResult {
+
+  success: boolean;
+
+  message: string;
+
+  coilNumber: number;
+
+  printed: number;
+
+  rolls: number;
+
+  status:
+    | "ABIERTA"
+    | "FINALIZADA";
+
+  finished: boolean;
+
+}
+
+
+/*
+ * ==================================================
  * CONFIGURACIÓN
  * ==================================================
  */
@@ -212,6 +300,26 @@ function mapOrderToRow(
       0
 
   };
+
+}
+
+
+/*
+ * ==================================================
+ * NORMALIZAR ESTADO
+ * ==================================================
+ */
+
+function normalizeStatus(
+  status: string
+):
+  | "ABIERTA"
+  | "FINALIZADA" {
+
+  return status ===
+    "FINALIZADA"
+    ? "FINALIZADA"
+    : "ABIERTA";
 
 }
 
@@ -491,5 +599,309 @@ export async function deleteSupabaseOrder(
     throw error;
 
   }
+
+}
+
+
+/*
+ * ==================================================
+ * RESERVAR IMPRESIÓN
+ * ==================================================
+ *
+ * Reserva temporalmente la siguiente bobina
+ * de una orden.
+ *
+ * Solamente un equipo puede tener la reserva
+ * activa al mismo tiempo.
+ *
+ * NO incrementa el contador.
+ *
+ * ==================================================
+ */
+
+export async function acquireSupabaseOrderPrintLock(
+  orderNumber: string,
+  lockToken: string
+): Promise<OrderPrintLockResult> {
+
+  const {
+    data,
+    error
+  } =
+    await supabase.rpc(
+      "acquire_order_print_lock",
+      {
+
+        p_order_number:
+          orderNumber,
+
+        p_lock_token:
+          lockToken
+
+      }
+    );
+
+
+  if (
+    error
+  ) {
+
+    console.error(
+      "Error reservando impresión de orden:",
+      error
+    );
+
+    throw error;
+
+  }
+
+
+  const rows =
+    (
+      data ??
+      []
+    ) as OrderPrintLockRow[];
+
+
+  const row =
+    rows[0];
+
+
+  if (
+    !row
+  ) {
+
+    throw new Error(
+      "Supabase no ha devuelto el resultado de la reserva de impresión."
+    );
+
+  }
+
+
+  return {
+
+    success:
+      Boolean(
+        row.success
+      ),
+
+    message:
+      String(
+        row.message ??
+        ""
+      ),
+
+    coilNumber:
+      Number(
+        row.coil_number ??
+        0
+      ),
+
+    printed:
+      Number(
+        row.printed ??
+        0
+      ),
+
+    rolls:
+      Number(
+        row.rolls ??
+        0
+      ),
+
+    status:
+      normalizeStatus(
+        row.status
+      )
+
+  };
+
+}
+
+
+/*
+ * ==================================================
+ * CONFIRMAR IMPRESIÓN
+ * ==================================================
+ *
+ * Se ejecuta SOLAMENTE después de que QZ haya
+ * confirmado correctamente la impresión física.
+ *
+ * Supabase:
+ *
+ * - comprueba que la reserva pertenece al equipo
+ * - comprueba el número de bobina
+ * - incrementa printed de forma atómica
+ * - actualiza el estado
+ * - libera el bloqueo
+ *
+ * ==================================================
+ */
+
+export async function commitSupabaseOrderPrint(
+  orderNumber: string,
+  lockToken: string,
+  coilNumber: number
+): Promise<OrderPrintCommitResult> {
+
+  const {
+    data,
+    error
+  } =
+    await supabase.rpc(
+      "commit_order_print",
+      {
+
+        p_order_number:
+          orderNumber,
+
+        p_lock_token:
+          lockToken,
+
+        p_coil_number:
+          coilNumber
+
+      }
+    );
+
+
+  if (
+    error
+  ) {
+
+    console.error(
+      "Error confirmando impresión de orden:",
+      error
+    );
+
+    throw error;
+
+  }
+
+
+  const rows =
+    (
+      data ??
+      []
+    ) as OrderPrintCommitRow[];
+
+
+  const row =
+    rows[0];
+
+
+  if (
+    !row
+  ) {
+
+    throw new Error(
+      "Supabase no ha devuelto el resultado de la confirmación de impresión."
+    );
+
+  }
+
+
+  return {
+
+    success:
+      Boolean(
+        row.success
+      ),
+
+    message:
+      String(
+        row.message ??
+        ""
+      ),
+
+    coilNumber:
+      Number(
+        row.coil_number ??
+        0
+      ),
+
+    printed:
+      Number(
+        row.printed ??
+        0
+      ),
+
+    rolls:
+      Number(
+        row.rolls ??
+        0
+      ),
+
+    status:
+      normalizeStatus(
+        row.status
+      ),
+
+    finished:
+      Boolean(
+        row.finished
+      )
+
+  };
+
+}
+
+
+/*
+ * ==================================================
+ * LIBERAR RESERVA DE IMPRESIÓN
+ * ==================================================
+ *
+ * Se utiliza cuando:
+ *
+ * - falla QZ
+ * - falla la generación de la imagen
+ * - se produce cualquier error antes de confirmar
+ *
+ * NO modifica el contador.
+ *
+ * ==================================================
+ */
+
+export async function releaseSupabaseOrderPrintLock(
+  orderNumber: string,
+  lockToken: string
+): Promise<boolean> {
+
+  const {
+    data,
+    error
+  } =
+    await supabase.rpc(
+      "release_order_print_lock",
+      {
+
+        p_order_number:
+          orderNumber,
+
+        p_lock_token:
+          lockToken
+
+      }
+    );
+
+
+  if (
+    error
+  ) {
+
+    console.error(
+      "Error liberando reserva de impresión:",
+      error
+    );
+
+    throw error;
+
+  }
+
+
+  return Boolean(
+    data
+  );
 
 }
