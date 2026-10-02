@@ -2,11 +2,6 @@ import {
   getTemplates
 } from "./TemplateStorage";
 
-import {
-  deleteSupabaseAssignment,
-  saveSupabaseAssignments
-} from "./SupabaseProductTemplateService";
-
 
 export interface ProductTemplateAssignment {
 
@@ -24,33 +19,16 @@ const ASSIGNMENTS_UPDATED_EVENT =
   "productTemplateAssignmentsUpdated";
 
 
-let supabaseQueue:
-  Promise<void> =
-    Promise.resolve();
-
-
-function queueSupabaseOperation(
-  operation: () => Promise<void>
-) {
-
-  supabaseQueue =
-    supabaseQueue
-      .then(
-        operation
-      )
-      .catch(
-        error => {
-
-          console.error(
-            "Error sincronizando asignaciones SKU-plantilla con Supabase:",
-            error
-          );
-
-        }
-      );
-
-}
-
+/*
+ * ==================================================
+ * OBTENER ASIGNACIONES
+ * ==================================================
+ *
+ * Esta información se mantiene como caché local.
+ *
+ * La fuente real de datos es Supabase.
+ * ==================================================
+ */
 
 export function getAssignments():
   ProductTemplateAssignment[] {
@@ -114,7 +92,12 @@ export function getAssignments():
   }
   catch {
 
-    // Datos corruptos
+    /*
+     * Datos locales corruptos.
+     *
+     * En ese caso devolvemos una lista vacía.
+     * Supabase volverá a rellenar la caché.
+     */
 
   }
 
@@ -123,6 +106,20 @@ export function getAssignments():
 
 }
 
+
+/*
+ * ==================================================
+ * GUARDAR ASIGNACIONES EN CACHÉ LOCAL
+ * ==================================================
+ *
+ * IMPORTANTE:
+ *
+ * Esta función YA NO escribe en Supabase.
+ *
+ * Supabase mantiene product_template_assignments
+ * automáticamente mediante triggers sobre products.
+ * ==================================================
+ */
 
 export function saveAssignments(
   assignments:
@@ -170,29 +167,24 @@ export function saveAssignments(
     )
   );
 
-
-  const snapshot:
-    ProductTemplateAssignment[] =
-      JSON.parse(
-        JSON.stringify(
-          normalizedAssignments
-        )
-      );
-
-
-  queueSupabaseOperation(
-    () =>
-      saveSupabaseAssignments(
-        snapshot
-      )
-  );
-
 }
 
+
+/*
+ * ==================================================
+ * OBTENER ID DE PLANTILLA PARA UN SKU
+ * ==================================================
+ */
 
 export function getTemplateForSku(
   sku: string
 ): number | null {
+
+  const cleanSku =
+    String(
+      sku
+    ).trim();
+
 
   const assignments =
     getAssignments();
@@ -204,9 +196,7 @@ export function getTemplateForSku(
         String(
           item.sku
         ).trim() ===
-        String(
-          sku
-        ).trim()
+        cleanSku
     );
 
 
@@ -226,6 +216,18 @@ export function getTemplateForSku(
 }
 
 
+/*
+ * ==================================================
+ * ASIGNAR PLANTILLA A SKU
+ * ==================================================
+ *
+ * SOLO actualiza la caché local.
+ *
+ * La persistencia central en Supabase se realiza
+ * automáticamente desde products.template_id.
+ * ==================================================
+ */
+
 export function assignTemplateToSku(
   sku: string,
   templateId: number
@@ -243,25 +245,25 @@ export function assignTemplateToSku(
     );
 
 
+  if (
+    cleanSku === ""
+  ) {
+
+    return;
+
+  }
+
+
   /*
    * ==================================================
    * SIN PLANTILLA
-   * ==================================================
-   *
-   * templateId 0 significa que el SKU no tiene
-   * ninguna plantilla asignada.
-   *
-   * No guardamos una asignación SKU -> 0.
-   * Eliminamos completamente la asignación.
-   *
    * ==================================================
    */
 
   if (
     !Number.isFinite(
       cleanTemplateId
-    )
-    ||
+    ) ||
     cleanTemplateId <= 0
   ) {
 
@@ -318,6 +320,18 @@ export function assignTemplateToSku(
 }
 
 
+/*
+ * ==================================================
+ * ELIMINAR ASIGNACIÓN LOCAL
+ * ==================================================
+ *
+ * SOLO elimina de la caché local.
+ *
+ * Supabase elimina la asignación mediante el trigger
+ * de la tabla products.
+ * ==================================================
+ */
+
 export function removeAssignment(
   sku: string
 ) {
@@ -326,6 +340,15 @@ export function removeAssignment(
     String(
       sku
     ).trim();
+
+
+  if (
+    cleanSku === ""
+  ) {
+
+    return;
+
+  }
 
 
   const assignments =
@@ -343,16 +366,18 @@ export function removeAssignment(
     assignments
   );
 
-
-  queueSupabaseOperation(
-    () =>
-      deleteSupabaseAssignment(
-        cleanSku
-      )
-  );
-
 }
 
+
+/*
+ * ==================================================
+ * OBTENER PLANTILLA ASIGNADA
+ * ==================================================
+ *
+ * Esta función continúa existiendo porque
+ * PrintService la utiliza al generar las etiquetas.
+ * ==================================================
+ */
 
 export function getAssignedTemplate(
   sku: string
@@ -386,7 +411,8 @@ export function getAssignedTemplate(
         Number(
           templateId
         )
-    ) ?? null
+    ) ??
+    null
   );
 
 }

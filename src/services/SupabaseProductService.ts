@@ -6,6 +6,13 @@ import type {
   Product
 } from "../models/Product";
 
+import {
+  getAssignments,
+  saveAssignments,
+  assignTemplateToSku,
+  removeAssignment
+} from "./ProductTemplateStorage";
+
 
 interface ProductRow {
 
@@ -161,11 +168,195 @@ function mapProductToRow(
 
 /*
  * ==================================================
+ * SINCRONIZAR UNA ASIGNACIÓN EN CACHÉ LOCAL
+ * ==================================================
+ *
+ * La persistencia central se realiza en Supabase
+ * mediante el trigger sobre public.products.
+ *
+ * Aquí únicamente mantenemos actualizada la copia
+ * local que utiliza PrintService.
+ * ==================================================
+ */
+
+function syncLocalAssignment(
+  product: Product
+) {
+
+  const templateId =
+    Number(
+      product.templateId ??
+      0
+    );
+
+
+  if (
+    Number.isFinite(
+      templateId
+    ) &&
+    templateId > 0
+  ) {
+
+    assignTemplateToSku(
+      product.sapCode,
+      templateId
+    );
+
+  }
+  else {
+
+    removeAssignment(
+      product.sapCode
+    );
+
+  }
+
+}
+
+
+/*
+ * ==================================================
+ * SINCRONIZAR VARIAS ASIGNACIONES EN CACHÉ LOCAL
+ * ==================================================
+ *
+ * Se realiza una única escritura en localStorage.
+ *
+ * Esto es importante durante una importación SAP
+ * con miles de productos.
+ * ==================================================
+ */
+
+function syncLocalAssignments(
+  products: Product[]
+) {
+
+  const currentAssignments =
+    getAssignments();
+
+
+  const assignmentsMap =
+    new Map<
+      string,
+      number
+    >();
+
+
+  currentAssignments.forEach(
+    assignment => {
+
+      const sku =
+        String(
+          assignment.sku
+        ).trim();
+
+
+      const templateId =
+        Number(
+          assignment.templateId
+        );
+
+
+      if (
+        sku !== "" &&
+        Number.isFinite(
+          templateId
+        ) &&
+        templateId > 0
+      ) {
+
+        assignmentsMap.set(
+          sku,
+          templateId
+        );
+
+      }
+
+    }
+  );
+
+
+  products.forEach(
+    product => {
+
+      const sku =
+        String(
+          product.sapCode
+        ).trim();
+
+
+      if (
+        sku === ""
+      ) {
+
+        return;
+
+      }
+
+
+      const templateId =
+        Number(
+          product.templateId ??
+          0
+        );
+
+
+      if (
+        Number.isFinite(
+          templateId
+        ) &&
+        templateId > 0
+      ) {
+
+        assignmentsMap.set(
+          sku,
+          templateId
+        );
+
+      }
+      else {
+
+        assignmentsMap.delete(
+          sku
+        );
+
+      }
+
+    }
+  );
+
+
+  saveAssignments(
+    Array.from(
+      assignmentsMap.entries()
+    ).map(
+      (
+        [
+          sku,
+          templateId
+        ]
+      ) => ({
+
+        sku,
+
+        templateId
+
+      })
+    )
+  );
+
+}
+
+
+/*
+ * ==================================================
  * OBTENER TODOS LOS PRODUCTOS
  * ==================================================
  *
  * Se descargan por bloques para no depender
  * del límite máximo de filas de Supabase.
+ *
+ * Al finalizar también actualizamos la caché local
+ * de asignaciones SKU -> plantilla.
  * ==================================================
  */
 
@@ -267,12 +458,66 @@ Promise<Product[]> {
   }
 
 
-  return allRows.map(
-    row =>
-      mapRowToProduct(
-        row
+  const products =
+    allRows.map(
+      row =>
+        mapRowToProduct(
+          row
+        )
+    );
+
+
+  /*
+   * La descarga completa de productos representa
+   * el estado central actual de Supabase.
+   *
+   * Por tanto reconstruimos también la caché local
+   * completa de asignaciones.
+   */
+
+  saveAssignments(
+    products
+      .filter(
+        product => {
+
+          const templateId =
+            Number(
+              product.templateId ??
+              0
+            );
+
+
+          return (
+            String(
+              product.sapCode
+            ).trim() !== "" &&
+            Number.isFinite(
+              templateId
+            ) &&
+            templateId > 0
+          );
+
+        }
+      )
+      .map(
+        product => ({
+
+          sku:
+            String(
+              product.sapCode
+            ).trim(),
+
+          templateId:
+            Number(
+              product.templateId
+            )
+
+        })
       )
   );
+
+
+  return products;
 
 }
 
@@ -280,6 +525,14 @@ Promise<Product[]> {
 /*
  * ==================================================
  * CREAR / ACTUALIZAR PRODUCTO
+ * ==================================================
+ *
+ * Supabase guarda products.
+ *
+ * El trigger de Supabase mantiene automáticamente
+ * product_template_assignments.
+ *
+ * Después actualizamos la caché local.
  * ==================================================
  */
 
@@ -318,12 +571,30 @@ export async function saveSupabaseProduct(
 
   }
 
+
+  /*
+   * Supabase ya ha confirmado el guardado.
+   * Actualizamos ahora la caché local.
+   */
+
+  syncLocalAssignment(
+    product
+  );
+
 }
 
 
 /*
  * ==================================================
  * GUARDAR VARIOS PRODUCTOS
+ * ==================================================
+ *
+ * Usado, entre otros casos, para la importación SAP.
+ *
+ * El trigger central sincroniza automáticamente
+ * product_template_assignments en Supabase.
+ *
+ * La caché local se actualiza una sola vez al final.
  * ==================================================
  */
 
@@ -395,6 +666,17 @@ export async function saveSupabaseProducts(
 
   }
 
+
+  /*
+   * Todos los bloques se han guardado correctamente.
+   *
+   * Actualizamos la caché local en una sola operación.
+   */
+
+  syncLocalAssignments(
+    products
+  );
+
 }
 
 
@@ -402,13 +684,30 @@ export async function saveSupabaseProducts(
  * ==================================================
  * ELIMINAR PRODUCTO
  * ==================================================
+ *
+ * Al borrar products:
+ *
+ * 1. El trigger de Supabase elimina automáticamente
+ *    product_template_assignments.
+ *
+ * 2. Aquí eliminamos también la asignación de la
+ *    caché local.
+ * ==================================================
  */
 
 export async function deleteSupabaseProduct(
   id: number
 ): Promise<void> {
 
+  /*
+   * Pedimos el SKU de la fila eliminada.
+   *
+   * Así no necesitamos cambiar la llamada actual
+   * desde Products.tsx.
+   */
+
   const {
+    data,
     error
   } =
     await supabase
@@ -419,7 +718,11 @@ export async function deleteSupabaseProduct(
       .eq(
         "id",
         id
-      );
+      )
+      .select(
+        "sap_code"
+      )
+      .maybeSingle();
 
 
   if (
@@ -432,6 +735,24 @@ export async function deleteSupabaseProduct(
     );
 
     throw error;
+
+  }
+
+
+  const deletedSku =
+    String(
+      data?.sap_code ??
+      ""
+    ).trim();
+
+
+  if (
+    deletedSku !== ""
+  ) {
+
+    removeAssignment(
+      deletedSku
+    );
 
   }
 
