@@ -303,6 +303,41 @@ export default function PrintHistory() {
 
   /*
    * ==================================================
+   * TEXTO DEL TIPO DE IMPRESIÓN
+   * ==================================================
+   */
+
+  function getPrintTypeLabel(
+    printType?: string
+  ) {
+
+    if (
+      printType ===
+      "REPRINT"
+    ) {
+
+      return "REIMPRESIÓN";
+
+    }
+
+
+    if (
+      printType ===
+      "PALLET"
+    ) {
+
+      return "PALET";
+
+    }
+
+
+    return "IMPRESIÓN";
+
+  }
+
+
+  /*
+   * ==================================================
    * EXPORTAR EXCEL
    * ==================================================
    */
@@ -375,10 +410,9 @@ export default function PrintHistory() {
             "",
 
           "Tipo":
-            record.print_type ===
-              "REPRINT"
-              ? "REIMPRESIÓN"
-              : "IMPRESIÓN"
+            getPrintTypeLabel(
+              record.print_type
+            )
 
         })
       );
@@ -427,12 +461,14 @@ export default function PrintHistory() {
     const date =
       [
         now.getFullYear(),
+
         String(
           now.getMonth() + 1
         ).padStart(
           2,
           "0"
         ),
+
         String(
           now.getDate()
         ).padStart(
@@ -450,6 +486,7 @@ export default function PrintHistory() {
           2,
           "0"
         ),
+
         String(
           now.getMinutes()
         ).padStart(
@@ -771,6 +808,20 @@ export default function PrintHistory() {
 
       {
         field:
+          "quantity",
+
+        headerName:
+          "Cantidad",
+
+        width:
+          95,
+
+        type:
+          "number"
+      },
+
+      {
+        field:
           "printer",
 
         headerName:
@@ -802,32 +853,51 @@ export default function PrintHistory() {
           "Tipo",
 
         width:
-          130,
+          145,
 
         renderCell:
-          params => (
+          params => {
 
-            <Chip
-              size="small"
-              label={
-                params.value ===
-                  "REPRINT"
-                  ? "REIMPRESIÓN"
-                  : "IMPRESIÓN"
-              }
-              color={
-                params.value ===
-                  "REPRINT"
-                  ? "warning"
-                  : "success"
-              }
-              variant="outlined"
-              sx={{
-                fontWeight: 700
-              }}
-            />
+            const printType =
+              params.value as string | undefined;
 
-          )
+
+            const label =
+              getPrintTypeLabel(
+                printType
+              );
+
+
+            const color =
+              printType ===
+              "REPRINT"
+                ? "warning"
+                : printType ===
+                    "PALLET"
+                  ? "info"
+                  : "success";
+
+
+            return (
+
+              <Chip
+                size="small"
+                label={
+                  label
+                }
+                color={
+                  color
+                }
+                variant="outlined"
+                sx={{
+                  fontWeight:
+                    700
+                }}
+              />
+
+            );
+
+          }
       }
 
     ];
@@ -843,7 +913,9 @@ export default function PrintHistory() {
     records.filter(
       record =>
         record.print_type !==
-        "REPRINT"
+        "REPRINT" &&
+        record.print_type !==
+        "PALLET"
     ).length;
 
 
@@ -852,6 +924,14 @@ export default function PrintHistory() {
       record =>
         record.print_type ===
         "REPRINT"
+    ).length;
+
+
+  const palletPrints =
+    records.filter(
+      record =>
+        record.print_type ===
+        "PALLET"
     ).length;
 
 
@@ -880,25 +960,38 @@ export default function PrintHistory() {
 
       <Box
         sx={{
-          mb: 4,
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
-          flexWrap: "wrap"
+          mb:
+            4,
+
+          display:
+            "flex",
+
+          alignItems:
+            "center",
+
+          gap:
+            2,
+
+          flexWrap:
+            "wrap"
         }}
       >
 
         <HistoryIcon
           sx={{
-            fontSize: 46,
-            color: "#0B7A3B"
+            fontSize:
+              46,
+
+            color:
+              "#0B7A3B"
           }}
         />
 
 
         <Box
           sx={{
-            flexGrow: 1
+            flexGrow:
+              1
           }}
         >
 
@@ -915,7 +1008,8 @@ export default function PrintHistory() {
           <Typography
             color="text.secondary"
             sx={{
-              mt: 0.5
+              mt:
+                0.5
             }}
           >
 
@@ -939,9 +1033,14 @@ export default function PrintHistory() {
             loading
           }
           sx={{
-            color: "#0B7A3B",
-            borderColor: "#0B7A3B",
-            fontWeight: 700
+            color:
+              "#0B7A3B",
+
+            borderColor:
+              "#0B7A3B",
+
+            fontWeight:
+              700
           }}
         >
 
@@ -960,14 +1059,21 @@ export default function PrintHistory() {
         container
         spacing={2}
         sx={{
-          mb: 3
+          mb:
+            3
         }}
       >
 
         <Grid
           size={{
-            xs: 12,
-            md: 4
+            xs:
+              12,
+
+            sm:
+              6,
+
+            lg:
+              3
           }}
         >
 
@@ -976,7 +1082,12 @@ export default function PrintHistory() {
             sx={{
               border:
                 "1px solid #E0E0E0",
-              borderRadius: 2
+
+              borderRadius:
+                2,
+
+              height:
+                "100%"
             }}
           >
 
@@ -1010,8 +1121,14 @@ export default function PrintHistory() {
 
         <Grid
           size={{
-            xs: 12,
-            md: 4
+            xs:
+              12,
+
+            sm:
+              6,
+
+            lg:
+              3
           }}
         >
 
@@ -1020,7 +1137,12 @@ export default function PrintHistory() {
             sx={{
               border:
                 "1px solid #E0E0E0",
-              borderRadius: 2
+
+              borderRadius:
+                2,
+
+              height:
+                "100%"
             }}
           >
 
@@ -1053,8 +1175,14 @@ export default function PrintHistory() {
 
         <Grid
           size={{
-            xs: 12,
-            md: 4
+            xs:
+              12,
+
+            sm:
+              6,
+
+            lg:
+              3
           }}
         >
 
@@ -1063,7 +1191,12 @@ export default function PrintHistory() {
             sx={{
               border:
                 "1px solid #E0E0E0",
-              borderRadius: 2
+
+              borderRadius:
+                2,
+
+              height:
+                "100%"
             }}
           >
 
@@ -1093,6 +1226,60 @@ export default function PrintHistory() {
 
         </Grid>
 
+
+        <Grid
+          size={{
+            xs:
+              12,
+
+            sm:
+              6,
+
+            lg:
+              3
+          }}
+        >
+
+          <Card
+            elevation={0}
+            sx={{
+              border:
+                "1px solid #E0E0E0",
+
+              borderRadius:
+                2,
+
+              height:
+                "100%"
+            }}
+          >
+
+            <CardContent>
+
+              <Typography
+                color="text.secondary"
+              >
+
+                Etiquetas de palet
+
+              </Typography>
+
+
+              <Typography
+                variant="h4"
+                fontWeight={700}
+              >
+
+                {palletPrints}
+
+              </Typography>
+
+            </CardContent>
+
+          </Card>
+
+        </Grid>
+
       </Grid>
 
 
@@ -1103,19 +1290,30 @@ export default function PrintHistory() {
       <Card
         elevation={0}
         sx={{
-          mb: 3,
+          mb:
+            3,
+
           border:
             "1px solid #E0E0E0",
-          borderRadius: 2
+
+          borderRadius:
+            2
         }}
       >
 
         <CardContent
           sx={{
-            display: "flex",
-            gap: 2,
-            flexWrap: "wrap",
-            alignItems: "center"
+            display:
+              "flex",
+
+            gap:
+              2,
+
+            flexWrap:
+              "wrap",
+
+            alignItems:
+              "center"
           }}
         >
 
@@ -1128,7 +1326,8 @@ export default function PrintHistory() {
               handleExport
             }
             disabled={
-              records.length === 0
+              records.length ===
+              0
             }
             sx={{
               backgroundColor:
@@ -1150,6 +1349,7 @@ export default function PrintHistory() {
             isSupervisor
             &&
             (
+
               <>
 
                 <Button
@@ -1164,12 +1364,18 @@ export default function PrintHistory() {
                       )
                   }
                   disabled={
-                    records.length === 0
+                    records.length ===
+                    0
                   }
                   sx={{
-                    color: "#0B7A3B",
-                    borderColor: "#0B7A3B",
-                    fontWeight: 700
+                    color:
+                      "#0B7A3B",
+
+                    borderColor:
+                      "#0B7A3B",
+
+                    fontWeight:
+                      700
                   }}
                 >
 
@@ -1191,10 +1397,12 @@ export default function PrintHistory() {
                       )
                   }
                   disabled={
-                    records.length === 0
+                    records.length ===
+                    0
                   }
                   sx={{
-                    fontWeight: 700
+                    fontWeight:
+                      700
                   }}
                 >
 
@@ -1203,6 +1411,7 @@ export default function PrintHistory() {
                 </Button>
 
               </>
+
             )
           }
 
@@ -1211,8 +1420,11 @@ export default function PrintHistory() {
             color="text.secondary"
             sx={{
               ml: {
-                xs: 0,
-                md: "auto"
+                xs:
+                  0,
+
+                md:
+                  "auto"
               }
             }}
           >
@@ -1246,7 +1458,8 @@ export default function PrintHistory() {
                 setSuccess("")
             }
             sx={{
-              mb: 3
+              mb:
+                3
             }}
           >
 
@@ -1270,7 +1483,8 @@ export default function PrintHistory() {
                 setError("")
             }
             sx={{
-              mb: 3
+              mb:
+                3
             }}
           >
 
@@ -1291,14 +1505,20 @@ export default function PrintHistory() {
         sx={{
           border:
             "1px solid #E0E0E0",
-          borderRadius: 3,
-          overflow: "hidden"
+
+          borderRadius:
+            3,
+
+          overflow:
+            "hidden"
         }}
       >
 
         <Box
           sx={{
-            height: 6,
+            height:
+              6,
+
             backgroundColor:
               "#0B7A3B"
           }}
@@ -1307,14 +1527,15 @@ export default function PrintHistory() {
 
         <CardContent
           sx={{
-            p: 3
+            p:
+              3
           }}
         >
 
           <TextField
             fullWidth
             label="Buscar"
-            placeholder="Usuario, orden, SKU, producto, lote, bobina..."
+            placeholder="Usuario, orden, SKU, producto, lote, bobina, tipo..."
             value={
               search
             }
@@ -1325,81 +1546,94 @@ export default function PrintHistory() {
                 )
             }
             sx={{
-              mb: 3
+              mb:
+                3
             }}
           />
 
 
           {
             loading
-            ? (
+              ? (
 
-              <Box
-                sx={{
-                  py: 8,
-                  display: "flex",
-                  justifyContent: "center"
-                }}
-              >
-
-                <CircularProgress
+                <Box
                   sx={{
-                    color: "#0B7A3B"
+                    py:
+                      8,
+
+                    display:
+                      "flex",
+
+                    justifyContent:
+                      "center"
                   }}
-                />
+                >
 
-              </Box>
+                  <CircularProgress
+                    sx={{
+                      color:
+                        "#0B7A3B"
+                    }}
+                  />
 
-            )
-            : (
+                </Box>
 
-              <Box
-                sx={{
-                  width: "100%"
-                }}
-              >
+              )
+              : (
 
-                <DataGrid
-                  rows={
-                    filteredRecords
-                  }
-                  columns={
-                    columns
-                  }
-                  getRowId={
-                    row =>
-                      row.id
-                  }
-                  initialState={{
-                    pagination: {
-                      paginationModel: {
-                        pageSize: 25,
-                        page: 0
+                <Box
+                  sx={{
+                    width:
+                      "100%"
+                  }}
+                >
+
+                  <DataGrid
+                    rows={
+                      filteredRecords
+                    }
+                    columns={
+                      columns
+                    }
+                    getRowId={
+                      row =>
+                        row.id
+                    }
+                    initialState={{
+                      pagination: {
+                        paginationModel: {
+                          pageSize:
+                            25,
+
+                          page:
+                            0
+                        }
                       }
-                    }
-                  }}
-                  pageSizeOptions={[
-                    25,
-                    50,
-                    100
-                  ]}
-                  disableRowSelectionOnClick
-                  autoHeight
-                  sx={{
-                    border: 0,
+                    }}
+                    pageSizeOptions={[
+                      25,
+                      50,
+                      100
+                    ]}
+                    disableRowSelectionOnClick
+                    autoHeight
+                    sx={{
+                      border:
+                        0,
 
-                    "& .MuiDataGrid-columnHeaders": {
-                      backgroundColor:
-                        "#F5F7FA",
-                      fontWeight:
-                        700
-                    }
-                  }}
-                />
+                      "& .MuiDataGrid-columnHeaders": {
+                        backgroundColor:
+                          "#F5F7FA",
 
-              </Box>
+                        fontWeight:
+                          700
+                      }
+                    }}
+                  />
 
-            )
+                </Box>
+
+              )
           }
 
         </CardContent>
@@ -1430,14 +1664,17 @@ export default function PrintHistory() {
 
         <DialogTitle
           sx={{
-            fontWeight: 700,
-            color: "#D32F2F"
+            fontWeight:
+              700,
+
+            color:
+              "#D32F2F"
           }}
         >
 
           {
             deleteMode ===
-              "EXPORT_DELETE"
+            "EXPORT_DELETE"
               ? "Exportar y borrar historial"
               : "Borrar historial"
           }
@@ -1451,25 +1688,33 @@ export default function PrintHistory() {
 
             {
               deleteMode ===
-                "EXPORT_DELETE"
+              "EXPORT_DELETE"
                 ? (
                   <>
+
                     Se exportarán los{" "}
+
                     <b>
                       {records.length}
                     </b>{" "}
+
                     registros actuales a un archivo Excel y,
                     a continuación, se eliminarán de la base
                     de datos.
+
                   </>
                 )
                 : (
                   <>
+
                     Vas a eliminar permanentemente{" "}
+
                     <b>
                       {records.length}
                     </b>{" "}
+
                     registros del historial de impresión.
+
                   </>
                 )
             }
@@ -1484,14 +1729,15 @@ export default function PrintHistory() {
 
           {
             deleteMode ===
-              "DELETE"
+            "DELETE"
             &&
             (
 
               <Alert
                 severity="warning"
                 sx={{
-                  mt: 3
+                  mt:
+                    3
                 }}
               >
 
