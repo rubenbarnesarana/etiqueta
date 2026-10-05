@@ -1,6 +1,5 @@
 import {
   useEffect,
-  useMemo,
   useState
 } from "react";
 
@@ -13,23 +12,12 @@ import {
   Grid,
   TextField,
   MenuItem,
-  Alert,
-  Typography,
-  Box,
-  Autocomplete
+  Typography
 } from "@mui/material";
-
-import type {
-  ProductionOrder
-} from "../../services/OrderStorage";
 
 import type {
   Product
 } from "../../models/Product";
-
-import {
-  getProducts
-} from "../../services/ProductStorage";
 
 import {
   getTemplates
@@ -43,140 +31,81 @@ interface Props {
   onClose: () => void;
 
   onSave: (
-    order: ProductionOrder
+    product: Product
   ) => void;
 
-  editing?: ProductionOrder;
+  product?: Product;
 
 }
 
 
-/*
- * ==================================================
- * LÍNEAS DE PRODUCCIÓN
- * ==================================================
- */
+export default function ProductDialog({
 
-const PRODUCTION_LINES = [
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-  7,
-  8
-];
-
-
-/*
- * ==================================================
- * GENERAR LOTE AUTOMÁTICO
- * ==================================================
- */
-
-function getTodayLot(): string {
-
-  const today =
-    new Date();
-
-
-  const year =
-    String(
-      today.getFullYear()
-    ).slice(-2);
-
-
-  const month =
-    String(
-      today.getMonth() + 1
-    ).padStart(
-      2,
-      "0"
-    );
-
-
-  const day =
-    String(
-      today.getDate()
-    ).padStart(
-      2,
-      "0"
-    );
-
-
-  return (
-    year +
-    month +
-    day
-  );
-
-}
-
-
-export default function ProductionDialog({
   open,
+
   onClose,
+
   onSave,
-  editing
+
+  product
+
 }: Props) {
 
 
-  /*
-   * ==================================================
-   * DATOS
-   * ==================================================
-   */
-
-  const products =
-    useMemo(
-      () => getProducts(),
-      [open]
-    );
-
-
   const templates =
-    useMemo(
-      () => getTemplates(),
-      [open]
-    );
+    getTemplates();
+
+
+  const [
+    sapCode,
+    setSapCode
+  ] = useState("");
+
+
+  const [
+    description,
+    setDescription
+  ] = useState("");
 
 
   /*
-   * ==================================================
-   * ESTADOS
-   * ==================================================
+   * Texto que aparecerá en la mitad
+   * superior de la etiqueta a 180°.
    */
 
   const [
-    order,
-    setOrder
+    upperText,
+    setUpperText
   ] = useState("");
 
 
   const [
-    lot,
-    setLot
-  ] = useState(
-    getTodayLot()
-  );
-
-
-  const [
-    customer,
-    setCustomer
+    diameter,
+    setDiameter
   ] = useState("");
 
 
   const [
-    sku,
-    setSku
+    thickness,
+    setThickness
   ] = useState("");
 
 
   const [
-    productName,
-    setProductName
+    flow,
+    setFlow
+  ] = useState("");
+
+
+  const [
+    spacing,
+    setSpacing
+  ] = useState("");
+
+
+  const [
+    dripper,
+    setDripper
   ] = useState("");
 
 
@@ -186,141 +115,79 @@ export default function ProductionDialog({
   ] = useState<number>(0);
 
 
-  const [
-    rolls,
-    setRolls
-  ] = useState<number>(1);
-
-
-  const [
-    firstCoil,
-    setFirstCoil
-  ] = useState<number>(1);
-
-
-  const [
-    printer,
-    setPrinter
-  ] = useState(
-    "Toshiba BA420"
-  );
-
-
-  const [
-    productionLine,
-    setProductionLine
-  ] = useState<number>(0);
-
-
   /*
    * ==================================================
-   * PRODUCTO SELECCIONADO
-   * ==================================================
-   */
-
-  const selectedProduct:
-    Product | undefined =
-      products.find(
-        product =>
-          product.sapCode === sku
-      );
-
-
-  /*
-   * ==================================================
-   * PLANTILLA SELECCIONADA
-   * ==================================================
-   */
-
-  const selectedTemplate =
-    templates.find(
-      template =>
-        Number(
-          template.id
-        ) ===
-        Number(
-          templateId
-        )
-    );
-
-
-  /*
-   * ==================================================
-   * CARGAR ORDEN
+   * CARGAR PRODUCTO
    * ==================================================
    */
 
   useEffect(() => {
 
-    if (!open) {
+    if (
+      !open
+    ) {
 
       return;
 
     }
 
 
-    /*
-     * EDITAR ORDEN EXISTENTE
-     */
+    if (
+      product
+    ) {
 
-    if (editing) {
-
-      setOrder(
-        editing.order ?? ""
+      setSapCode(
+        product.sapCode ??
+        ""
       );
 
 
-      setLot(
-        editing.lot ??
-        getTodayLot()
+      setDescription(
+        product.description ??
+        ""
       );
 
 
-      setCustomer(
-        editing.customer ?? ""
+      setUpperText(
+        product.upperText ??
+        ""
       );
 
 
-      setSku(
-        editing.sku ?? ""
+      setDiameter(
+        product.diameter ??
+        ""
       );
 
 
-      setProductName(
-        editing.product ?? ""
+      setThickness(
+        product.thickness ??
+        ""
+      );
+
+
+      setFlow(
+        product.flow ??
+        ""
+      );
+
+
+      setSpacing(
+        product.spacing ??
+        ""
+      );
+
+
+      setDripper(
+        product.dripper ??
+        ""
       );
 
 
       setTemplateId(
         Number(
-          editing.templateId ?? 0
-        )
-      );
-
-
-      setRolls(
-        Number(
-          editing.rolls ?? 1
-        )
-      );
-
-
-      setFirstCoil(
-        Number(
-          editing.firstCoil ?? 1
-        )
-      );
-
-
-      setPrinter(
-        editing.printer ||
-        "Toshiba BA420"
-      );
-
-
-      setProductionLine(
-        Number(
-          editing.productionLine ?? 0
+          product.templateId ??
+          0
         )
       );
 
@@ -331,166 +198,56 @@ export default function ProductionDialog({
 
 
     /*
-     * NUEVA ORDEN
+     * NUEVO PRODUCTO
      */
 
-    setOrder("");
+    setSapCode("");
 
+    setDescription("");
 
-    setLot(
-      getTodayLot()
-    );
+    setUpperText("");
 
+    setDiameter("");
 
-    setCustomer("");
+    setThickness("");
 
+    setFlow("");
 
-    setSku("");
+    setSpacing("");
 
-
-    setProductName("");
-
+    setDripper("");
 
     setTemplateId(0);
 
 
-    setRolls(1);
-
-
-    setFirstCoil(1);
-
-
-    setPrinter(
-      "Toshiba BA420"
-    );
-
-
-    setProductionLine(0);
-
   }, [
-    editing,
+    product,
     open
   ]);
 
 
   /*
    * ==================================================
-   * SELECCIONAR SKU
-   * ==================================================
-   */
-
-  function handleProductSelect(
-    product: Product | null
-  ) {
-
-    if (!product) {
-
-      setSku("");
-
-      setProductName("");
-
-      setTemplateId(0);
-
-      return;
-
-    }
-
-
-    setSku(
-      product.sapCode
-    );
-
-
-    setProductName(
-      product.description
-    );
-
-
-    setTemplateId(
-      Number(
-        product.templateId
-      )
-    );
-
-  }
-
-
-  /*
-   * ==================================================
-   * GUARDAR
+   * GUARDAR PRODUCTO
    * ==================================================
    */
 
   function save() {
 
-    const cleanOrder =
-      order.trim();
+    const cleanSapCode =
+      sapCode.trim();
 
 
-    const cleanLot =
-      lot.trim();
+    const cleanDescription =
+      description.trim();
 
 
-    const cleanCustomer =
-      customer.trim();
-
-
-    const cleanSku =
-      sku.trim();
-
-
-    /*
-     * VALIDACIONES
-     */
-
-    if (!cleanOrder) {
+    if (
+      !cleanSapCode
+    ) {
 
       alert(
-        "Debes indicar la Orden SAP."
-      );
-
-      return;
-
-    }
-
-
-    if (!cleanLot) {
-
-      alert(
-        "No se ha podido generar el lote."
-      );
-
-      return;
-
-    }
-
-
-    if (!cleanSku) {
-
-      alert(
-        "Debes seleccionar un SKU."
-      );
-
-      return;
-
-    }
-
-
-    if (!selectedProduct) {
-
-      alert(
-        "El SKU seleccionado no existe en Productos."
-      );
-
-      return;
-
-    }
-
-
-    if (!templateId) {
-
-      alert(
-        "El producto no tiene una plantilla asignada."
+        "Introduce el Código SAP."
       );
 
       return;
@@ -499,132 +256,57 @@ export default function ProductionDialog({
 
 
     if (
-      productionLine < 1 ||
-      productionLine > 8
+      !cleanDescription
     ) {
 
       alert(
-        "Debes seleccionar una línea de producción."
+        "Introduce la descripción del producto."
       );
 
       return;
 
     }
 
-
-    if (
-      !Number.isFinite(
-        rolls
-      ) ||
-      rolls < 1
-    ) {
-
-      alert(
-        "El número de rollos debe ser mayor que 0."
-      );
-
-      return;
-
-    }
-
-
-    if (
-      !Number.isFinite(
-        firstCoil
-      ) ||
-      firstCoil < 1 ||
-      firstCoil > 9999
-    ) {
-
-      alert(
-        "La primera bobina debe estar entre 1 y 9999."
-      );
-
-      return;
-
-    }
-
-
-    if (
-      firstCoil +
-      rolls -
-      1 >
-      9999
-    ) {
-
-      alert(
-        "La numeración de bobinas supera el máximo 9999."
-      );
-
-      return;
-
-    }
-
-
-    /*
-     * ==================================================
-     * GUARDAR ORDEN
-     * ==================================================
-     */
 
     onSave({
 
+      /*
+       * Si estamos editando mantenemos
+       * exactamente el mismo ID.
+       */
+
       id:
-        editing?.id ??
+        product?.id ??
         Date.now(),
 
-      order:
-        cleanOrder,
+      sapCode:
+        cleanSapCode,
 
-      lot:
-        cleanLot,
+      /*
+       * DESCRIPCIÓN INFERIOR
+       */
 
-      customer:
-        cleanCustomer,
+      description:
+        cleanDescription,
 
-      sku:
-        cleanSku,
+      /*
+       * TEXTO SUPERIOR 180°
+       */
 
-      product:
-        selectedProduct.description,
+      upperText:
+        upperText.trim(),
 
-      templateId:
-        Number(
-          templateId
-        ),
+      diameter,
 
-      rolls:
-        Math.floor(
-          Number(
-            rolls
-          )
-        ),
+      thickness,
 
-      firstCoil:
-        Math.floor(
-          Number(
-            firstCoil
-          )
-        ),
+      flow,
 
-      printer:
-        printer.trim() ||
-        "Toshiba BA420",
+      spacing,
 
-      productionLine:
-        productionLine,
+      dripper,
 
-      planningPosition:
-        editing?.planningPosition ??
-        0,
-
-      status:
-        editing?.status ??
-        "ABIERTA",
-
-      printed:
-        editing?.printed ??
-        0
+      templateId
 
     });
 
@@ -653,9 +335,9 @@ export default function ProductionDialog({
       <DialogTitle>
 
         {
-          editing
-            ? "Editar Orden de Producción"
-            : "Nueva Orden de Producción"
+          product
+            ? "Editar Producto"
+            : "Nuevo Producto"
         }
 
       </DialogTitle>
@@ -667,12 +349,13 @@ export default function ProductionDialog({
           container
           spacing={2}
           sx={{
-            mt: 0.5
+            mt: 1
           }}
         >
 
-
-          {/* ORDEN SAP */}
+          {/* ============================================
+              CÓDIGO SAP
+             ============================================ */}
 
           <Grid
             size={{
@@ -682,25 +365,25 @@ export default function ProductionDialog({
           >
 
             <TextField
-              label="Orden SAP"
+              fullWidth
+              label="Código SAP"
               value={
-                order
+                sapCode
               }
               onChange={
                 event =>
-                  setOrder(
+                  setSapCode(
                     event.target.value
                   )
               }
-              placeholder="Ejemplo: 8900005103"
-              fullWidth
-              autoFocus
             />
 
           </Grid>
 
 
-          {/* LOTE AUTOMÁTICO */}
+          {/* ============================================
+              DESCRIPCIÓN INFERIOR
+             ============================================ */}
 
           <Grid
             size={{
@@ -710,23 +393,26 @@ export default function ProductionDialog({
           >
 
             <TextField
-              label="Lote"
-              value={
-                lot
-              }
               fullWidth
-              helperText="Generado automáticamente con la fecha de hoy."
-              slotProps={{
-                input: {
-                  readOnly: true
-                }
-              }}
+              label="Descripción"
+              value={
+                description
+              }
+              onChange={
+                event =>
+                  setDescription(
+                    event.target.value
+                  )
+              }
+              helperText="Descripción que aparecerá en la parte inferior de la etiqueta."
             />
 
           </Grid>
 
 
-          {/* CLIENTE */}
+          {/* ============================================
+              TEXTO SUPERIOR 180°
+             ============================================ */}
 
           <Grid
             size={{
@@ -734,171 +420,50 @@ export default function ProductionDialog({
             }}
           >
 
+            <Typography
+              variant="subtitle2"
+              fontWeight="bold"
+              sx={{
+                mb: 1
+              }}
+            >
+
+              Texto superior de la etiqueta
+
+            </Typography>
+
+
             <TextField
-              label="Cliente"
+              fullWidth
+              multiline
+              minRows={5}
+              maxRows={8}
+              label="Texto superior (180°)"
               value={
-                customer
+                upperText
               }
               onChange={
                 event =>
-                  setCustomer(
+                  setUpperText(
                     event.target.value
                   )
               }
-              placeholder="Ejemplo: DISAGRI"
-              helperText="Se utilizará en la etiqueta de palet."
-              fullWidth
+              placeholder={
+`AMNON PC AS 20/3.8
+50 CM R-300M 1,2MM
+Emitting Pipe
+Max Pressure 3,5 BAR
+ISO 9261`
+              }
+              helperText="Este texto aparecerá en la mitad superior de la etiqueta con orientación 180°. Respeta los saltos de línea."
             />
 
           </Grid>
 
 
-          {/* SKU BUSCADOR */}
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}
-          >
-
-            <Autocomplete
-              options={
-                products
-              }
-
-              value={
-                selectedProduct ??
-                null
-              }
-
-              onChange={
-                (
-                  _event,
-                  value
-                ) =>
-                  handleProductSelect(
-                    value
-                  )
-              }
-
-              getOptionLabel={
-                product =>
-                  `${product.sapCode} - ${product.description}`
-              }
-
-              isOptionEqualToValue={
-                (
-                  option,
-                  value
-                ) =>
-                  option.id ===
-                  value.id
-              }
-
-              filterOptions={
-                (
-                  options,
-                  state
-                ) => {
-
-                  const search =
-                    state.inputValue
-                      .trim()
-                      .toLowerCase();
-
-
-                  /*
-                   * No enseñamos toda la lista
-                   * mientras el usuario no escriba.
-                   */
-
-                  if (!search) {
-
-                    return [];
-
-                  }
-
-
-                  return options.filter(
-                    product =>
-                      product.sapCode
-                        .toLowerCase()
-                        .includes(
-                          search
-                        ) ||
-                      product.description
-                        .toLowerCase()
-                        .includes(
-                          search
-                        )
-                  );
-
-                }
-              }
-
-              noOptionsText="No se ha encontrado ningún SKU"
-
-              renderOption={
-                (
-                  props,
-                  product
-                ) => (
-
-                  <Box
-                    component="li"
-                    {...props}
-                    key={
-                      product.id
-                    }
-                  >
-
-                    <Box>
-
-                      <Typography
-                        fontWeight={700}
-                      >
-
-                        {product.sapCode}
-
-                      </Typography>
-
-
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                      >
-
-                        {product.description}
-
-                      </Typography>
-
-                    </Box>
-
-                  </Box>
-
-                )
-              }
-
-              renderInput={
-                params => (
-
-                  <TextField
-                    {...params}
-                    label="SKU"
-                    placeholder="Escribe el SKU..."
-                    helperText="Escribe parte del SKU para buscar el producto."
-                    fullWidth
-                  />
-
-                )
-              }
-            />
-
-          </Grid>
-
-
-          {/* PRODUCTO */}
+          {/* ============================================
+              DIÁMETRO
+             ============================================ */}
 
           <Grid
             size={{
@@ -908,69 +473,104 @@ export default function ProductionDialog({
           >
 
             <TextField
-              label="Producto"
-              value={
-                productName
-              }
               fullWidth
-              slotProps={{
-                input: {
-                  readOnly: true
-                }
-              }}
-            />
-
-          </Grid>
-
-
-          {/* LÍNEA DE PRODUCCIÓN */}
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}
-          >
-
-            <TextField
               select
-              label="Línea de producción"
+              label="Diámetro"
               value={
-                productionLine
+                diameter
               }
               onChange={
                 event =>
-                  setProductionLine(
-                    Number(
-                      event.target.value
-                    )
+                  setDiameter(
+                    event.target.value
                   )
               }
-              fullWidth
-              required
-              helperText="La orden se añadirá a la planificación de esta línea."
             >
 
-              <MenuItem
-                value={0}
-              >
-                Seleccionar línea
+              <MenuItem value="16">
+                16 mm
               </MenuItem>
 
+              <MenuItem value="17">
+                17 mm
+              </MenuItem>
 
-              {PRODUCTION_LINES.map(
-                line => (
+              <MenuItem value="20">
+                20 mm
+              </MenuItem>
+
+              <MenuItem value="22">
+                22 mm
+              </MenuItem>
+
+              <MenuItem value="23">
+                23 mm
+              </MenuItem>
+
+              <MenuItem value="25">
+                25 mm
+              </MenuItem>
+
+            </TextField>
+
+          </Grid>
+
+
+          {/* ============================================
+              ESPESOR
+             ============================================ */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
+            <TextField
+              fullWidth
+              select
+              label="Espesor"
+              value={
+                thickness
+              }
+              onChange={
+                event =>
+                  setThickness(
+                    event.target.value
+                  )
+              }
+            >
+
+              {[
+                "6",
+                "8",
+                "10",
+                "12",
+                "13",
+                "15",
+                "18",
+                "20",
+                "25",
+                "30",
+                "35",
+                "40",
+                "43",
+                "45",
+                "47"
+              ].map(
+                mil => (
 
                   <MenuItem
                     key={
-                      line
+                      mil
                     }
                     value={
-                      line
+                      mil
                     }
                   >
 
-                    Línea {line}
+                    {mil} mil
 
                   </MenuItem>
 
@@ -982,7 +582,9 @@ export default function ProductionDialog({
           </Grid>
 
 
-          {/* PLANTILLA */}
+          {/* ============================================
+              CAUDAL
+             ============================================ */}
 
           <Grid
             size={{
@@ -992,243 +594,174 @@ export default function ProductionDialog({
           >
 
             <TextField
-              label="Plantilla"
-              value={
-                selectedTemplate?.name ??
-                ""
-              }
               fullWidth
-              slotProps={{
-                input: {
-                  readOnly: true
-                }
-              }}
-              helperText="Se obtiene automáticamente del producto."
-            />
-
-          </Grid>
-
-
-          {/* NÚMERO DE ROLLOS */}
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}
-          >
-
-            <TextField
-              label="Número de rollos / bobinas"
-              type="number"
+              select
+              label="Caudal"
               value={
-                rolls
+                flow
               }
               onChange={
                 event =>
-                  setRolls(
-                    Number(
-                      event.target.value
-                    )
-                  )
-              }
-              slotProps={{
-                htmlInput: {
-                  min: 1,
-                  max: 9999
-                }
-              }}
-              fullWidth
-            />
-
-          </Grid>
-
-
-          {/* PRIMERA BOBINA */}
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}
-          >
-
-            <TextField
-              label="Primera bobina"
-              type="number"
-              value={
-                firstCoil
-              }
-              onChange={
-                event =>
-                  setFirstCoil(
-                    Number(
-                      event.target.value
-                    )
-                  )
-              }
-              slotProps={{
-                htmlInput: {
-                  min: 1,
-                  max: 9999
-                }
-              }}
-              helperText="La numeración continuará automáticamente."
-              fullWidth
-            />
-
-          </Grid>
-
-
-          {/* IMPRESORA */}
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}
-          >
-
-            <TextField
-              label="Impresora"
-              value={
-                printer
-              }
-              onChange={
-                event =>
-                  setPrinter(
+                  setFlow(
                     event.target.value
                   )
               }
+            >
+
+              {[
+                "0.6",
+                "0.8",
+                "0.95",
+                "1.0",
+                "1.1",
+                "1.4",
+                "1.5",
+                "1.6",
+                "2.0",
+                "2.1",
+                "2.2",
+                "3.5",
+                "3.8",
+                "4.0"
+              ].map(
+                flowValue => (
+
+                  <MenuItem
+                    key={
+                      flowValue
+                    }
+                    value={
+                      flowValue
+                    }
+                  >
+
+                    {flowValue} l/h
+
+                  </MenuItem>
+
+                )
+              )}
+
+            </TextField>
+
+          </Grid>
+
+
+          {/* ============================================
+              ESPACIADO
+             ============================================ */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
+
+            <TextField
               fullWidth
+              label="Espaciado"
+              value={
+                spacing
+              }
+              onChange={
+                event =>
+                  setSpacing(
+                    event.target.value
+                  )
+              }
             />
 
           </Grid>
 
 
-          {/* POSICIÓN ACTUAL */}
+          {/* ============================================
+              TIPO DE GOTERO
+             ============================================ */}
 
-          {editing &&
-            productionLine > 0 && (
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
 
-              <Grid
-                size={{
-                  xs: 12,
-                  md: 6
-                }}
-              >
+            <TextField
+              fullWidth
+              label="Tipo de gotero"
+              value={
+                dripper
+              }
+              onChange={
+                event =>
+                  setDripper(
+                    event.target.value
+                  )
+              }
+            />
 
-                <TextField
-                  label="Posición en planificación"
-                  value={
-                    editing.planningPosition > 0
-                      ? editing.planningPosition
-                      : "Sin planificar"
-                  }
-                  fullWidth
-                  slotProps={{
-                    input: {
-                      readOnly: true
-                    }
-                  }}
-                  helperText="El orden se modificará desde la pantalla Planificación."
-                />
-
-              </Grid>
-
-            )}
+          </Grid>
 
 
-          {/* INFORMACIÓN DEL PRODUCTO */}
+          {/* ============================================
+              PLANTILLA
+             ============================================ */}
 
-          {selectedProduct && (
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}
+          >
 
-            <Grid
-              size={{
-                xs: 12
-              }}
+            <TextField
+              fullWidth
+              select
+              label="Plantilla"
+              value={
+                templateId
+              }
+              onChange={
+                event =>
+                  setTemplateId(
+                    Number(
+                      event.target.value
+                    )
+                  )
+              }
             >
 
-              <Alert
-                severity={
-                  selectedTemplate
-                    ? "success"
-                    : "warning"
-                }
+              <MenuItem
+                value={0}
               >
 
-                <Box>
+                Sin plantilla
 
-                  <Typography
-                    fontWeight={700}
-                  >
-
-                    {selectedProduct.sapCode}
-
-                    {" — "}
-
-                    {selectedProduct.description}
-
-                  </Typography>
+              </MenuItem>
 
 
-                  <Typography
-                    variant="body2"
-                  >
+              {templates.map(
+                template => (
 
-                    Plantilla:{" "}
-
-                    {
-                      selectedTemplate?.name ??
-                      "Sin plantilla"
+                  <MenuItem
+                    key={
+                      template.id
                     }
+                    value={
+                      template.id
+                    }
+                  >
 
-                  </Typography>
+                    {template.name}
 
+                  </MenuItem>
 
-                  {customer && (
+                )
+              )}
 
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        mt: 0.5
-                      }}
-                    >
+            </TextField>
 
-                      Cliente:{" "}
-                      <strong>
-                        {customer}
-                      </strong>
-
-                    </Typography>
-
-                  )}
-
-
-                  {productionLine > 0 && (
-
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        mt: 0.5,
-                        fontWeight: 700
-                      }}
-                    >
-
-                      Línea de producción:{" "}
-                      {productionLine}
-
-                    </Typography>
-
-                  )}
-
-                </Box>
-
-              </Alert>
-
-            </Grid>
-
-          )}
+          </Grid>
 
         </Grid>
 
@@ -1243,7 +776,7 @@ export default function ProductionDialog({
           }
         >
 
-          CANCELAR
+          Cancelar
 
         </Button>
 
@@ -1256,11 +789,7 @@ export default function ProductionDialog({
           }
         >
 
-          {
-            editing
-              ? "GUARDAR CAMBIOS"
-              : "CREAR ORDEN"
-          }
+          Guardar
 
         </Button>
 
