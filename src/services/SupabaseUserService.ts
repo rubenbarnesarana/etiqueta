@@ -218,6 +218,154 @@ export async function loginSupabaseUser(
 
 /*
  * ==================================================
+ * ADQUIRIR SESIÓN ÚNICA
+ * ==================================================
+ *
+ * Devuelve:
+ *
+ * true
+ *   El usuario puede utilizar esta sesión.
+ *
+ * false
+ *   Existe otra sesión activa en otro equipo.
+ * ==================================================
+ */
+
+export async function acquireSupabaseUserSession(
+  userId: string,
+  sessionToken: string
+): Promise<boolean> {
+
+  const {
+    data,
+    error
+  } =
+    await supabase.rpc(
+      "acquire_app_user_session",
+      {
+        p_user_id:
+          userId,
+
+        p_session_token:
+          sessionToken
+      }
+    );
+
+
+  if (
+    error
+  ) {
+
+    throw new Error(
+      `No se pudo comprobar la sesión del usuario: ${error.message}`
+    );
+
+  }
+
+
+  return data === true;
+
+}
+
+
+/*
+ * ==================================================
+ * HEARTBEAT DE SESIÓN
+ * ==================================================
+ *
+ * Actualiza last_seen en Supabase.
+ *
+ * Si devuelve false significa que esta sesión
+ * ya no pertenece al usuario.
+ * ==================================================
+ */
+
+export async function touchSupabaseUserSession(
+  userId: string,
+  sessionToken: string
+): Promise<boolean> {
+
+  const {
+    data,
+    error
+  } =
+    await supabase.rpc(
+      "touch_app_user_session",
+      {
+        p_user_id:
+          userId,
+
+        p_session_token:
+          sessionToken
+      }
+    );
+
+
+  if (
+    error
+  ) {
+
+    throw new Error(
+      `No se pudo actualizar la sesión del usuario: ${error.message}`
+    );
+
+  }
+
+
+  return data === true;
+
+}
+
+
+/*
+ * ==================================================
+ * LIBERAR SESIÓN
+ * ==================================================
+ *
+ * Se utiliza cuando el usuario pulsa
+ * CERRAR SESIÓN.
+ * ==================================================
+ */
+
+export async function releaseSupabaseUserSession(
+  userId: string,
+  sessionToken: string
+): Promise<boolean> {
+
+  const {
+    data,
+    error
+  } =
+    await supabase.rpc(
+      "release_app_user_session",
+      {
+        p_user_id:
+          userId,
+
+        p_session_token:
+          sessionToken
+      }
+    );
+
+
+  if (
+    error
+  ) {
+
+    throw new Error(
+      `No se pudo cerrar la sesión del usuario: ${error.message}`
+    );
+
+  }
+
+
+  return data === true;
+
+}
+
+
+/*
+ * ==================================================
  * CREAR USUARIO
  * ==================================================
  */

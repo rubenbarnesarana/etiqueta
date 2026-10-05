@@ -26,9 +26,11 @@ import {
 
 export default function Login() {
 
+
   const {
     login
   } = useAuth();
+
 
   const navigate =
     useNavigate();
@@ -142,15 +144,22 @@ export default function Login() {
 
     try {
 
-      const ok =
+      const result =
         await login(
-          username,
+          username.trim(),
           password
         );
 
 
+      /*
+       * ==================================================
+       * CREDENCIALES INCORRECTAS
+       * ==================================================
+       */
+
       if (
-        !ok
+        result ===
+        "invalid_credentials"
       ) {
 
         setError(
@@ -162,6 +171,52 @@ export default function Login() {
       }
 
 
+      /*
+       * ==================================================
+       * USUARIO YA CONECTADO
+       * ==================================================
+       */
+
+      if (
+        result ===
+        "session_active"
+      ) {
+
+        setError(
+          "Este usuario ya tiene una sesión activa en otro equipo. Cierra esa sesión antes de iniciar sesión aquí."
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * ==================================================
+       * ERROR DE SERVIDOR
+       * ==================================================
+       */
+
+      if (
+        result ===
+        "server_error"
+      ) {
+
+        setError(
+          "No se pudo conectar con el servidor"
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * ==================================================
+       * LOGIN CORRECTO
+       * ==================================================
+       */
+
       setError(
         ""
       );
@@ -169,15 +224,14 @@ export default function Login() {
 
       /*
        * Después de iniciar sesión correctamente,
-       * siempre volvemos a la pantalla de Inicio.
-       *
-       * replace: true evita conservar la página
-       * anterior como destino de navegación.
+       * siempre volvemos a Inicio.
        */
+
       navigate(
         "/",
         {
-          replace: true
+          replace:
+            true
         }
       );
 
@@ -218,9 +272,14 @@ export default function Login() {
     currentDate.toLocaleDateString(
       "es-ES",
       {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
+        day:
+          "2-digit",
+
+        month:
+          "2-digit",
+
+        year:
+          "numeric"
       }
     );
 
@@ -235,9 +294,14 @@ export default function Login() {
     currentDate.toLocaleTimeString(
       "es-ES",
       {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
+        hour:
+          "2-digit",
+
+        minute:
+          "2-digit",
+
+        second:
+          "2-digit"
       }
     );
 
@@ -246,47 +310,72 @@ export default function Login() {
 
     <Box
       sx={{
-        width: "100%",
-        minHeight: "100vh",
+        width:
+          "100%",
 
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        minHeight:
+          "100vh",
 
-        backgroundColor: "#F4F6F8",
+        display:
+          "flex",
 
-        boxSizing: "border-box",
+        alignItems:
+          "center",
 
-        overflow: "hidden",
+        justifyContent:
+          "center",
+
+        backgroundColor:
+          "#F4F6F8",
+
+        boxSizing:
+          "border-box",
+
+        overflow:
+          "hidden",
 
         p: {
-          xs: 2,
-          md: 4
+          xs:
+            2,
+
+          md:
+            4
         }
       }}
     >
 
       <Box
         sx={{
-          width: "100%",
+          width:
+            "100%",
 
-          maxWidth: 1250,
+          maxWidth:
+            1250,
 
-          display: "grid",
+          display:
+            "grid",
 
           gridTemplateColumns: {
-            xs: "1fr",
-            md: "minmax(0, 1fr) minmax(380px, 440px)"
+            xs:
+              "1fr",
+
+            md:
+              "minmax(0, 1fr) minmax(380px, 440px)"
           },
 
-          alignItems: "center",
+          alignItems:
+            "center",
 
           gap: {
-            xs: 4,
-            md: 8
+            xs:
+              4,
+
+            md:
+              8
           },
 
-          boxSizing: "border-box"
+          boxSizing:
+            "border-box"
         }}
       >
 
@@ -298,16 +387,22 @@ export default function Login() {
 
         <Box
           sx={{
-            minWidth: 0,
+            minWidth:
+              0,
 
             display: {
-              xs: "none",
-              md: "flex"
+              xs:
+                "none",
+
+              md:
+                "flex"
             },
 
-            alignItems: "center",
+            alignItems:
+              "center",
 
-            justifyContent: "center"
+            justifyContent:
+              "center"
           }}
         >
 
@@ -319,15 +414,20 @@ export default function Login() {
             alt="Rivulis"
 
             sx={{
-              display: "block",
+              display:
+                "block",
 
-              width: "100%",
+              width:
+                "100%",
 
-              maxWidth: 560,
+              maxWidth:
+                560,
 
-              maxHeight: "65vh",
+              maxHeight:
+                "65vh",
 
-              objectFit: "contain"
+              objectFit:
+                "contain"
             }}
           />
 
@@ -341,31 +441,43 @@ export default function Login() {
 
         <Box
           sx={{
-            width: "100%",
+            width:
+              "100%",
 
-            display: "flex",
+            display:
+              "flex",
 
-            alignItems: "center",
+            alignItems:
+              "center",
 
-            justifyContent: "center",
+            justifyContent:
+              "center",
 
-            minWidth: 0
+            minWidth:
+              0
           }}
         >
 
           <Card
-            elevation={4}
+            elevation={
+              4
+            }
 
             sx={{
-              width: "100%",
+              width:
+                "100%",
 
-              maxWidth: 420,
+              maxWidth:
+                420,
 
-              borderRadius: 3,
+              borderRadius:
+                3,
 
-              overflow: "hidden",
+              overflow:
+                "hidden",
 
-              boxSizing: "border-box"
+              boxSizing:
+                "border-box"
             }}
           >
 
@@ -374,11 +486,14 @@ export default function Login() {
 
             <Box
               sx={{
-                width: "100%",
+                width:
+                  "100%",
 
-                height: 7,
+                height:
+                  7,
 
-                backgroundColor: "#0B7A3B"
+                backgroundColor:
+                  "#0B7A3B"
               }}
             />
 
@@ -386,21 +501,29 @@ export default function Login() {
             <CardContent
               sx={{
                 p: {
-                  xs: 3,
-                  md: 4
+                  xs:
+                    3,
+
+                  md:
+                    4
                 },
 
                 "&:last-child": {
                   pb: {
-                    xs: 3,
-                    md: 4
+                    xs:
+                      3,
+
+                    md:
+                      4
                   }
                 }
               }}
             >
 
               <Stack
-                spacing={3}
+                spacing={
+                  3
+                }
               >
 
 
@@ -412,18 +535,25 @@ export default function Login() {
 
                   <Typography
                     sx={{
-                      color: "#0B7A3B",
+                      color:
+                        "#0B7A3B",
 
                       fontSize: {
-                        xs: 25,
-                        md: 29
+                        xs:
+                          25,
+
+                        md:
+                          29
                       },
 
-                      fontWeight: 700,
+                      fontWeight:
+                        700,
 
-                      textAlign: "center",
+                      textAlign:
+                        "center",
 
-                      letterSpacing: 0.5
+                      letterSpacing:
+                        0.5
                     }}
                   >
 
@@ -438,9 +568,11 @@ export default function Login() {
                     color="text.secondary"
 
                     sx={{
-                      mt: 1.5,
+                      mt:
+                        1.5,
 
-                      fontSize: 16
+                      fontSize:
+                        16
                     }}
                   >
 
@@ -453,25 +585,33 @@ export default function Login() {
 
                   <Box
                     sx={{
-                      mt: 2,
+                      mt:
+                        2,
 
-                      display: "flex",
+                      display:
+                        "flex",
 
-                      alignItems: "center",
+                      alignItems:
+                        "center",
 
-                      justifyContent: "center",
+                      justifyContent:
+                        "center",
 
-                      gap: 1
+                      gap:
+                        1
                     }}
                   >
 
                     <Typography
                       sx={{
-                        fontSize: 14,
+                        fontSize:
+                          14,
 
-                        fontWeight: 500,
+                        fontWeight:
+                          500,
 
-                        color: "#5F6B65"
+                        color:
+                          "#5F6B65"
                       }}
                     >
 
@@ -482,9 +622,11 @@ export default function Login() {
 
                     <Typography
                       sx={{
-                        fontSize: 14,
+                        fontSize:
+                          14,
 
-                        color: "#A0A7A3"
+                        color:
+                          "#A0A7A3"
                       }}
                     >
 
@@ -495,11 +637,14 @@ export default function Login() {
 
                     <Typography
                       sx={{
-                        fontSize: 14,
+                        fontSize:
+                          14,
 
-                        fontWeight: 600,
+                        fontWeight:
+                          600,
 
-                        color: "#0B7A3B",
+                        color:
+                          "#0B7A3B",
 
                         fontVariantNumeric:
                           "tabular-nums"
@@ -556,11 +701,17 @@ export default function Login() {
                   }
 
                   onChange={
-                    event =>
+                    event => {
 
                       setUsername(
                         event.target.value
-                      )
+                      );
+
+                      setError(
+                        ""
+                      );
+
+                    }
                   }
                 />
 
@@ -585,18 +736,25 @@ export default function Login() {
                   }
 
                   onChange={
-                    event =>
+                    event => {
 
                       setPassword(
                         event.target.value
-                      )
+                      );
+
+                      setError(
+                        ""
+                      );
+
+                    }
                   }
 
                   onKeyDown={
                     event => {
 
                       if (
-                        event.key === "Enter"
+                        event.key ===
+                        "Enter"
                       ) {
 
                         void handleLogin();
@@ -634,20 +792,28 @@ export default function Login() {
                   startIcon={
                     loggingIn
                       ? (
+
                         <CircularProgress
-                          size={20}
+                          size={
+                            20
+                          }
+
                           color="inherit"
                         />
+
                       )
                       : undefined
                   }
 
                   sx={{
-                    height: 52,
+                    height:
+                      52,
 
-                    fontSize: 16,
+                    fontSize:
+                      16,
 
-                    fontWeight: 600,
+                    fontWeight:
+                      600,
 
                     backgroundColor:
                       "#0B7A3B",
