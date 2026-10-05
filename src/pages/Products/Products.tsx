@@ -1,8 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState
-} from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Alert,
@@ -199,38 +195,51 @@ export default function Products() {
       getTemplates()
     );
 
+
     try {
 
       const supabaseProducts =
         await getSupabaseProducts();
 
+
       setProducts(
         supabaseProducts
       );
+
 
       /*
        * Copia local temporal para mantener
        * compatibles las pantallas que aún
        * utilizan ProductStorage.
        */
+
       saveProducts(
         supabaseProducts
       );
 
-    } catch (error) {
+    }
+    catch (
+      error
+    ) {
 
-      console.error(error);
+      console.error(
+        error
+      );
+
 
       const localProducts =
         getProducts();
+
 
       setProducts(
         localProducts
       );
 
+
       setMessageType(
         "warning"
       );
+
 
       setMessage(
         "No se han podido cargar los productos desde Supabase. Se muestra temporalmente la copia local de este ordenador."
@@ -241,11 +250,80 @@ export default function Products() {
   }
 
 
-  useEffect(() => {
+  useEffect(
+    () => {
 
-    void loadData();
+      void loadData();
 
-  }, []);
+    },
+    []
+  );
+
+
+  /*
+   * ==================================================
+   * ACTUALIZACIÓN EN TIEMPO REAL DE LA PANTALLA
+   * ==================================================
+   *
+   * App.tsx mantiene la caché local sincronizada con
+   * Supabase y lanza los eventos globales.
+   *
+   * Aquí actualizamos el estado visual de esta
+   * pantalla usando esa caché.
+   * ==================================================
+   */
+
+  useEffect(
+    () => {
+
+      function handleProductsUpdated() {
+
+        setProducts(
+          getProducts()
+        );
+
+      }
+
+
+      function handleTemplatesUpdated() {
+
+        setTemplates(
+          getTemplates()
+        );
+
+      }
+
+
+      window.addEventListener(
+        "productsUpdated",
+        handleProductsUpdated
+      );
+
+
+      window.addEventListener(
+        "templatesUpdated",
+        handleTemplatesUpdated
+      );
+
+
+      return () => {
+
+        window.removeEventListener(
+          "productsUpdated",
+          handleProductsUpdated
+        );
+
+
+        window.removeEventListener(
+          "templatesUpdated",
+          handleTemplatesUpdated
+        );
+
+      };
+
+    },
+    []
+  );
 
 
   /*
@@ -259,6 +337,7 @@ export default function Products() {
     setSelectedProduct(
       undefined
     );
+
 
     setDialogOpen(
       true
@@ -280,6 +359,7 @@ export default function Products() {
     setSelectedProduct(
       product
     );
+
 
     setDialogOpen(
       true
@@ -304,6 +384,7 @@ export default function Products() {
         product
       );
 
+
       const exists =
         products.some(
           item =>
@@ -311,23 +392,30 @@ export default function Products() {
             product.id
         );
 
+
       const updated =
         exists
+
           ? products.map(
               item =>
                 item.id ===
                 product.id
+
                   ? product
+
                   : item
             )
+
           : [
               ...products,
               product
             ];
 
+
       saveProducts(
         updated
       );
+
 
       if (
         product.templateId
@@ -340,37 +428,51 @@ export default function Products() {
 
       }
 
+
       setProducts(
         updated
       );
+
 
       setDialogOpen(
         false
       );
 
+
       setSelectedProduct(
         undefined
       );
+
 
       setMessageType(
         "success"
       );
 
+
       setMessage(
         "Producto guardado correctamente en Supabase."
       );
 
-    } catch (error) {
+    }
+    catch (
+      error
+    ) {
 
-      console.error(error);
+      console.error(
+        error
+      );
+
 
       setMessageType(
         "error"
       );
 
+
       setMessage(
         error instanceof Error
+
           ? error.message
+
           : "No se ha podido guardar el producto en Supabase."
       );
 
@@ -394,6 +496,7 @@ export default function Products() {
         `¿Eliminar el producto ${product.sapCode}?`
       );
 
+
     if (
       !confirmed
     ) {
@@ -402,11 +505,13 @@ export default function Products() {
 
     }
 
+
     try {
 
       await deleteSupabaseProduct(
         product.id
       );
+
 
       const updated =
         products.filter(
@@ -415,33 +520,46 @@ export default function Products() {
             product.id
         );
 
+
       saveProducts(
         updated
       );
+
 
       setProducts(
         updated
       );
 
+
       setMessageType(
         "success"
       );
+
 
       setMessage(
         `Producto ${product.sapCode} eliminado.`
       );
 
-    } catch (error) {
+    }
+    catch (
+      error
+    ) {
 
-      console.error(error);
+      console.error(
+        error
+      );
+
 
       setMessageType(
         "error"
       );
 
+
       setMessage(
         error instanceof Error
+
           ? error.message
+
           : "No se ha podido eliminar el producto en Supabase."
       );
 
@@ -462,9 +580,13 @@ export default function Products() {
   ) {
 
     const updatedProduct: Product = {
+
       ...product,
+
       templateId
+
     };
+
 
     try {
 
@@ -472,39 +594,54 @@ export default function Products() {
         updatedProduct
       );
 
+
       const updated =
         products.map(
           item =>
             item.id ===
             product.id
+
               ? updatedProduct
+
               : item
         );
+
 
       saveProducts(
         updated
       );
+
 
       assignTemplateToSku(
         product.sapCode,
         templateId
       );
 
+
       setProducts(
         updated
       );
 
-    } catch (error) {
+    }
+    catch (
+      error
+    ) {
 
-      console.error(error);
+      console.error(
+        error
+      );
+
 
       setMessageType(
         "error"
       );
 
+
       setMessage(
         error instanceof Error
+
           ? error.message
+
           : "No se ha podido actualizar la plantilla del producto en Supabase."
       );
 
@@ -528,6 +665,7 @@ export default function Products() {
       fileInputRef.current.value =
         "";
 
+
       fileInputRef.current.click();
 
     }
@@ -549,6 +687,7 @@ export default function Products() {
     const file =
       event.target.files?.[0];
 
+
     if (
       !file
     ) {
@@ -557,8 +696,10 @@ export default function Products() {
 
     }
 
+
     const fileName =
       file.name.toLowerCase();
+
 
     const validFile =
       fileName.endsWith(
@@ -581,6 +722,7 @@ export default function Products() {
         ".txt"
       );
 
+
     if (
       !validFile
     ) {
@@ -589,29 +731,36 @@ export default function Products() {
         "error"
       );
 
+
       setMessage(
         "Formato no admitido. Selecciona un archivo XLS, XLSX, XLSM, CSV o TXT."
       );
+
 
       return;
 
     }
 
+
     setImportFile(
       file
     );
+
 
     setReadingFile(
       true
     );
 
+
     setPreviewSearch(
       ""
     );
 
+
     setPreviewFilter(
       "ALL"
     );
+
 
     try {
 
@@ -621,15 +770,18 @@ export default function Products() {
           products
         );
 
+
       setPreview(
         result
       );
+
 
       setPreviewOpen(
         true
       );
 
-    } catch (
+    }
+    catch (
       error
     ) {
 
@@ -637,25 +789,32 @@ export default function Products() {
         error
       );
 
+
       setImportFile(
         null
       );
+
 
       setPreview(
         null
       );
 
+
       setMessageType(
         "error"
       );
 
+
       setMessage(
         error instanceof Error
+
           ? error.message
+
           : "No se ha podido analizar el archivo SAP."
       );
 
-    } finally {
+    }
+    finally {
 
       setReadingFile(
         false
@@ -682,21 +841,26 @@ export default function Products() {
 
     }
 
+
     setPreviewOpen(
       false
     );
+
 
     setPreview(
       null
     );
 
+
     setImportFile(
       null
     );
 
+
     setPreviewSearch(
       ""
     );
+
 
     setPreviewFilter(
       "ALL"
@@ -721,9 +885,11 @@ export default function Products() {
 
     }
 
+
     setImporting(
       true
     );
+
 
     try {
 
@@ -733,17 +899,21 @@ export default function Products() {
           products
         );
 
+
       await saveSupabaseProducts(
         result.products
       );
+
 
       /*
        * Copia local temporal para mantener
        * compatibles las demás pantallas.
        */
+
       saveProducts(
         result.products
       );
+
 
       result.products.forEach(
         product => {
@@ -762,53 +932,71 @@ export default function Products() {
         }
       );
 
+
       setProducts(
         result.products
       );
+
 
       setPreviewOpen(
         false
       );
 
+
       setPreview(
         null
       );
+
 
       setImportFile(
         null
       );
 
+
       setPreviewSearch(
         ""
       );
+
 
       setPreviewFilter(
         "ALL"
       );
 
+
       setMessageType(
         "success"
       );
+
 
       setMessage(
         `Importación completada en Supabase: ${result.created} nuevos · ${result.updated} actualizados · Total en Productos: ${result.products.length}.`
       );
 
-    } catch (error) {
+    }
+    catch (
+      error
+    ) {
 
-      console.error(error);
+      console.error(
+        error
+      );
+
 
       setMessageType(
         "error"
       );
 
+
       setMessage(
         error instanceof Error
+
           ? error.message
+
           : "No se ha podido completar la importación en Supabase."
       );
 
-    } finally {
+    }
+    finally {
 
       setImporting(
         false
@@ -843,13 +1031,16 @@ export default function Products() {
 
         }
 
+
         return (
           product.sapCode
             .toLowerCase()
             .includes(
               normalizedSearch
             )
+
           ||
+
           product.description
             .toLowerCase()
             .includes(
@@ -882,18 +1073,23 @@ export default function Products() {
 
         const matchesSearch =
           !normalizedPreviewSearch
+
           ||
+
           row.sku
             .toLowerCase()
             .includes(
               normalizedPreviewSearch
             )
+
           ||
+
           row.description
             .toLowerCase()
             .includes(
               normalizedPreviewSearch
             );
+
 
         if (
           !matchesSearch
@@ -902,6 +1098,7 @@ export default function Products() {
           return false;
 
         }
+
 
         if (
           previewFilter ===
@@ -915,6 +1112,7 @@ export default function Products() {
 
         }
 
+
         if (
           previewFilter ===
           "UPDATE"
@@ -927,6 +1125,7 @@ export default function Products() {
 
         }
 
+
         if (
           previewFilter ===
           "INCOMPLETE"
@@ -937,6 +1136,7 @@ export default function Products() {
           );
 
         }
+
 
         return true;
 
@@ -954,120 +1154,166 @@ export default function Products() {
     GridColDef<Product>[] = [
 
       {
+
         field: "sapCode",
+
         headerName: "SKU",
+
         width: 150
+
       },
 
       {
+
         field: "description",
+
         headerName: "Descripción",
+
         flex: 1,
+
         minWidth: 420
+
       },
 
       {
+
         field: "diameter",
+
         headerName: "Ø",
+
         width: 70
+
       },
 
       {
+
         field: "thickness",
+
         headerName: "Mil",
+
         width: 75
+
       },
 
       {
+
         field: "flow",
+
         headerName: "l/h",
+
         width: 80
+
       },
 
       {
+
         field: "spacing",
+
         headerName: "Esp.",
+
         width: 80
+
       },
 
       {
+
         field: "templateId",
+
         headerName: "Plantilla",
+
         width: 250,
 
         sortable: false,
 
-        renderCell: params => (
+        renderCell:
+          params => (
 
-          <TextField
-            select
-            size="small"
-            value={
-              params.row.templateId ||
-              0
-            }
-            onClick={
-              event =>
-                event.stopPropagation()
-            }
-            onChange={
-              event => {
+            <TextField
 
-                void handleTemplateChange(
-                  params.row,
-                  Number(
-                    event.target.value
-                  )
-                );
+              select
 
+              size="small"
+
+              value={
+                params.row.templateId ||
+                0
               }
-            }
-            sx={{
-              width: "100%",
 
-              "& .MuiInputBase-root": {
-                fontSize: 13
+              onClick={
+                event =>
+                  event.stopPropagation()
               }
-            }}
-          >
 
-            <MenuItem
-              value={0}
+              onChange={
+                event => {
+
+                  void handleTemplateChange(
+                    params.row,
+                    Number(
+                      event.target.value
+                    )
+                  );
+
+                }
+              }
+
+              sx={{
+
+                width: "100%",
+
+                "& .MuiInputBase-root": {
+
+                  fontSize: 13
+
+                }
+
+              }}
+
             >
 
-              Sin plantilla
+              <MenuItem
+                value={0}
+              >
 
-            </MenuItem>
+                Sin plantilla
+
+              </MenuItem>
 
 
-            {templates.map(
-              template => (
+              {templates.map(
+                template => (
 
-                <MenuItem
-                  key={
-                    template.id
-                  }
-                  value={
-                    template.id
-                  }
-                >
+                  <MenuItem
 
-                  {template.name}
+                    key={
+                      template.id
+                    }
 
-                </MenuItem>
+                    value={
+                      template.id
+                    }
 
-              )
-            )}
+                  >
 
-          </TextField>
+                    {template.name}
 
-        )
+                  </MenuItem>
+
+                )
+              )}
+
+            </TextField>
+
+          )
 
       },
 
       {
+
         field: "actions",
+
         headerName: "Acciones",
+
         width: 120,
 
         sortable: false,
@@ -1078,76 +1324,93 @@ export default function Products() {
 
         headerAlign: "center",
 
-        renderCell: params => (
+        renderCell:
+          params => (
 
-          <Stack
-            direction="row"
-            spacing={0.5}
-            justifyContent="center"
-            sx={{
-              width: "100%"
-            }}
-          >
+            <Stack
 
-            <Tooltip
-              title="Editar"
+              direction="row"
+
+              spacing={0.5}
+
+              justifyContent="center"
+
+              sx={{
+
+                width: "100%"
+
+              }}
+
             >
 
-              <IconButton
-                size="small"
-                onClick={
-                  event => {
-
-                    event.stopPropagation();
-
-                    handleEditProduct(
-                      params.row
-                    );
-
-                  }
-                }
+              <Tooltip
+                title="Editar"
               >
 
-                <EditIcon
-                  fontSize="small"
-                />
+                <IconButton
 
-              </IconButton>
+                  size="small"
 
-            </Tooltip>
+                  onClick={
+                    event => {
+
+                      event.stopPropagation();
 
 
-            <Tooltip
-              title="Eliminar"
-            >
+                      handleEditProduct(
+                        params.row
+                      );
 
-              <IconButton
-                size="small"
-                color="error"
-                onClick={
-                  event => {
-
-                    event.stopPropagation();
-
-                    void handleDeleteProduct(
-                      params.row
-                    );
-
+                    }
                   }
-                }
+
+                >
+
+                  <EditIcon
+                    fontSize="small"
+                  />
+
+                </IconButton>
+
+              </Tooltip>
+
+
+              <Tooltip
+                title="Eliminar"
               >
 
-                <DeleteIcon
-                  fontSize="small"
-                />
+                <IconButton
 
-              </IconButton>
+                  size="small"
 
-            </Tooltip>
+                  color="error"
 
-          </Stack>
+                  onClick={
+                    event => {
 
-        )
+                      event.stopPropagation();
+
+
+                      void handleDeleteProduct(
+                        params.row
+                      );
+
+                    }
+                  }
+
+                >
+
+                  <DeleteIcon
+                    fontSize="small"
+                  />
+
+                </IconButton>
+
+              </Tooltip>
+
+            </Stack>
+
+          )
 
       }
 
@@ -1164,129 +1427,202 @@ export default function Products() {
     GridColDef<SapProductPreview>[] = [
 
       {
+
         field: "sku",
+
         headerName: "SKU",
+
         width: 135
+
       },
 
       {
+
         field: "description",
+
         headerName: "Descripción SAP",
+
         flex: 1,
+
         minWidth: 360
+
       },
 
       {
+
         field: "diameter",
+
         headerName: "Ø",
+
         width: 65,
 
-        renderCell: params =>
-          params.value ||
-          "-"
+        renderCell:
+          params =>
+            params.value ||
+            "-"
+
       },
 
       {
+
         field: "thickness",
+
         headerName: "Mil",
+
         width: 70,
 
-        renderCell: params =>
-          params.value ||
-          "-"
+        renderCell:
+          params =>
+            params.value ||
+            "-"
+
       },
 
       {
+
         field: "flow",
+
         headerName: "l/h",
+
         width: 70,
 
-        renderCell: params =>
-          params.value ||
-          "-"
+        renderCell:
+          params =>
+            params.value ||
+            "-"
+
       },
 
       {
+
         field: "spacing",
+
         headerName: "Esp.",
+
         width: 70,
 
-        renderCell: params =>
-          params.value ||
-          "-"
+        renderCell:
+          params =>
+            params.value ||
+            "-"
+
       },
 
       {
+
         field: "status",
+
         headerName: "Estado",
+
         width: 125,
 
-        renderCell: params => (
+        renderCell:
+          params => (
 
-          <Chip
-            size="small"
-            label={
-              params.row.status ===
-              "NEW"
-                ? "NUEVO"
-                : "ACTUALIZAR"
-            }
-            color={
-              params.row.status ===
-              "NEW"
-                ? "success"
-                : "info"
-            }
-            variant="outlined"
-            sx={{
-              fontWeight: 700
-            }}
-          />
+            <Chip
 
-        )
+              size="small"
+
+              label={
+                params.row.status ===
+                "NEW"
+
+                  ? "NUEVO"
+
+                  : "ACTUALIZAR"
+              }
+
+              color={
+                params.row.status ===
+                "NEW"
+
+                  ? "success"
+
+                  : "info"
+              }
+
+              variant="outlined"
+
+              sx={{
+
+                fontWeight: 700
+
+              }}
+
+            />
+
+          )
 
       },
 
       {
+
         field: "completeTechnicalData",
+
         headerName: "Datos",
+
         width: 120,
 
         sortable: false,
 
-        renderCell: params => (
+        renderCell:
+          params => (
 
-          params.row.completeTechnicalData
-            ? (
-              <Chip
-                size="small"
-                icon={
-                  <CheckCircleIcon />
-                }
-                label="OK"
-                color="success"
-                variant="outlined"
-                sx={{
-                  fontWeight: 700
-                }}
-              />
-            )
-            : (
-              <Chip
-                size="small"
-                icon={
-                  <WarningAmberIcon />
-                }
-                label="REVISAR"
-                color="warning"
-                variant="outlined"
-                sx={{
-                  fontWeight: 700
-                }}
-              />
-            )
+            params.row.completeTechnicalData
 
-        )
+              ? (
+
+                <Chip
+
+                  size="small"
+
+                  icon={
+                    <CheckCircleIcon />
+                  }
+
+                  label="OK"
+
+                  color="success"
+
+                  variant="outlined"
+
+                  sx={{
+
+                    fontWeight: 700
+
+                  }}
+
+                />
+
+              )
+
+              : (
+
+                <Chip
+
+                  size="small"
+
+                  icon={
+                    <WarningAmberIcon />
+                  }
+
+                  label="REVISAR"
+
+                  color="warning"
+
+                  variant="outlined"
+
+                  sx={{
+
+                    fontWeight: 700
+
+                  }}
+
+                />
+
+              )
+
+          )
 
       }
 
@@ -1296,12 +1632,19 @@ export default function Products() {
   return (
 
     <Box
+
       sx={{
+
         width: "100%",
+
         maxWidth: "none",
+
         minWidth: 0,
+
         boxSizing: "border-box"
+
       }}
+
     >
 
       {/* =============================================
@@ -1318,42 +1661,70 @@ export default function Products() {
           ============================================= */}
 
       <Stack
+
         direction={{
+
           xs: "column",
+
           sm: "row"
+
         }}
+
         justifyContent="space-between"
+
         alignItems={{
+
           xs: "stretch",
+
           sm: "center"
+
         }}
+
         spacing={2}
+
         sx={{
+
           mb: 2.5
+
         }}
+
       >
 
         <Stack
+
           direction="row"
+
           spacing={1.5}
+
           alignItems="center"
+
         >
 
           <Inventory2Icon
+
             sx={{
+
               fontSize: 46,
+
               color: "#0B7A3B"
+
             }}
+
           />
 
 
           <Box>
 
             <Typography
+
               variant="h4"
+
               sx={{
+
                 fontWeight: 700
+
               }}
+
             >
 
               Productos
@@ -1362,8 +1733,11 @@ export default function Products() {
 
 
             <Typography
+
               variant="body2"
+
               color="text.secondary"
+
             >
 
               Gestión de productos y asignación de plantillas
@@ -1376,36 +1750,55 @@ export default function Products() {
 
 
         <Stack
+
           direction="row"
+
           spacing={1.5}
+
         >
 
           <Button
+
             variant="outlined"
+
             startIcon={
               <UploadFileIcon />
             }
+
             onClick={
               handleImportButton
             }
+
             disabled={
               readingFile
             }
+
             sx={{
+
               whiteSpace: "nowrap",
+
               fontWeight: 700,
+
               borderColor: "#0B7A3B",
+
               color: "#0B7A3B",
 
               "&:hover": {
+
                 borderColor: "#086832",
+
                 backgroundColor: "#E8F5E9"
+
               }
+
             }}
+
           >
 
             {readingFile
+
               ? "ANALIZANDO..."
+
               : "IMPORTAR SAP"
             }
 
@@ -1413,22 +1806,33 @@ export default function Products() {
 
 
           <Button
+
             variant="contained"
+
             startIcon={
               <AddIcon />
             }
+
             onClick={
               handleNewProduct
             }
+
             sx={{
+
               whiteSpace: "nowrap",
+
               backgroundColor: "#0B7A3B",
+
               fontWeight: 700,
 
               "&:hover": {
+
                 backgroundColor: "#086832"
+
               }
+
             }}
+
           >
 
             NUEVO PRODUCTO
@@ -1441,17 +1845,25 @@ export default function Products() {
 
 
       <input
+
         ref={
           fileInputRef
         }
+
         type="file"
+
         accept=".xls,.xlsx,.xlsm,.csv,.txt"
+
         onChange={
           handleFileSelected
         }
+
         style={{
+
           display: "none"
+
         }}
+
       />
 
 
@@ -1460,47 +1872,76 @@ export default function Products() {
           ============================================= */}
 
       <Card
+
         elevation={0}
+
         sx={{
+
           mb: 2,
+
           border: "1px solid #E0E0E0",
+
           borderRadius: 2
+
         }}
+
       >
 
         <CardContent
+
           sx={{
+
             p: 2,
 
             "&:last-child": {
+
               pb: 2
+
             }
+
           }}
+
         >
 
           <TextField
+
             fullWidth
+
             size="small"
+
             placeholder="Buscar por SKU o descripción..."
+
             value={
               search
             }
+
             onChange={
               event =>
                 setSearch(
                   event.target.value
                 )
             }
+
             InputProps={{
+
               startAdornment: (
+
                 <SearchIcon
+
                   sx={{
+
                     mr: 1,
+
                     color: "text.secondary"
+
                   }}
+
                 />
+
               )
+
             }}
+
           />
 
         </CardContent>
@@ -1509,15 +1950,23 @@ export default function Products() {
 
 
       <Typography
+
         variant="body2"
+
         color="text.secondary"
+
         sx={{
+
           mb: 1
+
         }}
+
       >
 
         {filteredProducts.length}
+
         {" "}
+
         productos
 
       </Typography>
@@ -1528,66 +1977,111 @@ export default function Products() {
           ============================================= */}
 
       <Card
+
         elevation={0}
+
         sx={{
+
           width: "100%",
+
           border: "1px solid #E0E0E0",
+
           borderRadius: 2,
+
           overflow: "hidden"
+
         }}
+
       >
 
         <Box
+
           sx={{
+
             width: "100%",
+
             height: "calc(100vh - 315px)",
+
             minHeight: 480
+
           }}
+
         >
 
           <DataGrid
+
             rows={
               filteredProducts
             }
+
             columns={
               columns
             }
+
             disableRowSelectionOnClick
+
             pageSizeOptions={[
+
               25,
+
               50,
+
               100
+
             ]}
+
             initialState={{
+
               pagination: {
+
                 paginationModel: {
+
                   pageSize: 25,
+
                   page: 0
+
                 }
+
               }
+
             }}
+
             sx={{
+
               border: 0,
+
               width: "100%",
 
               "& .MuiDataGrid-columnHeaders": {
+
                 backgroundColor: "#F7F9FA",
+
                 fontWeight: 700
+
               },
 
               "& .MuiDataGrid-columnHeaderTitle": {
+
                 fontWeight: 700
+
               },
 
               "& .MuiDataGrid-cell": {
+
                 display: "flex",
+
                 alignItems: "center"
+
               },
 
               "& .MuiDataGrid-row:hover": {
+
                 backgroundColor: "#F5FBF7"
+
               }
+
             }}
+
           />
 
         </Box>
@@ -1600,12 +2094,15 @@ export default function Products() {
           ============================================= */}
 
       <ProductDialog
+
         open={
           dialogOpen
         }
+
         product={
           selectedProduct
         }
+
         onClose={
           () => {
 
@@ -1613,19 +2110,24 @@ export default function Products() {
               false
             );
 
+
             setSelectedProduct(
               undefined
             );
 
           }
         }
+
         onSave={
           product => {
+
             void handleSaveProduct(
               product
             );
+
           }
         }
+
       />
 
 
@@ -1634,52 +2136,87 @@ export default function Products() {
           ============================================= */}
 
       <Dialog
+
         open={
           previewOpen
         }
+
         onClose={
           importing
+
             ? undefined
+
             : handleClosePreview
         }
+
         maxWidth={false}
+
         fullWidth
+
         PaperProps={{
+
           sx: {
+
             width: "95vw",
+
             maxWidth: "1500px",
+
             height: "90vh",
+
             maxHeight: "90vh"
+
           }
+
         }}
+
       >
 
         <DialogTitle
+
           sx={{
+
             pb: 1
+
           }}
+
         >
 
           <Stack
+
             direction={{
+
               xs: "column",
+
               md: "row"
+
             }}
+
             justifyContent="space-between"
+
             alignItems={{
+
               xs: "flex-start",
+
               md: "center"
+
             }}
+
             spacing={1}
+
           >
 
             <Box>
 
               <Typography
+
                 variant="h5"
+
                 sx={{
+
                   fontWeight: 700
+
                 }}
+
               >
 
                 Vista previa de importación SAP
@@ -1688,8 +2225,11 @@ export default function Products() {
 
 
               <Typography
+
                 variant="body2"
+
                 color="text.secondary"
+
               >
 
                 {importFile?.name}
@@ -1700,8 +2240,11 @@ export default function Products() {
 
 
             <Typography
+
               variant="body2"
+
               color="text.secondary"
+
             >
 
               Revisa los productos antes de confirmar
@@ -1714,12 +2257,19 @@ export default function Products() {
 
 
         <DialogContent
+
           sx={{
+
             display: "flex",
+
             flexDirection: "column",
+
             minHeight: 0,
+
             pt: "12px !important"
+
           }}
+
         >
 
           {preview && (
@@ -1731,75 +2281,119 @@ export default function Products() {
                   ===================================== */}
 
               <Stack
+
                 direction={{
+
                   xs: "column",
+
                   lg: "row"
+
                 }}
+
                 spacing={1}
+
                 sx={{
+
                   mb: 2
+
                 }}
+
               >
 
                 <Chip
+
                   label={
                     `TOTAL ${preview.totalRows}`
                   }
+
                   sx={{
+
                     fontWeight: 700
+
                   }}
+
                 />
 
 
                 <Chip
+
                   label={
                     `NUEVOS ${preview.newProducts}`
                   }
+
                   color="success"
+
                   variant="outlined"
+
                   sx={{
+
                     fontWeight: 700
+
                   }}
+
                 />
 
 
                 <Chip
+
                   label={
                     `ACTUALIZAR ${preview.existingProducts}`
                   }
+
                   color="info"
+
                   variant="outlined"
+
                   sx={{
+
                     fontWeight: 700
+
                   }}
+
                 />
 
 
                 <Chip
+
                   label={
                     `DATOS OK ${preview.completeProducts}`
                   }
+
                   color="success"
+
                   variant="outlined"
+
                   sx={{
+
                     fontWeight: 700
+
                   }}
+
                 />
 
 
                 <Chip
+
                   label={
                     `REVISAR ${preview.incompleteProducts}`
                   }
+
                   color={
                     preview.incompleteProducts > 0
+
                       ? "warning"
+
                       : "default"
                   }
+
                   variant="outlined"
+
                   sx={{
+
                     fontWeight: 700
+
                   }}
+
                 />
 
               </Stack>
@@ -1808,10 +2402,15 @@ export default function Products() {
               {preview.incompleteProducts > 0 && (
 
                 <Alert
+
                   severity="warning"
+
                   sx={{
+
                     mb: 2
+
                   }}
+
                 >
 
                   Hay productos en los que no se han podido identificar automáticamente todos los datos técnicos. Puedes importarlos igualmente: los campos no detectados quedarán vacíos y podrás completarlos posteriormente.
@@ -1826,62 +2425,102 @@ export default function Products() {
                   ===================================== */}
 
               <Stack
+
                 direction={{
+
                   xs: "column",
+
                   md: "row"
+
                 }}
+
                 spacing={1.5}
+
                 sx={{
+
                   mb: 2
+
                 }}
+
               >
 
                 <TextField
+
                   fullWidth
+
                   size="small"
+
                   placeholder="Buscar SKU o descripción en la importación..."
+
                   value={
                     previewSearch
                   }
+
                   onChange={
                     event =>
                       setPreviewSearch(
                         event.target.value
                       )
                   }
+
                   InputProps={{
+
                     startAdornment: (
+
                       <SearchIcon
+
                         sx={{
+
                           mr: 1,
+
                           color: "text.secondary"
+
                         }}
+
                       />
+
                     )
+
                   }}
+
                 />
 
 
                 <TextField
+
                   select
+
                   size="small"
+
                   label="Mostrar"
+
                   value={
                     previewFilter
                   }
+
                   onChange={
                     event =>
                       setPreviewFilter(
+
                         event.target.value as
+
                           | "ALL"
+
                           | "NEW"
+
                           | "UPDATE"
+
                           | "INCOMPLETE"
+
                       )
                   }
+
                   sx={{
+
                     minWidth: 210
+
                   }}
+
                 >
 
                   <MenuItem
@@ -1925,21 +2564,35 @@ export default function Products() {
 
 
               <Typography
+
                 variant="body2"
+
                 color="text.secondary"
+
                 sx={{
+
                   mb: 1
+
                 }}
+
               >
 
                 Mostrando
+
                 {" "}
+
                 {filteredPreviewRows.length}
+
                 {" "}
+
                 de
+
                 {" "}
+
                 {preview.totalRows}
+
                 {" "}
+
                 productos
 
               </Typography>
@@ -1950,55 +2603,90 @@ export default function Products() {
                   ===================================== */}
 
               <Box
+
                 sx={{
+
                   flex: 1,
+
                   minHeight: 350,
+
                   border: "1px solid #E0E0E0",
+
                   borderRadius: 1,
+
                   overflow: "hidden"
+
                 }}
+
               >
 
                 <DataGrid
+
                   getRowId={
                     row =>
                       row.sku
                   }
+
                   rows={
                     filteredPreviewRows
                   }
+
                   columns={
                     previewColumns
                   }
+
                   disableRowSelectionOnClick
+
                   pageSizeOptions={[
+
                     25,
+
                     50,
+
                     100
+
                   ]}
+
                   initialState={{
+
                     pagination: {
+
                       paginationModel: {
+
                         pageSize: 50,
+
                         page: 0
+
                       }
+
                     }
+
                   }}
+
                   sx={{
+
                     border: 0,
 
                     "& .MuiDataGrid-columnHeaders": {
+
                       backgroundColor: "#F7F9FA"
+
                     },
 
                     "& .MuiDataGrid-columnHeaderTitle": {
+
                       fontWeight: 700
+
                     },
 
                     "& .MuiDataGrid-row:hover": {
+
                       backgroundColor: "#F5FBF7"
+
                     }
+
                   }}
+
                 />
 
               </Box>
@@ -2011,20 +2699,29 @@ export default function Products() {
 
 
         <DialogActions
+
           sx={{
+
             px: 3,
+
             py: 2,
+
             borderTop: "1px solid #E0E0E0"
+
           }}
+
         >
 
           <Button
+
             disabled={
               importing
             }
+
             onClick={
               handleClosePreview
             }
+
           >
 
             CANCELAR
@@ -2033,7 +2730,9 @@ export default function Products() {
 
 
           <Button
+
             variant="contained"
+
             disabled={
               importing
               ||
@@ -2041,24 +2740,37 @@ export default function Products() {
               ||
               preview.totalRows === 0
             }
+
             onClick={
               () => {
+
                 void handleConfirmImport();
+
               }
             }
+
             sx={{
+
               backgroundColor: "#0B7A3B",
+
               fontWeight: 700,
+
               px: 3,
 
               "&:hover": {
+
                 backgroundColor: "#086832"
+
               }
+
             }}
+
           >
 
             {importing
+
               ? "IMPORTANDO..."
+
               : `CONFIRMAR IMPORTACIÓN (${preview?.totalRows ?? 0})`
             }
 
@@ -2074,32 +2786,47 @@ export default function Products() {
           ============================================= */}
 
       <Snackbar
+
         open={
           message !== ""
         }
+
         autoHideDuration={9000}
+
         onClose={
           () =>
             setMessage("")
         }
+
         anchorOrigin={{
+
           vertical: "bottom",
+
           horizontal: "center"
+
         }}
+
       >
 
         <Alert
+
           severity={
             messageType
           }
+
           variant="filled"
+
           onClose={
             () =>
               setMessage("")
           }
+
           sx={{
+
             width: "100%"
+
           }}
+
         >
 
           {message}
