@@ -118,6 +118,10 @@ const COIL_TEMPLATES = [
     image: "/templates/formato2/d900-formato2.png"
   },
   {
+    name: "MICROTUBE BOBINAS",
+    image: "/templates/formato2/micro-formato2.png"
+  },
+  {
     name: "TAL DRIP GEN2 BOBINAS",
     image: "/templates/formato2/taldrip-gen2-formato2.png"
   },
@@ -130,6 +134,161 @@ const COIL_TEMPLATES = [
     image: "/templates/formato2/turboexcel-formato2.png"
   }
 ];
+
+
+/*
+ * ==================================================
+ * MICROTUBE BOBINAS - LÓGICA DE CANTIDAD
+ * ==================================================
+ */
+
+function isMicrotubeCoilTemplateName(
+  templateName: string
+): boolean {
+
+  const name =
+    String(
+      templateName ?? ""
+    )
+      .trim()
+      .toUpperCase();
+
+
+  return (
+    (
+      name.includes(
+        "MICROTUBE"
+      )
+      ||
+      name.includes(
+        "MICRO TUBE"
+      )
+    )
+    &&
+    name.includes(
+      "BOBIN"
+    )
+  );
+
+}
+
+
+/*
+ * ==================================================
+ * CANTIDAD MICROTUBE
+ * ==================================================
+ *
+ * CUT:
+ *
+ * Quantity: 2.500 unit
+ *
+ * BOBINA:
+ *
+ * -500m
+ * Quantity: 500m
+ *
+ * -300m
+ * Quantity: 300m
+ *
+ * -250m
+ * Quantity: 250m
+ */
+
+function getMicrotubeQuantityText(
+  description: string
+): string {
+
+  const normalized =
+    String(
+      description ?? ""
+    )
+      .trim()
+      .toUpperCase();
+
+
+  /*
+   * CUT
+   */
+
+  if (
+    /\bCUT\b/.test(
+      normalized
+    )
+  ) {
+
+    return "Quantity: 2.500 unit";
+
+  }
+
+
+  /*
+   * Longitudes que llevan M.
+   *
+   * Ejemplos:
+   *
+   * -500m
+   * -300m
+   * -250m
+   */
+
+  const lengthMatches = [
+    ...normalized.matchAll(
+      /(\d+(?:[.,]\d+)?)\s*M\b/g
+    )
+  ];
+
+
+  if (
+    lengthMatches.length > 0
+  ) {
+
+    const last =
+      lengthMatches[
+        lengthMatches.length - 1
+      ];
+
+
+    return (
+      `Quantity: ${last[1].replace(
+        ",",
+        "."
+      )}m`
+    );
+
+  }
+
+
+  /*
+   * Compatibilidad con productos antiguos:
+   *
+   * -500
+   * -300
+   * -250
+   */
+
+  const trailingNumber =
+    normalized.match(
+      /(?:^|\s|-)(\d+(?:[.,]\d+)?)\s*$/
+    );
+
+
+  if (
+    trailingNumber
+  ) {
+
+    return (
+      `Quantity: ${trailingNumber[1].replace(
+        ",",
+        "."
+      )}m`
+    );
+
+  }
+
+
+  return "";
+
+}
 
 
 export default function Templates() {
@@ -255,7 +414,8 @@ export default function Templates() {
 
   const isAmnonFormat1 =
     selectedTemplate?.labelFormat ===
-      "FORMATO_1" &&
+      "FORMATO_1"
+    &&
     selectedName ===
       "AMNON";
 
@@ -263,6 +423,80 @@ export default function Templates() {
   const isFormat2 =
     selectedTemplate?.labelFormat ===
     "FORMATO_2";
+
+
+  const isMicrotubeFormat2 =
+    isFormat2
+    &&
+    isMicrotubeCoilTemplateName(
+      selectedName
+    );
+
+
+  /*
+   * ==================================================
+   * DATOS DE PRUEBA SEGÚN PLANTILLA
+   * ==================================================
+   */
+
+  function loadTestDataForTemplate(
+    template: Template
+  ) {
+
+    if (
+      template.labelFormat !==
+      "FORMATO_2"
+    ) {
+
+      return;
+
+    }
+
+
+    /*
+     * MICROTUBE BOBINAS
+     */
+
+    if (
+      isMicrotubeCoilTemplateName(
+        template.name
+      )
+    ) {
+
+      const testSku =
+        "101106114";
+
+
+      const testDescription =
+        "MICRO TUBE PES 3.2X4.9 -500m";
+
+
+      setLabelData(
+        prev => ({
+          ...prev,
+
+          SKU:
+            testSku,
+
+          COIL_DESCRIPTION:
+            testDescription,
+
+          COIL_TECHNICAL:
+            getMicrotubeQuantityText(
+              testDescription
+            ),
+
+          BARCODE:
+            testSku,
+
+          QR:
+            testSku
+        })
+      );
+
+    }
+
+  }
 
 
   /*
@@ -287,7 +521,8 @@ export default function Templates() {
 
 
     if (
-      current !== null &&
+      current !== null
+      &&
       loaded.some(
         template =>
           Number(
@@ -326,6 +561,11 @@ export default function Templates() {
               ...element
             })
           )
+        );
+
+
+        loadTestDataForTemplate(
+          template
         );
 
       }
@@ -530,6 +770,18 @@ export default function Templates() {
           ...element
         })
       )
+    );
+
+
+    /*
+     * Muy importante:
+     *
+     * al cambiar de plantilla también cambiamos
+     * los datos de prueba.
+     */
+
+    loadTestDataForTemplate(
+      template
     );
 
   }
@@ -782,6 +1034,11 @@ export default function Templates() {
     );
 
 
+    loadTestDataForTemplate(
+      updated
+    );
+
+
     alert(
       `Diseño de bobinas aplicado correctamente a "${updated.name}".`
     );
@@ -839,7 +1096,9 @@ export default function Templates() {
     );
 
 
-    setElements([]);
+    setElements(
+      []
+    );
 
 
     setSelected(
@@ -930,7 +1189,8 @@ export default function Templates() {
 
 
     if (
-      image &&
+      image
+      &&
       !image.startsWith(
         "/"
       )
@@ -982,11 +1242,18 @@ export default function Templates() {
     );
 
 
-    setElements([]);
+    setElements(
+      []
+    );
 
 
     setSelected(
       null
+    );
+
+
+    loadTestDataForTemplate(
+      newTemplate
     );
 
 
@@ -1468,42 +1735,27 @@ export default function Templates() {
          ================================================== */}
 
       <Box
-
         sx={{
-
           mb: 4,
-
           display: "flex",
-
           alignItems: "center",
-
           gap: 2
-
         }}
-
       >
 
         <LabelIcon
-
           sx={{
-
             fontSize: 46,
-
             color: "#0B7A3B"
-
           }}
-
         />
 
 
         <Box>
 
           <Typography
-
             variant="h4"
-
             fontWeight={700}
-
           >
 
             Plantillas
@@ -1512,15 +1764,10 @@ export default function Templates() {
 
 
           <Typography
-
             color="text.secondary"
-
             sx={{
-
               mt: 0.5
-
             }}
-
           >
 
             Diseño y configuración de etiquetas de rollos y bobinas
@@ -1533,13 +1780,9 @@ export default function Templates() {
 
 
       <Card
-
         sx={{
-
           mb: 3
-
         }}
-
       >
 
         <CardContent>
@@ -1549,11 +1792,8 @@ export default function Templates() {
           >
 
             <Typography
-
               variant="h6"
-
               fontWeight="bold"
-
             >
 
               Plantilla
@@ -1562,33 +1802,21 @@ export default function Templates() {
 
 
             <Stack
-
               direction={{
-
                 xs: "column",
-
                 md: "row"
-
               }}
-
               spacing={2}
-
               flexWrap="wrap"
-
               useFlexGap
-
             >
 
               <TextField
-
                 select
-
                 label="Seleccionar plantilla"
-
                 value={
                   selectedTemplateId
                 }
-
                 onChange={
                   event => {
 
@@ -1600,28 +1828,21 @@ export default function Templates() {
 
                   }
                 }
-
                 sx={{
-
                   minWidth: 300
-
                 }}
-
               >
 
                 {templates.map(
                   template => (
 
                     <MenuItem
-
                       key={
                         template.id
                       }
-
                       value={
                         template.id
                       }
-
                     >
 
                       {template.name}
@@ -1646,17 +1867,13 @@ export default function Templates() {
 
 
               <Button
-
                 variant="outlined"
-
                 startIcon={
                   <AddIcon />
                 }
-
                 onClick={
                   openNewTemplateDialog
                 }
-
               >
 
                 Nueva plantilla
@@ -1665,21 +1882,16 @@ export default function Templates() {
 
 
               <Button
-
                 variant="contained"
-
                 startIcon={
                   <SaveIcon />
                 }
-
                 disabled={
                   !selectedTemplate
                 }
-
                 onClick={
                   saveCurrentTemplate
                 }
-
               >
 
                 Guardar plantilla
@@ -1690,19 +1902,14 @@ export default function Templates() {
               {isAmnonFormat1 && (
 
                 <Button
-
                   variant="contained"
-
                   color="secondary"
-
                   startIcon={
                     <AutoFixHighIcon />
                   }
-
                   onClick={
                     applyAmnonLayout
                   }
-
                 >
 
                   Aplicar diseño AMNON
@@ -1715,19 +1922,14 @@ export default function Templates() {
               {isFormat2 && (
 
                 <Button
-
                   variant="contained"
-
                   color="secondary"
-
                   startIcon={
                     <AutoFixHighIcon />
                   }
-
                   onClick={
                     applyFormat2Layout
                   }
-
                 >
 
                   Aplicar diseño bobinas
@@ -1738,23 +1940,17 @@ export default function Templates() {
 
 
               <Button
-
                 variant="outlined"
-
                 color="error"
-
                 startIcon={
                   <DeleteIcon />
                 }
-
                 disabled={
                   !selectedTemplate
                 }
-
                 onClick={
                   removeCurrentTemplate
                 }
-
               >
 
                 Eliminar plantilla
@@ -1768,35 +1964,23 @@ export default function Templates() {
 
 
             <Stack
-
               direction={{
-
                 xs: "column",
-
                 md: "row"
-
               }}
-
               spacing={2}
-
               flexWrap="wrap"
-
               useFlexGap
-
             >
 
               <Button
-
                 variant="outlined"
-
                 startIcon={
                   <AddIcon />
                 }
-
                 onClick={
                   createAllRollTemplates
                 }
-
               >
 
                 Crear / actualizar rollos
@@ -1805,17 +1989,13 @@ export default function Templates() {
 
 
               <Button
-
                 variant="contained"
-
                 startIcon={
                   <AddIcon />
                 }
-
                 onClick={
                   createAllCoilTemplates
                 }
-
               >
 
                 Crear / actualizar bobinas
@@ -1828,52 +2008,36 @@ export default function Templates() {
             {selectedTemplate && (
 
               <Stack
-
                 direction="row"
-
                 spacing={1}
-
                 alignItems="center"
-
                 flexWrap="wrap"
-
                 useFlexGap
-
               >
 
                 <Chip
-
                   label={
-
                     selectedTemplate.labelFormat ===
                     "FORMATO_2"
 
                       ? "FORMATO 2 · BOBINAS · 240 × 110 mm"
 
                       : "FORMATO 1 · ROLLOS · 80 × 285 mm"
-
                   }
-
                   color={
-
                     selectedTemplate.labelFormat ===
                     "FORMATO_2"
 
                       ? "secondary"
 
                       : "primary"
-
                   }
-
                 />
 
 
                 <Typography
-
                   variant="body2"
-
                   color="text.secondary"
-
                 >
 
                   Fondo:{" "}
@@ -1907,29 +2071,19 @@ export default function Templates() {
       {selectedTemplate && (
 
         <Card
-
           sx={{
-
             mb: 3
-
           }}
-
         >
 
           <CardContent>
 
             <Typography
-
               variant="h6"
-
               fontWeight="bold"
-
               sx={{
-
                 mb: 2
-
               }}
-
             >
 
               Datos de prueba
@@ -1938,33 +2092,22 @@ export default function Templates() {
 
 
             <Grid
-
               container
-
               spacing={2}
-
             >
 
               <Grid
-
                 size={{
-
                   xs: 12,
-
                   md: 4
-
                 }}
-
               >
 
                 <TextField
-
                   label="Orden SAP"
-
                   value={
                     labelData.ORDER
                   }
-
                   onChange={
                     event =>
                       updateLabel(
@@ -1972,34 +2115,24 @@ export default function Templates() {
                         event.target.value
                       )
                   }
-
                   fullWidth
-
                 />
 
               </Grid>
 
 
               <Grid
-
                 size={{
-
                   xs: 12,
-
                   md: 4
-
                 }}
-
               >
 
                 <TextField
-
                   label="SKU"
-
                   value={
                     labelData.SKU
                   }
-
                   onChange={
                     event =>
                       updateLabel(
@@ -2007,9 +2140,7 @@ export default function Templates() {
                         event.target.value
                       )
                   }
-
                   fullWidth
-
                 />
 
               </Grid>
@@ -2020,25 +2151,17 @@ export default function Templates() {
                 <>
 
                   <Grid
-
                     size={{
-
                       xs: 12,
-
                       md: 4
-
                     }}
-
                   >
 
                     <TextField
-
                       label="Descripción"
-
                       value={
                         labelData.DESCRIPTION
                       }
-
                       onChange={
                         event =>
                           updateLabel(
@@ -2046,32 +2169,23 @@ export default function Templates() {
                             event.target.value
                           )
                       }
-
                       fullWidth
-
                     />
 
                   </Grid>
 
 
                   <Grid
-
                     size={{
-
                       xs: 12
-
                     }}
-
                   >
 
                     <TextField
-
                       label="Texto superior (180°)"
-
                       value={
                         labelData.UPPER_TEXT
                       }
-
                       onChange={
                         event =>
                           updateLabel(
@@ -2079,15 +2193,10 @@ export default function Templates() {
                             event.target.value
                           )
                       }
-
                       multiline
-
                       minRows={5}
-
                       fullWidth
-
                       helperText="En Producción se genera automáticamente según la plantilla y las características del SKU."
-
                     />
 
                   </Grid>
@@ -2102,58 +2211,86 @@ export default function Templates() {
                 <>
 
                   <Grid
-
                     size={{
-
                       xs: 12,
-
                       md: 4
-
                     }}
-
                   >
 
                     <TextField
-
                       label="Descripción SKU"
-
                       value={
                         labelData.COIL_DESCRIPTION
                       }
-
                       onChange={
-                        event =>
+                        event => {
+
+                          const value =
+                            event.target.value;
+
+
+                          /*
+                           * MICROTUBE:
+                           *
+                           * Cuando modificamos la descripción,
+                           * Quantity se recalcula
+                           * automáticamente.
+                           */
+
+                          if (
+                            isMicrotubeFormat2
+                          ) {
+
+                            setLabelData(
+                              prev => ({
+
+                                ...prev,
+
+                                COIL_DESCRIPTION:
+                                  value,
+
+                                COIL_TECHNICAL:
+                                  getMicrotubeQuantityText(
+                                    value
+                                  )
+
+                              })
+                            );
+
+
+                            return;
+
+                          }
+
+
                           updateLabel(
                             "COIL_DESCRIPTION",
-                            event.target.value
-                          )
+                            value
+                          );
+
+                        }
                       }
-
                       fullWidth
-
                     />
 
                   </Grid>
 
 
                   <Grid
-
                     size={{
-
                       xs: 12
-
                     }}
-
                   >
 
                     <TextField
-
-                      label="Información técnica de bobina"
-
+                      label={
+                        isMicrotubeFormat2
+                          ? "Quantity"
+                          : "Información técnica de bobina"
+                      }
                       value={
                         labelData.COIL_TECHNICAL
                       }
-
                       onChange={
                         event =>
                           updateLabel(
@@ -2161,40 +2298,37 @@ export default function Templates() {
                             event.target.value
                           )
                       }
-
-                      multiline
-
-                      minRows={4}
-
+                      multiline={
+                        !isMicrotubeFormat2
+                      }
+                      minRows={
+                        isMicrotubeFormat2
+                          ? 1
+                          : 4
+                      }
                       fullWidth
-
-                      helperText="En Producción se genera automáticamente a partir de los datos del SKU."
-
+                      helperText={
+                        isMicrotubeFormat2
+                          ? "MicroTube: metros → Quantity: 500m / CUT → Quantity: 2.500 unit."
+                          : "En Producción se genera automáticamente a partir de los datos del SKU."
+                      }
                     />
 
                   </Grid>
 
 
                   <Grid
-
                     size={{
-
                       xs: 12,
-
                       md: 7
-
                     }}
-
                   >
 
                     <TextField
-
                       label="Texto técnico inferior"
-
                       value={
                         labelData.COIL_LEGAL
                       }
-
                       onChange={
                         event =>
                           updateLabel(
@@ -2202,38 +2336,26 @@ export default function Templates() {
                             event.target.value
                           )
                       }
-
                       multiline
-
                       minRows={3}
-
                       fullWidth
-
                     />
 
                   </Grid>
 
 
                   <Grid
-
                     size={{
-
                       xs: 12,
-
                       md: 5
-
                     }}
-
                   >
 
                     <TextField
-
                       label="Origen / planta"
-
                       value={
                         labelData.COIL_ORIGIN
                       }
-
                       onChange={
                         event =>
                           updateLabel(
@@ -2241,13 +2363,9 @@ export default function Templates() {
                             event.target.value
                           )
                       }
-
                       multiline
-
                       minRows={3}
-
                       fullWidth
-
                     />
 
                   </Grid>
@@ -2258,25 +2376,17 @@ export default function Templates() {
 
 
               <Grid
-
                 size={{
-
                   xs: 12,
-
                   md: 4
-
                 }}
-
               >
 
                 <TextField
-
                   label="Código de barras"
-
                   value={
                     labelData.BARCODE
                   }
-
                   onChange={
                     event =>
                       updateLabel(
@@ -2284,34 +2394,24 @@ export default function Templates() {
                         event.target.value
                       )
                   }
-
                   fullWidth
-
                 />
 
               </Grid>
 
 
               <Grid
-
                 size={{
-
                   xs: 12,
-
                   md: 4
-
                 }}
-
               >
 
                 <TextField
-
                   label="QR"
-
                   value={
                     labelData.QR
                   }
-
                   onChange={
                     event =>
                       updateLabel(
@@ -2319,34 +2419,24 @@ export default function Templates() {
                         event.target.value
                       )
                   }
-
                   fullWidth
-
                 />
 
               </Grid>
 
 
               <Grid
-
                 size={{
-
                   xs: 12,
-
                   md: 4
-
                 }}
-
               >
 
                 <TextField
-
                   label="Fecha"
-
                   value={
                     labelData.DATE
                   }
-
                   onChange={
                     event =>
                       updateLabel(
@@ -2354,34 +2444,24 @@ export default function Templates() {
                         event.target.value
                       )
                   }
-
                   fullWidth
-
                 />
 
               </Grid>
 
 
               <Grid
-
                 size={{
-
                   xs: 12,
-
                   md: 4
-
                 }}
-
               >
 
                 <TextField
-
                   label="Lote"
-
                   value={
                     labelData.LOT
                   }
-
                   onChange={
                     event =>
                       updateLabel(
@@ -2389,34 +2469,24 @@ export default function Templates() {
                         event.target.value
                       )
                   }
-
                   fullWidth
-
                 />
 
               </Grid>
 
 
               <Grid
-
                 size={{
-
                   xs: 12,
-
                   md: 4
-
                 }}
-
               >
 
                 <TextField
-
                   label="Bobina"
-
                   value={
                     labelData.COIL
                   }
-
                   onChange={
                     event =>
                       updateLabel(
@@ -2424,34 +2494,24 @@ export default function Templates() {
                         event.target.value
                       )
                   }
-
                   fullWidth
-
                 />
 
               </Grid>
 
 
               <Grid
-
                 size={{
-
                   xs: 12,
-
                   md: 4
-
                 }}
-
               >
 
                 <TextField
-
                   label="Rollos / bobinas"
-
                   value={
                     labelData.ROLLS
                   }
-
                   onChange={
                     event =>
                       updateLabel(
@@ -2459,9 +2519,7 @@ export default function Templates() {
                         event.target.value
                       )
                   }
-
                   fullWidth
-
                 />
 
               </Grid>
@@ -2484,13 +2542,9 @@ export default function Templates() {
         <>
 
           <Card
-
             sx={{
-
               mb: 2
-
             }}
-
           >
 
             <CardContent>
@@ -2500,11 +2554,8 @@ export default function Templates() {
               >
 
                 <Typography
-
                   variant="h6"
-
                   fontWeight="bold"
-
                 >
 
                   Diseñador
@@ -2513,11 +2564,8 @@ export default function Templates() {
 
 
                 <Typography
-
                   variant="body2"
-
                   color="text.secondary"
-
                 >
 
                   Los elementos dinámicos se colocan sobre la imagen base de la etiqueta.
@@ -2526,39 +2574,32 @@ export default function Templates() {
 
 
                 <DesignerToolbar
-
                   onSave={
                     saveCurrentTemplate
                   }
-
                   onText={
                     triggerText
                   }
-
                   onOrder={() =>
                     triggerField(
                       "ORDER"
                     )
                   }
-
                   onLot={() =>
                     triggerField(
                       "LOT"
                     )
                   }
-
                   onCoil={() =>
                     triggerField(
                       "COIL"
                     )
                   }
-
                   onSKU={() =>
                     triggerField(
                       "SKU"
                     )
                   }
-
                   onDescription={() =>
                     triggerField(
                       isFormat2
@@ -2566,7 +2607,6 @@ export default function Templates() {
                         : "DESCRIPTION"
                     )
                   }
-
                   onUpperText={() =>
                     triggerField(
                       isFormat2
@@ -2574,37 +2614,29 @@ export default function Templates() {
                         : "UPPER_TEXT"
                     )
                   }
-
                   onBarcode={() =>
                     triggerField(
                       "BARCODE"
                     )
                   }
-
                   onQR={() =>
                     triggerField(
                       "QR"
                     )
                   }
-
                   onLogo={() =>
                     triggerField(
                       "LOGO"
                     )
                   }
-
                   onDuplicate={
                     duplicateSelected
                   }
-
                   onDelete={
                     deleteSelected
                   }
-
                   onUndo={() => {}}
-
                   onRedo={() => {}}
-
                   onZoomIn={() =>
                     setZoom(
                       current =>
@@ -2614,7 +2646,6 @@ export default function Templates() {
                         )
                     )
                   }
-
                   onZoomOut={() =>
                     setZoom(
                       current =>
@@ -2624,20 +2655,15 @@ export default function Templates() {
                         )
                     )
                   }
-
                   canDelete={
                     selected !== null
                   }
-
                 />
 
 
                 <Typography
-
                   variant="caption"
-
                   color="text.secondary"
-
                 >
 
                   Zoom: {zoom}%
@@ -2652,23 +2678,15 @@ export default function Templates() {
 
 
           <Grid
-
             container
-
             spacing={2}
-
           >
 
             <Grid
-
               size={{
-
                 xs: 12,
-
                 lg: 8
-
               }}
-
             >
 
               <Card>
@@ -2676,41 +2694,29 @@ export default function Templates() {
                 <CardContent>
 
                   <Box
-
                     sx={{
-
                       overflow: "auto",
-
                       backgroundColor: "#eeeeee",
-
                       p: 2
-
                     }}
-
                   >
 
                     <Canvas
-
                       addText={
                         addText
                       }
-
                       insertField={
                         insertField
                       }
-
                       zoom={
                         zoom
                       }
-
                       backgroundImage={
                         selectedTemplate.backgroundImage
                       }
-
                       labelFormat={
                         selectedTemplate.labelFormat
                       }
-
                     />
 
                   </Box>
@@ -2723,15 +2729,10 @@ export default function Templates() {
 
 
             <Grid
-
               size={{
-
                 xs: 12,
-
                 lg: 4
-
               }}
-
             >
 
               <PropertyPanel />
@@ -2750,21 +2751,16 @@ export default function Templates() {
          ================================================== */}
 
       <Dialog
-
         open={
           newTemplateOpen
         }
-
         onClose={() =>
           setNewTemplateOpen(
             false
           )
         }
-
         fullWidth
-
         maxWidth="sm"
-
       >
 
         <DialogTitle>
@@ -2777,51 +2773,35 @@ export default function Templates() {
         <DialogContent>
 
           <Stack
-
             spacing={2}
-
             sx={{
-
               mt: 1
-
             }}
-
           >
 
             <TextField
-
               label="Nombre de la plantilla"
-
               value={
                 newTemplateName
               }
-
               onChange={
                 event =>
                   setNewTemplateName(
                     event.target.value
                   )
               }
-
               placeholder="Ejemplo: NUEVO PRODUCTO"
-
               autoFocus
-
               fullWidth
-
             />
 
 
             <TextField
-
               select
-
               label="Formato"
-
               value={
                 newTemplateFormat
               }
-
               onChange={
                 event =>
                   setNewTemplateFormat(
@@ -2829,9 +2809,7 @@ export default function Templates() {
                       LabelFormat
                   )
               }
-
               fullWidth
-
             >
 
               <MenuItem
@@ -2855,26 +2833,19 @@ export default function Templates() {
 
 
             <TextField
-
               label="Imagen de fondo"
-
               value={
                 newTemplateImage
               }
-
               onChange={
                 event =>
                   setNewTemplateImage(
                     event.target.value
                   )
               }
-
               placeholder="formato2/ejemplo-formato2.png"
-
               helperText="La imagen debe estar guardada dentro de public/templates."
-
               fullWidth
-
             />
 
           </Stack>
@@ -2885,13 +2856,11 @@ export default function Templates() {
         <DialogActions>
 
           <Button
-
             onClick={() =>
               setNewTemplateOpen(
                 false
               )
             }
-
           >
 
             Cancelar
@@ -2900,17 +2869,13 @@ export default function Templates() {
 
 
           <Button
-
             variant="contained"
-
             startIcon={
               <AddIcon />
             }
-
             onClick={
               createNewTemplate
             }
-
           >
 
             Crear plantilla

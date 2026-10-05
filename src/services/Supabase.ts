@@ -3,11 +3,11 @@ import {
 } from "@supabase/supabase-js";
 
 
-const supabaseUrl =
+export const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL;
 
 
-const supabasePublishableKey =
+export const supabasePublishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 

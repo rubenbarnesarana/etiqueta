@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState
 } from "react";
 
@@ -17,6 +18,7 @@ import {
   acquireSupabaseUserSession,
   loginSupabaseUser,
   releaseSupabaseUserSession,
+  releaseSupabaseUserSessionOnClose,
   touchSupabaseUserSession
 } from "../services/SupabaseUserService";
 
@@ -55,12 +57,6 @@ interface Props {
 }
 
 
-/*
- * ==================================================
- * DATOS DE SESIÓN LOCAL
- * ==================================================
- */
-
 const SESSION_TOKEN_KEY =
   "rivulisAppSessionToken";
 
@@ -69,12 +65,6 @@ const SESSION_USER_KEY =
   "rivulisAppSessionUserId";
 
 
-/*
- * Heartbeat cada minuto.
- *
- * En Supabase una sesión se considera abandonada
- * después de 3 minutos sin heartbeat.
- */
 const SESSION_HEARTBEAT_MS =
   60 * 1000;
 
@@ -135,6 +125,12 @@ export function AuthProvider({
   );
 
 
+  const closingSessionRef =
+    useRef(
+      false
+    );
+
+
   /*
    * ==================================================
    * LOGIN
@@ -142,19 +138,11 @@ export function AuthProvider({
    */
 
   async function login(
-
     username: string,
-
     password: string
-
   ): Promise<LoginResult> {
 
-
     try {
-
-      /*
-       * Primero comprobamos usuario y contraseña.
-       */
 
       const found =
         await loginSupabaseUser(
@@ -162,10 +150,6 @@ export function AuthProvider({
           password
         );
 
-
-      /*
-       * Credenciales incorrectas.
-       */
 
       if (
         !found
@@ -175,12 +159,6 @@ export function AuthProvider({
 
       }
 
-
-      /*
-       * ==================================================
-       * TOKEN DEL NAVEGADOR
-       * ==================================================
-       */
 
       const storedUserId =
         sessionStorage.getItem(
@@ -194,14 +172,6 @@ export function AuthProvider({
         );
 
 
-      /*
-       * Si este mismo navegador ya tenía un token
-       * para este usuario, lo reutilizamos.
-       *
-       * Esto evita que una recarga de página
-       * pueda bloquear la propia sesión.
-       */
-
       const sessionToken =
         storedUserId ===
           found.id &&
@@ -210,23 +180,12 @@ export function AuthProvider({
           : createSessionToken();
 
 
-      /*
-       * ==================================================
-       * RESERVAR SESIÓN EN SUPABASE
-       * ==================================================
-       */
-
       const acquired =
         await acquireSupabaseUserSession(
           found.id,
           sessionToken
         );
 
-
-      /*
-       * El usuario ya está conectado
-       * desde otro ordenador/navegador.
-       */
 
       if (
         !acquired
@@ -236,11 +195,6 @@ export function AuthProvider({
 
       }
 
-
-      /*
-       * Guardamos el token únicamente
-       * durante esta sesión del navegador.
-       */
 
       sessionStorage.setItem(
         SESSION_TOKEN_KEY,
@@ -254,9 +208,9 @@ export function AuthProvider({
       );
 
 
-      /*
-       * Login correcto.
-       */
+      closingSessionRef.current =
+        false;
+
 
       setUser(
         found
@@ -319,14 +273,9 @@ export function AuthProvider({
           );
 
 
-        /*
-         * Si faltan los datos de sesión locales,
-         * cerramos la sesión del programa.
-         */
-
         if (
           !sessionToken ||
-          sessionUserId !== user?.id
+          sessionUserId !== user.id
         ) {
 
           if (
@@ -354,11 +303,6 @@ export function AuthProvider({
             );
 
 
-          /*
-           * Si la sesión ha dejado de ser válida,
-           * cerramos este usuario localmente.
-           */
-
           if (
             !valid &&
             !disposed
@@ -385,11 +329,6 @@ export function AuthProvider({
           error
         ) {
 
-          /*
-           * Un fallo temporal de conexión
-           * no expulsa inmediatamente al usuario.
-           */
-
           console.error(
             "Error actualizando la sesión:",
             error
@@ -400,16 +339,8 @@ export function AuthProvider({
       }
 
 
-      /*
-       * Heartbeat inmediato.
-       */
-
       void heartbeat();
 
-
-      /*
-       * Después cada minuto.
-       */
 
       const interval =
         window.setInterval(
@@ -443,7 +374,121 @@ export function AuthProvider({
 
   /*
    * ==================================================
-   * LOGOUT
+   * CERRAR SESIÓN AL CERRAR PESTAÑA / VENTANA
+   * ==================================================
+   */
+
+  useEffect(
+    () => {
+
+      if (
+        !user
+      ) {
+
+        return;
+
+      }
+
+
+      function closeBrowserSession() {
+
+        if (
+          closingSessionRef.current
+        ) {
+
+          return;
+
+        }
+
+
+        const sessionToken =
+          sessionStorage.getItem(
+            SESSION_TOKEN_KEY
+          );
+
+
+        const sessionUserId =
+          sessionStorage.getItem(
+            SESSION_USER_KEY
+          );
+
+
+        if (
+          !sessionToken ||
+          sessionUserId !== user.id
+        ) {
+
+          return;
+
+        }
+
+
+        closingSessionRef.current =
+          true;
+
+
+        /*
+         * Esta función utiliza fetch keepalive.
+         *
+         * Es distinta del logout normal porque
+         * el navegador puede estar cerrando la página.
+         */
+
+        releaseSupabaseUserSessionOnClose(
+          user.id,
+          sessionToken
+        );
+
+
+        sessionStorage.removeItem(
+          SESSION_TOKEN_KEY
+        );
+
+
+        sessionStorage.removeItem(
+          SESSION_USER_KEY
+        );
+
+      }
+
+
+      window.addEventListener(
+        "pagehide",
+        closeBrowserSession
+      );
+
+
+      window.addEventListener(
+        "beforeunload",
+        closeBrowserSession
+      );
+
+
+      return () => {
+
+        window.removeEventListener(
+          "pagehide",
+          closeBrowserSession
+        );
+
+
+        window.removeEventListener(
+          "beforeunload",
+          closeBrowserSession
+        );
+
+      };
+
+    },
+    [
+      user
+    ]
+  );
+
+
+  /*
+   * ==================================================
+   * LOGOUT MANUAL
    * ==================================================
    */
 
@@ -467,7 +512,7 @@ export function AuthProvider({
 
     /*
      * Cerramos inmediatamente
-     * la sesión en pantalla.
+     * la aplicación en pantalla.
      */
 
     setUser(
@@ -475,9 +520,9 @@ export function AuthProvider({
     );
 
 
-    /*
-     * Eliminamos los datos locales.
-     */
+    closingSessionRef.current =
+      true;
+
 
     sessionStorage.removeItem(
       SESSION_TOKEN_KEY
@@ -490,7 +535,9 @@ export function AuthProvider({
 
 
     /*
-     * Liberamos la sesión de Supabase.
+     * Al pulsar el botón sí podemos utilizar
+     * la llamada normal y esperar que Supabase
+     * procese la liberación.
      */
 
     if (

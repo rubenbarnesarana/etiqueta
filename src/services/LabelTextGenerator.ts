@@ -6,7 +6,6 @@ import type {
   Template
 } from "./TemplateStorage";
 
-
 /*
  * ==================================================
  * CONVERSIÓN ESPESOR MIL -> MM
@@ -16,15 +15,12 @@ import type {
 
 const THICKNESS_MM:
   Record<number, string> = {
-
   35: "0.9",
   40: "1",
   43: "1.1",
   45: "1.15",
   47: "1.2"
-
 };
-
 
 /*
  * ==================================================
@@ -38,7 +34,6 @@ const THICKNESS_MM:
 
 const COIL_MAX_PRESSURE:
   Record<string, string> = {
-
   "16/6": "1",
   "16/8": "1.2",
   "16/10": "1.4",
@@ -58,9 +53,7 @@ const COIL_MAX_PRESSURE:
   "22/13": "1.5",
   "22/18": "2",
   "22/25": "2.2"
-
 };
-
 
 /*
  * ==================================================
@@ -71,7 +64,6 @@ const COIL_MAX_PRESSURE:
 function getNumber(
   value: string
 ): number | null {
-
   const match =
     String(
       value ?? ""
@@ -84,26 +76,21 @@ function getNumber(
         /\d+(?:\.\d+)?/
       );
 
-
   if (!match) {
     return null;
   }
-
 
   const number =
     Number(
       match[0]
     );
 
-
   return Number.isNaN(
     number
   )
     ? null
     : number;
-
 }
-
 
 /*
  * ==================================================
@@ -114,21 +101,17 @@ function getNumber(
 function cleanDiameter(
   value: string
 ): string {
-
   const number =
     getNumber(
       value
     );
-
 
   return number === null
     ? value.trim()
     : String(
         number
       );
-
 }
-
 
 /*
  * ==================================================
@@ -139,24 +122,19 @@ function cleanDiameter(
 function cleanFlow(
   value: string
 ): string {
-
   const number =
     getNumber(
       value
     );
 
-
   if (number === null) {
     return value.trim();
   }
 
-
   return String(
     number
   );
-
 }
-
 
 /*
  * ==================================================
@@ -167,13 +145,10 @@ function cleanFlow(
 function cleanThickness(
   value: string
 ): number | null {
-
   return getNumber(
     value
   );
-
 }
-
 
 /*
  * ==================================================
@@ -184,38 +159,29 @@ function cleanThickness(
 function formatSpacing(
   value: string
 ): string {
-
   const number =
     getNumber(
       value
     );
 
-
   if (number === null) {
-
     return value
       .trim()
       .toUpperCase();
-
   }
-
 
   const centimeters =
     number <= 2
       ? number * 100
       : number;
 
-
   const rounded =
     Math.round(
       centimeters * 100
     ) / 100;
 
-
   return `${rounded}CM`;
-
 }
-
 
 /*
  * ==================================================
@@ -227,36 +193,29 @@ function formatSpacing(
 function getSpacingNumber(
   value: string
 ): string {
-
   const number =
     getNumber(
       value
     );
 
-
   if (number === null) {
     return "";
   }
-
 
   const centimeters =
     number <= 2
       ? number * 100
       : number;
 
-
   const rounded =
     Math.round(
       centimeters * 100
     ) / 100;
 
-
   return String(
     rounded
   );
-
 }
-
 
 /*
  * ==================================================
@@ -268,32 +227,26 @@ function getSpacingNumber(
 function getRollLength(
   description: string
 ): string {
-
   const normalized =
     String(
       description ?? ""
     )
       .toUpperCase();
 
-
   const match =
     normalized.match(
       /\bR\s*-?\s*(\d+(?:[.,]\d+)?)\s*M\b/
     );
 
-
   if (!match) {
     return "";
   }
-
 
   return `R-${match[1].replace(
     ",",
     "."
   )}M`;
-
 }
-
 
 /*
  * ==================================================
@@ -315,14 +268,12 @@ function getRollLength(
 function getCoilLength(
   description: string
 ): string {
-
   const normalized =
     String(
       description ?? ""
     )
       .trim()
       .toUpperCase();
-
 
   /*
    * Primero buscamos B-XXXXM.
@@ -333,17 +284,13 @@ function getCoilLength(
       /\bB\s*-?\s*(\d+(?:[.,]\d+)?)\s*M\b/
     );
 
-
   if (explicit) {
-
     return explicit[1]
       .replace(
         ",",
         "."
       );
-
   }
-
 
   /*
    * Si no existe B-, buscamos una longitud
@@ -361,30 +308,23 @@ function getCoilLength(
       )
     ];
 
-
   if (
     matches.length === 0
   ) {
-
     return "";
-
   }
-
 
   const last =
     matches[
       matches.length - 1
     ];
 
-
   return last[1]
     .replace(
       ",",
       "."
     );
-
 }
-
 
 /*
  * ==================================================
@@ -395,7 +335,6 @@ function getCoilLength(
 function getTemplateFamily(
   templateName: string
 ): string {
-
   const name =
     String(
       templateName ?? ""
@@ -403,39 +342,29 @@ function getTemplateFamily(
       .trim()
       .toUpperCase();
 
-
   if (
     name.includes(
       "NAAN PC MAX"
     )
   ) {
-
     return "NAAN PC MAX";
-
   }
-
 
   if (
     name.includes(
       "NAAN PC"
     )
   ) {
-
     return "NAAN PC";
-
   }
-
 
   if (
     name.includes(
       "AMNON"
     )
   ) {
-
     return "AMNON";
-
   }
-
 
   if (
     name.includes(
@@ -445,22 +374,16 @@ function getTemplateFamily(
       "TOPDRIP"
     )
   ) {
-
     return "TOPDRIP";
-
   }
-
 
   if (
     name.includes(
       "TIFDRIP"
     )
   ) {
-
     return "TIFDRIP";
-
   }
-
 
   if (
     name.includes(
@@ -470,22 +393,16 @@ function getTemplateFamily(
       "TURBOEXCEL"
     )
   ) {
-
     return "TURBO EXCEL";
-
   }
-
 
   if (
     name.includes(
       "CHAPIN"
     )
   ) {
-
     return "CHAPIN";
-
   }
-
 
   if (
     name.includes(
@@ -495,49 +412,35 @@ function getTemplateFamily(
       "TALDRIP"
     )
   ) {
-
     return "TAL DRIP GEN2";
-
   }
-
 
   if (
     name.includes(
       "D900"
     )
   ) {
-
     return "D900";
-
   }
-
 
   if (
     name.includes(
       "MICROTUBE"
     )
   ) {
-
     return "MICROTUBE";
-
   }
-
 
   if (
     name.includes(
       "BLIND PIPE"
     )
   ) {
-
     return "BLIND PIPE";
-
   }
 
-
   return name;
-
 }
-
 
 /*
  * ==================================================
@@ -548,7 +451,6 @@ function getTemplateFamily(
 function getRegulationType(
   description: string
 ): "AS" | "ND" | null {
-
   const normalized =
     String(
       description ?? ""
@@ -556,33 +458,24 @@ function getRegulationType(
       .trim()
       .toUpperCase();
 
-
   if (
     /(^|\s)AS(?=\s|\/|$)/.test(
       normalized
     )
   ) {
-
     return "AS";
-
   }
-
 
   if (
     /(^|\s)ND(?=\s|\/|$)/.test(
       normalized
     )
   ) {
-
     return "ND";
-
   }
 
-
   return null;
-
 }
-
 
 /*
  * ==================================================
@@ -595,73 +488,53 @@ function getProductPrefix(
   templateName: string,
   description: string
 ): string {
-
   const family =
     getTemplateFamily(
       templateName
     );
-
 
   const regulation =
     getRegulationType(
       description
     );
 
-
   if (
     family ===
     "AMNON"
   ) {
-
     if (
       regulation ===
       "AS"
     ) {
-
       return "AMNON PC AS";
-
     }
-
 
     if (
       regulation ===
       "ND"
     ) {
-
       return "AMNON PC ND";
-
     }
 
-
     return "AMNON";
-
   }
-
 
   if (
     family ===
     "TOPDRIP"
   ) {
-
     if (
       regulation ===
       "AS"
     ) {
-
       return "TOPDRIP PC AS";
-
     }
 
-
     return "TOPDRIP";
-
   }
 
-
   return family;
-
 }
-
 
 /*
  * ==================================================
@@ -674,7 +547,6 @@ export function generateBottomDescription(
   product: Product,
   template: Template
 ): string {
-
   let description =
     String(
       product.description ?? ""
@@ -685,24 +557,20 @@ export function generateBottomDescription(
         " "
       );
 
-
   const family =
     getTemplateFamily(
       template.name
     );
 
-
   if (
     family ===
     "AMNON"
   ) {
-
     description =
       description.replace(
         /^AMNON\s+PC\s+(AS|ND)\s+/i,
         "$1 "
       );
-
 
     description =
       description.replace(
@@ -710,23 +578,18 @@ export function generateBottomDescription(
         "$1 "
       );
 
-
     return description;
-
   }
-
 
   if (
     family ===
     "TOPDRIP"
   ) {
-
     description =
       description.replace(
         /^TOP\s*DRIP\s+PC\s+(AS)\s+/i,
         "$1 "
       );
-
 
     description =
       description.replace(
@@ -734,16 +597,11 @@ export function generateBottomDescription(
         "$1 "
       );
 
-
     return description;
-
   }
 
-
   return description;
-
 }
-
 
 /*
  * ==================================================
@@ -757,21 +615,15 @@ function getMaxPressure(
     number |
     null
 ): string {
-
   if (
     thickness !== null &&
     thickness >= 40
   ) {
-
     return "3.5 BAR";
-
   }
 
-
   return "3 BAR";
-
 }
-
 
 /*
  * ==================================================
@@ -787,63 +639,47 @@ function buildSecondLine(
     null,
   rollLength: string
 ): string {
-
   const parts:
     string[] = [];
-
 
   if (
     spacing
   ) {
-
     parts.push(
       spacing
     );
-
   }
-
 
   if (
     thickness !== null &&
     thickness >= 35
   ) {
-
     const mm =
       THICKNESS_MM[
         thickness
       ];
 
-
     if (
       mm
     ) {
-
       parts.push(
         `E-${mm}MM`
       );
-
     }
-
   }
-
 
   if (
     rollLength
   ) {
-
     parts.push(
       rollLength
     );
-
   }
-
 
   return parts.join(
     " "
   );
-
 }
-
 
 /*
  * ==================================================
@@ -856,48 +692,40 @@ export function generateUpperText(
   product: Product,
   template: Template
 ): string {
-
   const prefix =
     getProductPrefix(
       template.name,
       product.description
     );
 
-
   const diameter =
     cleanDiameter(
       product.diameter
     );
-
 
   const flow =
     cleanFlow(
       product.flow
     );
 
-
   const thickness =
     cleanThickness(
       product.thickness
     );
-
 
   const spacing =
     formatSpacing(
       product.spacing
     );
 
-
   const rollLength =
     getRollLength(
       product.description
     );
 
-
   const firstLine =
     `${prefix} ${diameter}/${flow}`
       .trim();
-
 
   const secondLine =
     buildSecondLine(
@@ -906,25 +734,17 @@ export function generateUpperText(
       rollLength
     );
 
-
   const pressure =
     getMaxPressure(
       thickness
     );
 
-
   return [
-
     firstLine,
-
     secondLine,
-
     "Emitting Pipe",
-
     `Max Pressure ${pressure}`,
-
     "ISO 9261"
-
   ]
     .filter(
       line =>
@@ -933,9 +753,7 @@ export function generateUpperText(
     .join(
       "\n"
     );
-
 }
-
 
 /*
  * ==================================================
@@ -950,7 +768,6 @@ export function generateUpperText(
 export function generateCoilDescription(
   product: Product
 ): string {
-
   return String(
     product.description ?? ""
   )
@@ -959,9 +776,7 @@ export function generateCoilDescription(
       /\s+/g,
       " "
     );
-
 }
-
 
 /*
  * ==================================================
@@ -973,41 +788,32 @@ export function generateCoilDescription(
 export function getCoilMaxPressure(
   product: Product
 ): string {
-
   const diameter =
     getNumber(
       product.diameter
     );
-
 
   const thickness =
     getNumber(
       product.thickness
     );
 
-
   if (
     diameter === null ||
     thickness === null
   ) {
-
     return "";
-
   }
-
 
   const key =
     `${diameter}/${thickness}`;
-
 
   return (
     COIL_MAX_PRESSURE[
       key
     ] ?? ""
   );
-
 }
-
 
 /*
  * ==================================================
@@ -1023,13 +829,11 @@ function getCoilFlowPressure(
   template: Template,
   product: Product
 ): string {
-
   const templateName =
     String(
       template.name ?? ""
     )
       .toUpperCase();
-
 
   const description =
     String(
@@ -1037,13 +841,11 @@ function getCoilFlowPressure(
     )
       .toUpperCase();
 
-
   const dripper =
     String(
       product.dripper ?? ""
     )
       .toUpperCase();
-
 
   if (
     templateName.includes(
@@ -1056,16 +858,11 @@ function getCoilFlowPressure(
       "CHAPIN"
     )
   ) {
-
     return "0.7";
-
   }
 
-
   return "1";
-
 }
-
 
 /*
  * ==================================================
@@ -1078,12 +875,10 @@ function getCoilProductName(
   product: Product,
   template: Template
 ): string {
-
   const family =
     getTemplateFamily(
       template.name
     );
-
 
   /*
    * TURBO EXCEL
@@ -1095,11 +890,8 @@ function getCoilProductName(
     family ===
     "TURBO EXCEL"
   ) {
-
     return "EXCEL";
-
   }
-
 
   /*
    * CHAPIN STF
@@ -1109,11 +901,8 @@ function getCoilProductName(
     family ===
     "CHAPIN"
   ) {
-
     return "CHAPIN";
-
   }
-
 
   /*
    * TOP DRIP
@@ -1123,11 +912,8 @@ function getCoilProductName(
     family ===
     "TOPDRIP"
   ) {
-
     return "TOPDRIP";
-
   }
-
 
   /*
    * TAL DRIP
@@ -1137,11 +923,8 @@ function getCoilProductName(
     family ===
     "TAL DRIP GEN2"
   ) {
-
     return "TAL DRIP";
-
   }
-
 
   /*
    * D900
@@ -1151,11 +934,8 @@ function getCoilProductName(
     family ===
     "D900"
   ) {
-
     return "D900";
-
   }
-
 
   /*
    * AMNON
@@ -1165,11 +945,8 @@ function getCoilProductName(
     family ===
     "AMNON"
   ) {
-
     return "AMNON";
-
   }
-
 
   /*
    * Si no conocemos la familia,
@@ -1183,20 +960,14 @@ function getCoilProductName(
       .trim()
       .toUpperCase();
 
-
   if (
     dripper
   ) {
-
     return dripper;
-
   }
 
-
   return family;
-
 }
-
 
 /*
  * ==================================================
@@ -1212,10 +983,117 @@ function getCoilProductName(
  * Max Pressure 1.2 Bar
  */
 
+/*
+ * ==================================================
+ * CANTIDAD MICROTUBE
+ * FORMATO 2 / BOBINAS
+ * ==================================================
+ *
+ * Reglas:
+ *
+ * - Si la descripción contiene CUT:
+ *   Quantity: 2500 unit
+ *
+ * - En cualquier otro caso:
+ *   intentamos obtener la longitud de la bobina
+ *   y mostramos, por ejemplo:
+ *
+ *   Quantity: 500m
+ *   Quantity: 300m
+ *   Quantity: 250m
+ *
+ * También admitimos descripciones antiguas
+ * cuyo último valor es la longitud aunque no
+ * lleve explícitamente la letra M.
+ */
+
+function getMicrotubeCoilQuantity(
+  description: string
+): string {
+  const normalized =
+    String(
+      description ?? ""
+    )
+      .trim()
+      .toUpperCase();
+
+  if (
+    /\bCUT\b/.test(
+      normalized
+    )
+  ) {
+    return "Quantity: 2500 unit";
+  }
+
+  const explicitLength =
+    getCoilLength(
+      normalized
+    );
+
+  if (
+    explicitLength
+  ) {
+    return `Quantity: ${explicitLength}m`;
+  }
+
+  /*
+   * Ejemplo antiguo:
+   *
+   * MICROT. PE 4X7 500
+   *
+   * Si no existe una longitud terminada en M,
+   * utilizamos únicamente el último número
+   * de la descripción como longitud.
+   */
+
+  const trailingNumber =
+    normalized.match(
+      /(?:^|\s|-)(\d+(?:[.,]\d+)?)\s*$/
+    );
+
+  if (
+    trailingNumber
+  ) {
+    return `Quantity: ${trailingNumber[1].replace(
+      ",",
+      "."
+    )}m`;
+  }
+
+  return "";
+}
+
 export function generateCoilTechnicalText(
   product: Product,
   template: Template
 ): string {
+  /*
+   * ==================================================
+   * MICROTUBE BOBINAS
+   * ==================================================
+   *
+   * En esta plantilla el bloque técnico no utiliza
+   * la información estándar de tubería de goteo.
+   *
+   * Solamente mostramos la cantidad:
+   *
+   * CUT       -> Quantity: 2500 unit
+   * NO CUT    -> Quantity: XXXm
+   */
+
+  const family =
+    getTemplateFamily(
+      template.name
+    );
+
+  if (
+    family ===
+    "MICROTUBE"
+  ) {
+    return getMicrotubeCoilQuantity(
+      product.description
+    );
+  }
 
   const productName =
     getCoilProductName(
@@ -1223,36 +1101,30 @@ export function generateCoilTechnicalText(
       template
     );
 
-
   const diameter =
     cleanDiameter(
       product.diameter
     );
-
 
   const thickness =
     cleanThickness(
       product.thickness
     );
 
-
   const flow =
     cleanFlow(
       product.flow
     );
-
 
   const spacing =
     getSpacingNumber(
       product.spacing
     );
 
-
   const coilLength =
     getCoilLength(
       product.description
     );
-
 
   const flowPressure =
     getCoilFlowPressure(
@@ -1260,12 +1132,10 @@ export function generateCoilTechnicalText(
       product
     );
 
-
   const maxPressure =
     getCoilMaxPressure(
       product
     );
-
 
   /*
    * PRIMERA LÍNEA
@@ -1274,57 +1144,42 @@ export function generateCoilTechnicalText(
   const firstLineParts:
     string[] = [];
 
-
   if (
     productName
   ) {
-
     firstLineParts.push(
       productName
     );
-
   }
-
 
   if (
     diameter
   ) {
-
     if (
       thickness !== null
     ) {
-
       firstLineParts.push(
         `${diameter}/${thickness} MIL`
       );
-
     } else {
-
       firstLineParts.push(
         diameter
       );
-
     }
-
   }
-
 
   if (
     spacing
   ) {
-
     firstLineParts.push(
       `${spacing} CM`
     );
-
   }
-
 
   const firstLine =
     firstLineParts.join(
       " "
     );
-
 
   /*
    * SEGUNDA LÍNEA
@@ -1333,51 +1188,39 @@ export function generateCoilTechnicalText(
   const secondLineParts:
     string[] = [];
 
-
   if (
     flow
   ) {
-
     secondLineParts.push(
       `${flow} L/H at ${flowPressure} Bar`
     );
-
   }
-
 
   if (
     coilLength
   ) {
-
     secondLineParts.push(
       `B-${coilLength}M`
     );
-
   }
-
 
   const secondLine =
     secondLineParts.join(
       " - "
     );
 
-
   /*
    * RESULTADO
    */
 
   return [
-
     firstLine,
-
     secondLine,
-
     "EMITTING PIPE ISO 9261",
 
     maxPressure
       ? `Max Pressure ${maxPressure} Bar`
       : "Max Pressure"
-
   ]
     .filter(
       line =>
@@ -1386,9 +1229,7 @@ export function generateCoilTechnicalText(
     .join(
       "\n"
     );
-
 }
-
 
 /*
  * ==================================================
@@ -1401,11 +1242,9 @@ export function generateCoilTechnicalText(
 
 export function generateCoilLegalText():
   string {
-
   const year =
     new Date()
       .getFullYear();
-
 
   return [
     "Non reusable and non-compensated emitting pipe.",
@@ -1415,9 +1254,7 @@ export function generateCoilLegalText():
     .join(
       "\n"
     );
-
 }
-
 
 /*
  * ==================================================
@@ -1428,7 +1265,5 @@ export function generateCoilLegalText():
 
 export function generateCoilOriginText():
   string {
-
   return "MADE IN SPAIN     QI02";
-
 }

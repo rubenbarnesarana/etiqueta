@@ -1,7 +1,11 @@
-import type { User } from "../auth/User";
+import type {
+  User
+} from "../auth/User";
 
 import {
-  supabase
+  supabase,
+  supabasePublishableKey,
+  supabaseUrl
 } from "./Supabase";
 
 
@@ -13,7 +17,9 @@ interface SupabaseUser {
 
   full_name: string;
 
-  role: "supervisor" | "operator";
+  role:
+    | "supervisor"
+    | "operator";
 
   active: boolean;
 
@@ -36,7 +42,9 @@ export interface CreateUserData {
 
   fullName: string;
 
-  role: "supervisor" | "operator";
+  role:
+    | "supervisor"
+    | "operator";
 
   active: boolean;
 
@@ -58,7 +66,9 @@ export interface UpdateUserData {
 
   fullName: string;
 
-  role: "supervisor" | "operator";
+  role:
+    | "supervisor"
+    | "operator";
 
   active: boolean;
 
@@ -97,7 +107,8 @@ function mapSupabaseUser(
  * ==================================================
  */
 
-export async function getSupabaseUsers(): Promise<User[]> {
+export async function getSupabaseUsers():
+  Promise<User[]> {
 
   const {
     data,
@@ -180,8 +191,7 @@ export async function loginSupabaseUser(
 
 
   if (
-    !data
-    ||
+    !data ||
     data.length === 0
   ) {
 
@@ -219,15 +229,6 @@ export async function loginSupabaseUser(
 /*
  * ==================================================
  * ADQUIRIR SESIÓN ÚNICA
- * ==================================================
- *
- * Devuelve:
- *
- * true
- *   El usuario puede utilizar esta sesión.
- *
- * false
- *   Existe otra sesión activa en otro equipo.
  * ==================================================
  */
 
@@ -272,12 +273,6 @@ export async function acquireSupabaseUserSession(
  * ==================================================
  * HEARTBEAT DE SESIÓN
  * ==================================================
- *
- * Actualiza last_seen en Supabase.
- *
- * Si devuelve false significa que esta sesión
- * ya no pertenece al usuario.
- * ==================================================
  */
 
 export async function touchSupabaseUserSession(
@@ -319,12 +314,10 @@ export async function touchSupabaseUserSession(
 
 /*
  * ==================================================
- * LIBERAR SESIÓN
+ * LIBERAR SESIÓN NORMAL
  * ==================================================
  *
- * Se utiliza cuando el usuario pulsa
- * CERRAR SESIÓN.
- * ==================================================
+ * Se utiliza al pulsar CERRAR SESIÓN.
  */
 
 export async function releaseSupabaseUserSession(
@@ -366,6 +359,103 @@ export async function releaseSupabaseUserSession(
 
 /*
  * ==================================================
+ * LIBERAR SESIÓN AL CERRAR PESTAÑA
+ * ==================================================
+ *
+ * Una petición normal puede ser cancelada por
+ * el navegador cuando se está cerrando.
+ *
+ * fetch + keepalive permite que el navegador
+ * intente terminar esta petición incluso después
+ * de comenzar el cierre de la pestaña.
+ *
+ * No esperamos respuesta porque la página se
+ * encuentra en proceso de descarga.
+ */
+
+export function releaseSupabaseUserSessionOnClose(
+  userId: string,
+  sessionToken: string
+): void {
+
+  const endpoint =
+    `${supabaseUrl}/rest/v1/rpc/release_app_user_session`;
+
+
+  try {
+
+    void fetch(
+      endpoint,
+      {
+
+        method:
+          "POST",
+
+        keepalive:
+          true,
+
+        headers: {
+
+          "Content-Type":
+            "application/json",
+
+          "apikey":
+            supabasePublishableKey,
+
+          "Authorization":
+            `Bearer ${supabasePublishableKey}`
+
+        },
+
+        body:
+          JSON.stringify({
+
+            p_user_id:
+              userId,
+
+            p_session_token:
+              sessionToken
+
+          })
+
+      }
+    )
+      .catch(
+        error => {
+
+          /*
+           * La pestaña puede desaparecer antes
+           * de que JavaScript reciba la respuesta.
+           *
+           * No hacemos nada más porque Supabase
+           * dispone además del timeout por heartbeat.
+           */
+
+          console.error(
+            "Error liberando sesión al cerrar:",
+            error
+          );
+
+        }
+      );
+
+  }
+  catch (
+    error
+  ) {
+
+    console.error(
+      "Error preparando el cierre de sesión:",
+      error
+    );
+
+  }
+
+}
+
+
+/*
+ * ==================================================
  * CREAR USUARIO
  * ==================================================
  */
@@ -380,6 +470,7 @@ export async function addSupabaseUser(
     await supabase.rpc(
       "create_app_user",
       {
+
         p_id:
           user.id,
 
@@ -397,6 +488,7 @@ export async function addSupabaseUser(
 
         p_active:
           user.active
+
       }
     );
 
@@ -412,10 +504,6 @@ export async function addSupabaseUser(
   }
 
 
-  /*
-   * Devolvemos un User normal.
-   * La contraseña no forma parte del usuario.
-   */
   return {
 
     id:
@@ -454,15 +542,13 @@ export async function updateSupabaseUser(
     await supabase.rpc(
       "update_app_user",
       {
+
         p_id:
           user.id,
 
         p_username:
           user.username,
 
-        /*
-         * Vacío = mantener la contraseña actual.
-         */
         p_password:
           user.password?.trim()
             ? user.password
@@ -476,6 +562,7 @@ export async function updateSupabaseUser(
 
         p_active:
           user.active
+
       }
     );
 
@@ -491,10 +578,6 @@ export async function updateSupabaseUser(
   }
 
 
-  /*
-   * Devolvemos únicamente los datos públicos
-   * del usuario.
-   */
   return {
 
     id:

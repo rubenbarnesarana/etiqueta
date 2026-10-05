@@ -470,7 +470,7 @@ export default function MainLayout() {
           </Box>
 
 
-          {/* USUARIO */}
+          {/* USUARIO Y CERRAR SESIÓN */}
 
           <Box
             sx={{
@@ -478,7 +478,7 @@ export default function MainLayout() {
 
               alignItems: "center",
 
-              gap: 1,
+              gap: 1.5,
 
               ml: "auto",
 
@@ -488,14 +488,17 @@ export default function MainLayout() {
 
             <PersonIcon
               sx={{
-                fontSize: 21
+                fontSize: 23,
+                color: "#FFFFFF"
               }}
             />
 
 
             <Typography
               sx={{
-                fontWeight: 600,
+                fontWeight: 700,
+
+                color: "#FFFFFF",
 
                 display: {
                   xs: "none",
@@ -513,7 +516,7 @@ export default function MainLayout() {
               orientation="vertical"
               flexItem
               sx={{
-                mx: 1,
+                mx: 0.5,
 
                 borderColor:
                   "rgba(255,255,255,0.30)"
@@ -522,14 +525,60 @@ export default function MainLayout() {
 
 
             <Button
-              color="inherit"
-              onClick={logout}
+              variant="contained"
+              onClick={
+                logout
+              }
               sx={{
-                fontWeight: 700
+                minHeight: {
+                  xs: 42,
+                  md: 46
+                },
+
+                px: {
+                  xs: 1.5,
+                  sm: 2,
+                  md: 3
+                },
+
+                py: 1,
+
+                borderRadius: 2,
+
+                backgroundColor:
+                  "#FFFFFF",
+
+                color:
+                  "#0B7A3B",
+
+                fontSize: {
+                  xs: 11,
+                  sm: 12,
+                  md: 14
+                },
+
+                fontWeight: 900,
+
+                letterSpacing:
+                  "0.3px",
+
+                whiteSpace:
+                  "nowrap",
+
+                boxShadow:
+                  "0 2px 8px rgba(0,0,0,0.22)",
+
+                "&:hover": {
+                  backgroundColor:
+                    "#F1F8F3",
+
+                  boxShadow:
+                    "0 3px 10px rgba(0,0,0,0.28)"
+                }
               }}
             >
 
-              SALIR
+              CERRAR SESIÓN
 
             </Button>
 
@@ -716,8 +765,11 @@ export default function MainLayout() {
         <Box
           sx={{
             width: "100%",
+
             maxWidth: "none",
+
             minWidth: 0,
+
             boxSizing: "border-box",
 
             /*
@@ -738,9 +790,13 @@ export default function MainLayout() {
                 xs: "2.4rem",
                 md: "3.25rem"
               },
+
               lineHeight: 1.08,
+
               fontWeight: 800,
+
               letterSpacing: "-0.8px",
+
               color: "#0B7A3B"
             }
           }}
