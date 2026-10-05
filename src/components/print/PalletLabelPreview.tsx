@@ -31,7 +31,9 @@ export default function PalletLabelPreview({
 
   customer,
 
-  quantity
+  quantity,
+
+  productTitle
 
 }: Props) {
 
@@ -60,6 +62,140 @@ export default function PalletLabelPreview({
 
   const exporter =
     "RIVULIS IRRIGATION, S.L.U.";
+
+
+  /*
+   * ==================================================
+   * NORMALIZAR NOMBRE DE PRODUCTO
+   * ==================================================
+   *
+   * El nombre llega desde la plantilla real
+   * asignada al SKU.
+   *
+   * Ejemplos:
+   *
+   * TURBO EXCEL
+   * TURBO EXCEL BOBINAS
+   * CHAPIN
+   * D900
+   * TAL DRIP GEN 2
+   * TALDRIP GEN2
+   *
+   * Lo convertimos a mayúsculas y eliminamos
+   * caracteres especiales para poder identificar
+   * correctamente el fondo de palet.
+   * ==================================================
+   */
+
+  const normalizedProductTitle =
+    String(
+      productTitle ??
+      ""
+    )
+      .toUpperCase()
+      .trim()
+      .replace(
+        /[^A-Z0-9]+/g,
+        " "
+      )
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim();
+
+
+  /*
+   * ==================================================
+   * FONDO DE ETIQUETA DE PALET
+   * ==================================================
+   */
+
+  function getPalletBackground():
+    string {
+
+
+    /*
+     * CHAPIN
+     */
+
+    if (
+      normalizedProductTitle.includes(
+        "CHAPIN"
+      )
+    ) {
+
+      return "/templates/palet/chapin-palet.png";
+
+    }
+
+
+    /*
+     * D900
+     */
+
+    if (
+      normalizedProductTitle.includes(
+        "D900"
+      )
+    ) {
+
+      return "/templates/palet/d900-palet.png";
+
+    }
+
+
+    /*
+     * TAL DRIP GEN 2
+     *
+     * Admitimos:
+     *
+     * TAL DRIP
+     * TAL DRIP GEN 2
+     * TALDRIP
+     * TALDRIP GEN2
+     */
+
+    if (
+      normalizedProductTitle.includes(
+        "TAL DRIP"
+      ) ||
+      normalizedProductTitle.includes(
+        "TALDRIP"
+      )
+    ) {
+
+      return "/templates/palet/taldripgen2-palet.png";
+
+    }
+
+
+    /*
+     * TURBO EXCEL
+     *
+     * Fondo original y también fallback
+     * para mantener el comportamiento anterior.
+     */
+
+    return "/templates/palet/turboexcel-palet.png";
+
+  }
+
+
+  const palletBackground =
+    getPalletBackground();
+
+
+  /*
+   * ==================================================
+   * TEXTO ALTERNATIVO DEL FONDO
+   * ==================================================
+   */
+
+  const palletBackgroundAlt =
+    productTitle?.trim()
+      ? `Etiqueta de palet ${productTitle.trim()}`
+      : "Etiqueta de palet";
 
 
   /*
@@ -243,13 +379,17 @@ export default function PalletLabelPreview({
       >
 
         {/* =============================================
-            FONDO ORIGINAL
+            FONDO SEGÚN PRODUCTO
             ============================================= */}
 
         <Box
           component="img"
-          src="/templates/palet/turboexcel-palet.png"
-          alt="Etiqueta de palet Turbo Excel"
+          src={
+            palletBackground
+          }
+          alt={
+            palletBackgroundAlt
+          }
           sx={{
             position:
               "absolute",
