@@ -85,18 +85,15 @@ import {
   printLabelImage
 } from "../../services/QzPrintService";
 
-
 export default function OrderPrint() {
 
   const {
     user
   } = useAuth();
 
-
   const [
     searchParams
   ] = useSearchParams();
-
 
   const [
     order,
@@ -107,30 +104,43 @@ export default function OrderPrint() {
       null
     >(null);
 
+  /*
+   * ==================================================
+   * REVISIÓN DE DATOS DE REFERENCIA
+   * ==================================================
+   *
+   * Productos y plantillas se mantienen sincronizados
+   * en localStorage desde App.tsx mediante Realtime.
+   *
+   * Esta revisión solo fuerza un nuevo render cuando
+   * cambian esos datos para que esta pantalla refleje
+   * inmediatamente la plantilla real del SKU.
+   */
+
+  const [
+    referenceDataRevision,
+    setReferenceDataRevision
+  ] = useState(0);
 
   const [
     error,
     setError
   ] = useState("");
 
-
   const [
     previewOpen,
     setPreviewOpen
   ] = useState(false);
-
 
   const [
     finishedOpen,
     setFinishedOpen
   ] = useState(false);
 
-
   const [
     reprintOpen,
     setReprintOpen
   ] = useState(false);
-
 
   /*
    * ==================================================
@@ -143,18 +153,15 @@ export default function OrderPrint() {
     setPalletLabelOpen
   ] = useState(false);
 
-
   const [
     reprintCoil,
     setReprintCoil
   ] = useState("");
 
-
   const [
     reprintError,
     setReprintError
   ] = useState("");
-
 
   const [
     label,
@@ -164,7 +171,6 @@ export default function OrderPrint() {
       DesignerElement[]
     >([]);
 
-
   const [
     backgroundImage,
     setBackgroundImage
@@ -173,7 +179,6 @@ export default function OrderPrint() {
       string |
       undefined
     >();
-
 
   const [
     labelFormat,
@@ -186,13 +191,11 @@ export default function OrderPrint() {
       "FORMATO_1"
     );
 
-
   const [
     labelData,
     setLabelData
   ] =
     useState<any>();
-
 
   /*
    * Impide dos impresiones simultáneas
@@ -204,7 +207,6 @@ export default function OrderPrint() {
     setPrinting
   ] = useState(false);
 
-
   /*
    * Contenedor oculto utilizado para generar
    * la imagen física de la etiqueta.
@@ -213,7 +215,6 @@ export default function OrderPrint() {
   const labelRenderRef =
     useRef<HTMLDivElement>(null);
 
-
   /*
    * Guardamos el total final antes
    * de limpiar/actualizar la orden.
@@ -221,7 +222,6 @@ export default function OrderPrint() {
 
   const finalPrintedRef =
     useRef<number>(0);
-
 
   /*
    * ==================================================
@@ -235,7 +235,6 @@ export default function OrderPrint() {
       searchParams.get(
         "order"
       );
-
 
     function loadCurrentOrder() {
 
@@ -255,12 +254,10 @@ export default function OrderPrint() {
 
       }
 
-
       const productionOrder =
         findOrder(
           orderNumber
         );
-
 
       if (
         !productionOrder
@@ -278,23 +275,18 @@ export default function OrderPrint() {
 
       }
 
-
       setOrder(
         productionOrder
       );
 
-
       finalPrintedRef.current =
         productionOrder.printed;
-
 
       setError("");
 
     }
 
-
     loadCurrentOrder();
-
 
     function handleOrdersUpdated() {
 
@@ -302,12 +294,10 @@ export default function OrderPrint() {
 
     }
 
-
     window.addEventListener(
       "productionOrdersUpdated",
       handleOrdersUpdated
     );
-
 
     return () => {
 
@@ -322,6 +312,53 @@ export default function OrderPrint() {
     searchParams
   ]);
 
+  /*
+   * ==================================================
+   * ACTUALIZAR PRODUCTO / PLANTILLA EN TIEMPO REAL
+   * ==================================================
+   *
+   * App.tsx actualiza primero las cachés locales y
+   * después emite estos eventos. Aquí solo necesitamos
+   * forzar un nuevo render para que findProduct(),
+   * getAssignedTemplate() y findTemplate() utilicen
+   * inmediatamente los datos recién sincronizados.
+   */
+
+  useEffect(() => {
+
+    function handleReferenceDataUpdated() {
+
+      setReferenceDataRevision(
+        current => current + 1
+      );
+
+    }
+
+    window.addEventListener(
+      "productsUpdated",
+      handleReferenceDataUpdated
+    );
+
+    window.addEventListener(
+      "templatesUpdated",
+      handleReferenceDataUpdated
+    );
+
+    return () => {
+
+      window.removeEventListener(
+        "productsUpdated",
+        handleReferenceDataUpdated
+      );
+
+      window.removeEventListener(
+        "templatesUpdated",
+        handleReferenceDataUpdated
+      );
+
+    };
+
+  }, []);
 
   /*
    * ==================================================
@@ -330,16 +367,12 @@ export default function OrderPrint() {
    */
 
   async function savePrintHistory(
-
     productionOrder: ProductionOrder,
-
     coilNumber: number,
-
     printType:
       | "PRINT"
       | "REPRINT" =
       "PRINT"
-
   ) {
 
     try {
@@ -357,7 +390,6 @@ export default function OrderPrint() {
 
       const configuredPrinter =
         getConfiguredLabelPrinter();
-
 
       await registerPrint({
 
@@ -410,7 +442,6 @@ export default function OrderPrint() {
 
   }
 
-
   /*
    * ==================================================
    * CARGAR VISTA PREVIA
@@ -418,7 +449,6 @@ export default function OrderPrint() {
    */
 
   function loadPreview(
-
     result: {
       label?: any[];
       backgroundImage?: string;
@@ -427,7 +457,6 @@ export default function OrderPrint() {
         | "FORMATO_2";
       labelData?: any;
     }
-
   ) {
 
     setLabel(
@@ -435,27 +464,22 @@ export default function OrderPrint() {
       []
     );
 
-
     setBackgroundImage(
       result.backgroundImage
     );
-
 
     setLabelFormat(
       result.labelFormat ??
       "FORMATO_1"
     );
 
-
     setLabelData(
       result.labelData
     );
 
-
     setPreviewOpen(
       true
     );
-
 
     setTimeout(
       () => {
@@ -470,7 +494,6 @@ export default function OrderPrint() {
 
   }
 
-
   /*
    * ==================================================
    * PREPARAR ETIQUETA PARA IMPRESIÓN FÍSICA
@@ -478,7 +501,6 @@ export default function OrderPrint() {
    */
 
   function setLabelResult(
-
     result: {
       label?: any[];
       backgroundImage?: string;
@@ -487,7 +509,6 @@ export default function OrderPrint() {
         | "FORMATO_2";
       labelData?: any;
     }
-
   ) {
 
     setLabel(
@@ -495,24 +516,20 @@ export default function OrderPrint() {
       []
     );
 
-
     setBackgroundImage(
       result.backgroundImage
     );
-
 
     setLabelFormat(
       result.labelFormat ??
       "FORMATO_1"
     );
 
-
     setLabelData(
       result.labelData
     );
 
   }
-
 
   /*
    * Esperamos dos frames.
@@ -547,7 +564,6 @@ export default function OrderPrint() {
 
   }
 
-
   /*
    * LabelPreview genera:
    *
@@ -565,7 +581,6 @@ export default function OrderPrint() {
     const wrapper =
       labelRenderRef.current;
 
-
     if (
       !wrapper
     ) {
@@ -574,21 +589,17 @@ export default function OrderPrint() {
 
     }
 
-
     const previewContainer =
       wrapper.firstElementChild;
 
-
     const physicalLabel =
       previewContainer?.firstElementChild;
-
 
     return physicalLabel instanceof HTMLElement
       ? physicalLabel
       : null;
 
   }
-
 
   /*
    * ==================================================
@@ -597,11 +608,9 @@ export default function OrderPrint() {
    */
 
   function getLabelDimensions(
-
     format?:
       | "FORMATO_1"
       | "FORMATO_2"
-
   ) {
 
     if (
@@ -616,14 +625,12 @@ export default function OrderPrint() {
 
     }
 
-
     return {
       width: 80,
       height: 285
     };
 
   }
-
 
   /*
    * ==================================================
@@ -663,23 +670,18 @@ export default function OrderPrint() {
 
     }
 
-
     setPrinting(
       true
     );
 
-
     let lockToken =
       "";
-
 
     let lockAcquired =
       false;
 
-
     let physicalPrintCompleted =
       false;
-
 
     try {
 
@@ -695,13 +697,11 @@ export default function OrderPrint() {
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-
       const lockResult =
         await acquireSupabaseOrderPrintLock(
           order.order,
           lockToken
         );
-
 
       if (
         !lockResult.success
@@ -715,10 +715,8 @@ export default function OrderPrint() {
 
       }
 
-
       lockAcquired =
         true;
-
 
       /*
        * Utilizamos el contador real devuelto
@@ -741,7 +739,6 @@ export default function OrderPrint() {
 
       };
 
-
       /*
        * ==================================================
        * 2. PREPARAR EXACTAMENTE LA BOBINA RESERVADA
@@ -754,7 +751,6 @@ export default function OrderPrint() {
           lockResult.coilNumber
         );
 
-
       if (
         !result.success
       ) {
@@ -765,7 +761,6 @@ export default function OrderPrint() {
 
       }
 
-
       /*
        * Renderizar los datos exactos
        * de esta bobina.
@@ -775,9 +770,7 @@ export default function OrderPrint() {
         result
       );
 
-
       await waitForLabelRender();
-
 
       /*
        * Obtener únicamente la etiqueta física.
@@ -785,7 +778,6 @@ export default function OrderPrint() {
 
       const physicalLabel =
         getPhysicalLabelElement();
-
 
       if (
         !physicalLabel
@@ -797,7 +789,6 @@ export default function OrderPrint() {
 
       }
 
-
       /*
        * Dimensiones según formato.
        */
@@ -806,7 +797,6 @@ export default function OrderPrint() {
         getLabelDimensions(
           result.labelFormat
         );
-
 
       /*
        * Convertir etiqueta a PNG a 203 dpi.
@@ -829,7 +819,6 @@ export default function OrderPrint() {
           }
         );
 
-
       /*
        * ==================================================
        * 3. IMPRESIÓN FÍSICA
@@ -843,10 +832,8 @@ export default function OrderPrint() {
         `Rivulis ${order.order} - Bobina ${result.coilNumber}`
       );
 
-
       physicalPrintCompleted =
         true;
-
 
       /*
        * ==================================================
@@ -861,7 +848,6 @@ export default function OrderPrint() {
           result.coilNumber
         );
 
-
       if (
         !commitResult.success
       ) {
@@ -872,7 +858,6 @@ export default function OrderPrint() {
 
       }
 
-
       /*
        * La confirmación correcta ya ha liberado
        * la reserva en Supabase.
@@ -880,7 +865,6 @@ export default function OrderPrint() {
 
       lockAcquired =
         false;
-
 
       /*
        * ==================================================
@@ -894,7 +878,6 @@ export default function OrderPrint() {
         "PRINT"
       );
 
-
       /*
        * ==================================================
        * 6. REFRESCAR CACHE LOCAL DESDE SUPABASE
@@ -907,7 +890,6 @@ export default function OrderPrint() {
       const latestOrders =
         await getSupabaseOrders();
 
-
       localStorage.setItem(
         "productionOrders",
         JSON.stringify(
@@ -915,13 +897,11 @@ export default function OrderPrint() {
         )
       );
 
-
       window.dispatchEvent(
         new Event(
           "productionOrdersUpdated"
         )
       );
-
 
       const updated =
         latestOrders.find(
@@ -930,7 +910,6 @@ export default function OrderPrint() {
             order.order
         );
 
-
       if (
         updated
       ) {
@@ -938,7 +917,6 @@ export default function OrderPrint() {
         setOrder(
           updated
         );
-
 
         finalPrintedRef.current =
           updated.printed;
@@ -959,17 +937,14 @@ export default function OrderPrint() {
 
         };
 
-
         setOrder(
           updatedFromCommit
         );
-
 
         finalPrintedRef.current =
           commitResult.printed;
 
       }
-
 
       /*
        * Mostrar la misma vista previa
@@ -980,14 +955,12 @@ export default function OrderPrint() {
         true
       );
 
-
       setTimeout(
         () => {
 
           setPreviewOpen(
             false
           );
-
 
           if (
             commitResult.finished
@@ -1041,12 +1014,10 @@ export default function OrderPrint() {
 
       }
 
-
       console.error(
         "Error imprimiendo etiqueta:",
         printError
       );
-
 
       /*
        * Si QZ ya aceptó la etiqueta NO liberamos
@@ -1091,7 +1062,6 @@ export default function OrderPrint() {
 
   }
 
-
   /*
    * ==================================================
    * ABRIR REIMPRESIÓN
@@ -1108,9 +1078,7 @@ export default function OrderPrint() {
 
     }
 
-
     setReprintError("");
-
 
     if (
       order.printed <= 0
@@ -1136,13 +1104,11 @@ export default function OrderPrint() {
 
     }
 
-
     setReprintOpen(
       true
     );
 
   }
-
 
   /*
    * ==================================================
@@ -1175,12 +1141,10 @@ export default function OrderPrint() {
 
     }
 
-
     const coilNumber =
       Number(
         reprintCoil
       );
-
 
     if (
       !Number.isInteger(
@@ -1196,7 +1160,6 @@ export default function OrderPrint() {
 
     }
 
-
     /*
      * Generamos exactamente la bobina solicitada.
      *
@@ -1208,7 +1171,6 @@ export default function OrderPrint() {
         order,
         coilNumber
       );
-
 
     if (
       !result.success
@@ -1222,14 +1184,11 @@ export default function OrderPrint() {
 
     }
 
-
     setPrinting(
       true
     );
 
-
     setReprintError("");
-
 
     try {
 
@@ -1237,13 +1196,10 @@ export default function OrderPrint() {
         result
       );
 
-
       await waitForLabelRender();
-
 
       const physicalLabel =
         getPhysicalLabelElement();
-
 
       if (
         !physicalLabel
@@ -1255,12 +1211,10 @@ export default function OrderPrint() {
 
       }
 
-
       const dimensions =
         getLabelDimensions(
           result.labelFormat
         );
-
 
       const imageDataUrl =
         await renderLabelToPng(
@@ -1279,7 +1233,6 @@ export default function OrderPrint() {
           }
         );
 
-
       /*
        * IMPRESIÓN FÍSICA.
        */
@@ -1290,7 +1243,6 @@ export default function OrderPrint() {
         dimensions.height,
         `Rivulis ${order.order} - Reimpresión bobina ${coilNumber}`
       );
-
 
       /*
        * Historial después de QZ.
@@ -1304,14 +1256,11 @@ export default function OrderPrint() {
         "REPRINT"
       );
 
-
       setReprintOpen(
         false
       );
 
-
       setReprintError("");
-
 
       loadPreview(
         result
@@ -1326,7 +1275,6 @@ export default function OrderPrint() {
         "Error reimprimiendo etiqueta:",
         printError
       );
-
 
       setReprintError(
         printError instanceof Error
@@ -1345,7 +1293,6 @@ export default function OrderPrint() {
 
   }
 
-
   /*
    * ==================================================
    * CONTADORES
@@ -1361,12 +1308,10 @@ export default function OrderPrint() {
         )
       : 0;
 
-
   const finished =
     order?.status ===
       "FINALIZADA" ||
     pending === 0;
-
 
   const nextCoil =
     order &&
@@ -1375,12 +1320,10 @@ export default function OrderPrint() {
         order.printed
       : null;
 
-
   const firstReprintCoil =
     order
       ? order.firstCoil
       : 0;
-
 
   const lastReprintCoil =
     order &&
@@ -1389,7 +1332,6 @@ export default function OrderPrint() {
         order.printed -
         1
       : null;
-
 
   /*
    * ==================================================
@@ -1419,7 +1361,6 @@ export default function OrderPrint() {
 
   }
 
-
   /*
    * ==================================================
    * CARGANDO
@@ -1446,7 +1387,6 @@ export default function OrderPrint() {
 
   }
 
-
   /*
    * ==================================================
    * PLANTILLA REAL DE LA ORDEN
@@ -1464,17 +1404,17 @@ export default function OrderPrint() {
    * ==================================================
    */
 
+  void referenceDataRevision;
+
   const product =
     findProduct(
       order.sku
     );
 
-
   const assignedTemplate =
     getAssignedTemplate(
       order.sku
     );
-
 
   const realTemplate =
     assignedTemplate
@@ -1487,11 +1427,9 @@ export default function OrderPrint() {
           )
         : null;
 
-
   const isFormat2 =
     realTemplate?.labelFormat ===
     "FORMATO_2";
-
 
   /*
    * Nombre que aparecerá en la cabecera
@@ -1515,7 +1453,6 @@ export default function OrderPrint() {
       .trim() ||
     order.product;
 
-
   /*
    * ==================================================
    * PANTALLA
@@ -1531,7 +1468,6 @@ export default function OrderPrint() {
           ============================================= */}
 
       <BackButton />
-
 
       {/* =============================================
           CABECERA
@@ -1554,7 +1490,6 @@ export default function OrderPrint() {
           }}
         />
 
-
         <Box
           sx={{
             flexGrow: 1
@@ -1568,7 +1503,6 @@ export default function OrderPrint() {
             Imprimir Orden
           </Typography>
 
-
           <Typography
             color="text.secondary"
             sx={{
@@ -1579,7 +1513,6 @@ export default function OrderPrint() {
           </Typography>
 
         </Box>
-
 
         {
           order.productionLine > 0
@@ -1617,7 +1550,6 @@ export default function OrderPrint() {
                 LÍNEA
               </Typography>
 
-
               <Typography
                 sx={{
                   fontSize: 54,
@@ -1632,7 +1564,6 @@ export default function OrderPrint() {
 
           )
         }
-
 
         {
           order.planningPosition > 0
@@ -1653,7 +1584,6 @@ export default function OrderPrint() {
         }
 
       </Box>
-
 
       {/* =============================================
           ORDEN
@@ -1676,7 +1606,6 @@ export default function OrderPrint() {
               "#0B7A3B"
           }}
         />
-
 
         <CardContent
           sx={{
@@ -1719,7 +1648,6 @@ export default function OrderPrint() {
                 Orden {order.order}
               </Typography>
 
-
               <Typography
                 sx={{
                   mb: 1.5
@@ -1728,7 +1656,6 @@ export default function OrderPrint() {
                 <b>SKU:</b>{" "}
                 {order.sku}
               </Typography>
-
 
               <Typography
                 sx={{
@@ -1739,7 +1666,6 @@ export default function OrderPrint() {
                 {order.product}
               </Typography>
 
-
               <Typography
                 sx={{
                   mb: 1.5
@@ -1748,7 +1674,6 @@ export default function OrderPrint() {
                 <b>Cliente:</b>{" "}
                 {order.customer || "-"}
               </Typography>
-
 
               <Typography
                 sx={{
@@ -1759,7 +1684,6 @@ export default function OrderPrint() {
                 {order.lot}
               </Typography>
 
-
               <Typography
                 sx={{
                   mb: 1.5
@@ -1769,7 +1693,6 @@ export default function OrderPrint() {
                 {order.templateId}
               </Typography>
 
-
               <Typography
                 sx={{
                   mb: 1.5
@@ -1778,7 +1701,6 @@ export default function OrderPrint() {
                 <b>Impresora:</b>{" "}
                 {getConfiguredLabelPrinter() || order.printer}
               </Typography>
-
 
               <Box
                 sx={{
@@ -1792,7 +1714,6 @@ export default function OrderPrint() {
                 <Typography>
                   <b>Estado:</b>
                 </Typography>
-
 
                 <Chip
                   size="small"
@@ -1810,7 +1731,6 @@ export default function OrderPrint() {
                 />
 
               </Box>
-
 
               {
                 order.productionLine > 0
@@ -1831,7 +1751,6 @@ export default function OrderPrint() {
                 )
               }
 
-
               {
                 order.planningPosition > 0
                 &&
@@ -1846,7 +1765,6 @@ export default function OrderPrint() {
 
                 )
               }
-
 
               {/* BOTONES */}
 
@@ -1890,7 +1808,6 @@ export default function OrderPrint() {
                   }
                 </Button>
 
-
                 <Button
                   variant="outlined"
                   size="large"
@@ -1920,7 +1837,6 @@ export default function OrderPrint() {
                 >
                   REPETIR ETIQUETA
                 </Button>
-
 
                 {
                   isFormat2
@@ -1963,7 +1879,6 @@ export default function OrderPrint() {
 
             </Grid>
 
-
             {/* CONTADORES */}
 
             <Grid
@@ -2002,7 +1917,6 @@ export default function OrderPrint() {
                   TOTAL
                 </Typography>
 
-
                 <Typography
                   sx={{
                     fontSize: {
@@ -2023,7 +1937,6 @@ export default function OrderPrint() {
                   {order.rolls}
                 </Typography>
 
-
                 <Typography
                   sx={{
                     mt:
@@ -2038,7 +1951,6 @@ export default function OrderPrint() {
                     {order.printed}
                   </b>
                 </Typography>
-
 
                 <Box
                   sx={{
@@ -2057,7 +1969,6 @@ export default function OrderPrint() {
                   >
                     Pendientes
                   </Typography>
-
 
                   <Typography
                     sx={{
@@ -2088,7 +1999,6 @@ export default function OrderPrint() {
 
               </Card>
 
-
               <Card
                 elevation={0}
                 sx={{
@@ -2112,7 +2022,6 @@ export default function OrderPrint() {
                 >
                   Próxima bobina
                 </Typography>
-
 
                 {
                   nextCoil !== null
@@ -2159,7 +2068,6 @@ export default function OrderPrint() {
         </CardContent>
 
       </Card>
-
 
       {/* =============================================
           VENTANA REIMPRESIÓN
@@ -2209,7 +2117,6 @@ export default function OrderPrint() {
 
         </DialogTitle>
 
-
         <DialogContent>
 
           <Typography
@@ -2222,7 +2129,6 @@ export default function OrderPrint() {
               {order.order}
             </b>
           </Typography>
-
 
           {
             lastReprintCoil !== null
@@ -2250,7 +2156,6 @@ export default function OrderPrint() {
             )
           }
 
-
           {
             reprintError
             &&
@@ -2267,7 +2172,6 @@ export default function OrderPrint() {
 
             )
           }
-
 
           <TextField
             autoFocus
@@ -2318,7 +2222,6 @@ export default function OrderPrint() {
 
                 step:
                   1
-
               }
             }}
             sx={{
@@ -2333,7 +2236,6 @@ export default function OrderPrint() {
           />
 
         </DialogContent>
-
 
         <DialogActions
           sx={{
@@ -2359,7 +2261,6 @@ export default function OrderPrint() {
           >
             CANCELAR
           </Button>
-
 
           <Button
             variant="contained"
@@ -2396,7 +2297,6 @@ export default function OrderPrint() {
 
       </Dialog>
 
-
       {/* =============================================
           ETIQUETA DE PALET
           ============================================= */}
@@ -2418,7 +2318,6 @@ export default function OrderPrint() {
             )
         }
       />
-
 
       {/* =============================================
           RENDER OCULTO PARA IMPRESIÓN FÍSICA
@@ -2463,7 +2362,6 @@ export default function OrderPrint() {
 
       </Box>
 
-
       {/* =============================================
           VISTA PREVIA
           ============================================= */}
@@ -2489,7 +2387,6 @@ export default function OrderPrint() {
           Vista previa de etiqueta
         </DialogTitle>
 
-
         <DialogContent>
 
           <LabelPreview
@@ -2510,7 +2407,6 @@ export default function OrderPrint() {
         </DialogContent>
 
       </Dialog>
-
 
       {/* =============================================
           ORDEN FINALIZADA
@@ -2536,13 +2432,11 @@ export default function OrderPrint() {
           ✅ Pedido finalizado
         </DialogTitle>
 
-
         <DialogContent>
 
           <Typography>
             Se ha impreso la última etiqueta de esta orden de producción.
           </Typography>
-
 
           <Typography
             mt={2}
@@ -2552,7 +2446,6 @@ export default function OrderPrint() {
             {finalPrintedRef.current}
           </Typography>
 
-
           <Typography
             mt={2}
           >
@@ -2560,7 +2453,6 @@ export default function OrderPrint() {
           </Typography>
 
         </DialogContent>
-
 
         <DialogActions>
 
