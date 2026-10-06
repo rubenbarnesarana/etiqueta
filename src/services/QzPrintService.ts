@@ -15,13 +15,6 @@ export const LABEL_PRINTER_STORAGE_KEY =
  * ==================================================
  * SEGURIDAD QZ TRAY
  * ==================================================
- *
- * El certificado público y la firma se obtienen
- * desde Cloudflare Pages Functions.
- *
- * La clave privada NUNCA llega al navegador.
- * Permanece guardada como Secret en Cloudflare.
- * ==================================================
  */
 
 let qzSecurityConfigured =
@@ -31,10 +24,6 @@ let qzSecurityConfigured =
 /*
  * ==================================================
  * PROMESA DE CONEXIÓN
- * ==================================================
- *
- * Evita que varias llamadas simultáneas intenten
- * abrir varias conexiones con QZ Tray a la vez.
  * ==================================================
  */
 
@@ -62,9 +51,7 @@ function configureQzSecurity():
 
 
   /*
-   * --------------------------------------------------
    * CERTIFICADO PÚBLICO
-   * --------------------------------------------------
    */
 
   qz.security.setCertificatePromise(
@@ -106,9 +93,7 @@ function configureQzSecurity():
 
 
   /*
-   * --------------------------------------------------
    * ALGORITMO DE FIRMA
-   * --------------------------------------------------
    */
 
   qz.security.setSignatureAlgorithm(
@@ -117,9 +102,7 @@ function configureQzSecurity():
 
 
   /*
-   * --------------------------------------------------
    * FIRMA DE PETICIONES
-   * --------------------------------------------------
    */
 
   qz.security.setSignaturePromise(
@@ -230,18 +213,8 @@ export function isQzConnected():
 export async function connectQz():
   Promise<void> {
 
-  /*
-   * La seguridad debe configurarse ANTES
-   * de abrir la conexión con QZ Tray.
-   */
-
   configureQzSecurity();
 
-
-  /*
-   * Si QZ ya está conectado,
-   * no hacemos nada.
-   */
 
   if (
     qz.websocket.isActive()
@@ -252,11 +225,6 @@ export async function connectQz():
   }
 
 
-  /*
-   * Si ya existe un intento de conexión,
-   * todas las llamadas esperan esa misma promesa.
-   */
-
   if (
     connectionPromise
   ) {
@@ -265,10 +233,6 @@ export async function connectQz():
 
   }
 
-
-  /*
-   * Abrimos UNA única conexión.
-   */
 
   connectionPromise =
     qz.websocket
@@ -303,11 +267,6 @@ export async function connectQz():
 
 export async function disconnectQz():
   Promise<void> {
-
-  /*
-   * Si todavía hay una conexión en proceso,
-   * esperamos a que termine.
-   */
 
   if (
     connectionPromise
@@ -358,12 +317,6 @@ export async function getInstalledPrinters():
     await qz.printers.find();
 
 
-  /*
-   * Dependiendo de la versión de QZ,
-   * find() puede devolver una impresora
-   * o una lista.
-   */
-
   if (
     Array.isArray(
       printers
@@ -409,7 +362,10 @@ export async function getDefaultPrinter():
       await qz.printers.getDefault();
 
 
-    return printer || null;
+    return (
+      printer ||
+      null
+    );
 
   }
   catch {
@@ -449,12 +405,18 @@ export async function findPrinter(
       )
     ) {
 
-      return printer[0] || null;
+      return (
+        printer[0] ||
+        null
+      );
 
     }
 
 
-    return printer || null;
+    return (
+      printer ||
+      null
+    );
 
   }
   catch {
@@ -499,15 +461,6 @@ export function getConfiguredLabelPrinter():
  * ==================================================
  * PREPARAR IMAGEN BASE64
  * ==================================================
- *
- * html-to-image devuelve normalmente:
- *
- * data:image/png;base64,AAAA...
- *
- * QZ Tray con flavor "base64" necesita solamente:
- *
- * AAAA...
- * ==================================================
  */
 
 function getBase64ImageData(
@@ -529,11 +482,13 @@ function getBase64ImageData(
     value.startsWith(
       "data:"
     ) &&
-    commaIndex >= 0
+    commaIndex >=
+      0
   ) {
 
     return value.substring(
-      commaIndex + 1
+      commaIndex +
+      1
     );
 
   }
@@ -549,25 +504,26 @@ function getBase64ImageData(
  * IMPRIMIR ETIQUETA PNG
  * ==================================================
  *
- * Esta función:
+ * FORMATO 1:
  *
- * - Utiliza la impresora configurada en este PC.
- * - Se comunica con QZ Tray.
- * - Utiliza el driver instalado en Windows.
- * - Recibe la etiqueta ya renderizada como PNG.
- * - Respeta el tamaño físico indicado en milímetros.
+ * 80 x 285 mm
+ * orientación vertical
  *
- * MUY IMPORTANTE:
  *
- * Esta función NO:
+ * FORMATO 2:
  *
- * - modifica órdenes
- * - incrementa contadores
- * - cambia estados
- * - registra historial
+ * 235 x 110 mm
+ * orientación horizontal
  *
- * Si qz.print() falla, lanza el error al componente
- * que ha solicitado la impresión.
+ *
+ * Para evitar que el driver Toshiba reduzca
+ * el Formato 2, indicamos explícitamente a QZ:
+ *
+ * - tamaño físico
+ * - orientación
+ * - escala al tamaño completo
+ * - márgenes 0
+ *
  * ==================================================
  */
 
@@ -580,9 +536,7 @@ export async function printLabelImage(
   Promise<void> {
 
   /*
-   * --------------------------------------------------
    * VALIDAR IMAGEN
-   * --------------------------------------------------
    */
 
   if (
@@ -597,9 +551,7 @@ export async function printLabelImage(
 
 
   /*
-   * --------------------------------------------------
    * VALIDAR DIMENSIONES
-   * --------------------------------------------------
    */
 
   if (
@@ -609,8 +561,10 @@ export async function printLabelImage(
     !Number.isFinite(
       labelHeightMm
     ) ||
-    labelWidthMm <= 0 ||
-    labelHeightMm <= 0
+    labelWidthMm <=
+      0 ||
+    labelHeightMm <=
+      0
   ) {
 
     throw new Error(
@@ -621,9 +575,7 @@ export async function printLabelImage(
 
 
   /*
-   * --------------------------------------------------
    * IMPRESORA CONFIGURADA
-   * --------------------------------------------------
    */
 
   const configuredPrinter =
@@ -642,18 +594,14 @@ export async function printLabelImage(
 
 
   /*
-   * --------------------------------------------------
    * CONECTAR CON QZ
-   * --------------------------------------------------
    */
 
   await connectQz();
 
 
   /*
-   * --------------------------------------------------
-   * COMPROBAR QUE LA IMPRESORA EXISTE
-   * --------------------------------------------------
+   * COMPROBAR IMPRESORA
    */
 
   const printer =
@@ -674,38 +622,98 @@ export async function printLabelImage(
 
 
   /*
-   * --------------------------------------------------
-   * CONFIGURACIÓN FÍSICA
-   * --------------------------------------------------
+   * ==================================================
+   * ORIENTACIÓN
+   * ==================================================
    *
-   * QZ Tray recibe:
+   * Si el ancho es mayor que el alto,
+   * se trata de una etiqueta horizontal.
    *
-   * - unidades en milímetros
-   * - tamaño físico exacto
-   * - márgenes 0
-   * - una sola copia
+   * FORMATO 2:
    *
-   * nearest-neighbor ayuda a conservar bordes
-   * definidos, especialmente en códigos de barras.
-   * --------------------------------------------------
+   * 235 x 110
+   *
+   * => landscape
+   *
+   * FORMATO 1:
+   *
+   * 80 x 285
+   *
+   * => portrait
+   *
+   * ==================================================
+   */
+
+  const isLandscape =
+    labelWidthMm >
+    labelHeightMm;
+
+
+  const orientation:
+    "portrait" |
+    "landscape" =
+
+    isLandscape
+      ? "landscape"
+      : "portrait";
+
+
+  /*
+   * ==================================================
+   * CONFIGURACIÓN FÍSICA QZ
+   * ==================================================
    */
 
   const config =
     qz.configs.create(
       printer,
       {
+
+        /*
+         * Unidades físicas.
+         */
         units:
           "mm",
 
+
+        /*
+         * Tamaño REAL de la etiqueta.
+         */
         size: {
+
           width:
             labelWidthMm,
 
           height:
             labelHeightMm
+
         },
 
+
+        /*
+         * IMPORTANTE:
+         *
+         * Evita que QZ dependa de la orientación
+         * configurada por defecto en el driver.
+         */
+        orientation,
+
+
+        /*
+         * IMPORTANTE:
+         *
+         * El contenido debe ocupar el tamaño físico
+         * completo de la etiqueta.
+         */
+        scaleContent:
+          true,
+
+
+        /*
+         * Sin márgenes.
+         */
         margins: {
+
           top:
             0,
 
@@ -717,23 +725,35 @@ export async function printLabelImage(
 
           left:
             0
+
         },
 
+
+        /*
+         * Una etiqueta por trabajo.
+         */
         copies:
           1,
 
+
+        /*
+         * Mantener códigos de barras definidos.
+         */
         interpolation:
           "nearest-neighbor",
 
+
+        /*
+         * Nombre visible en la cola.
+         */
         jobName
+
       }
     );
 
 
   /*
-   * --------------------------------------------------
    * CONVERTIR DATA URL A BASE64
-   * --------------------------------------------------
    */
 
   const base64Image =
@@ -743,13 +763,12 @@ export async function printLabelImage(
 
 
   /*
-   * --------------------------------------------------
    * DATOS DE IMPRESIÓN
-   * --------------------------------------------------
    */
 
   const data = [
     {
+
       type:
         "pixel",
 
@@ -761,18 +780,13 @@ export async function printLabelImage(
 
       data:
         base64Image
+
     }
   ];
 
 
   /*
-   * --------------------------------------------------
    * ENVIAR A QZ TRAY
-   * --------------------------------------------------
-   *
-   * Esta promesa debe terminar correctamente ANTES
-   * de que OrderPrint incremente el contador.
-   * --------------------------------------------------
    */
 
   await qz.print(
@@ -787,27 +801,13 @@ export async function printLabelImage(
  * ==================================================
  * IMPRESIÓN DE PRUEBA
  * ==================================================
- *
- * Esta función:
- *
- * - Utiliza la impresora configurada en este PC.
- * - Se comunica con QZ Tray.
- * - Utiliza el driver de Windows.
- * - NO modifica órdenes.
- * - NO modifica contadores.
- * - NO registra historial.
- *
- * Es únicamente una prueba física de comunicación.
- * ==================================================
  */
 
 export async function printTestPage():
   Promise<void> {
 
   /*
-   * --------------------------------------------------
    * IMPRESORA CONFIGURADA
-   * --------------------------------------------------
    */
 
   const configuredPrinter =
@@ -826,18 +826,14 @@ export async function printTestPage():
 
 
   /*
-   * --------------------------------------------------
-   * CONECTAR CON QZ
-   * --------------------------------------------------
+   * CONECTAR
    */
 
   await connectQz();
 
 
   /*
-   * --------------------------------------------------
-   * COMPROBAR QUE LA IMPRESORA EXISTE
-   * --------------------------------------------------
+   * COMPROBAR IMPRESORA
    */
 
   const printer =
@@ -858,15 +854,8 @@ export async function printTestPage():
 
 
   /*
-   * --------------------------------------------------
-   * CONFIGURACIÓN DE IMPRESIÓN
-   * --------------------------------------------------
-   *
-   * Para esta primera prueba usamos el driver
-   * instalado en Windows.
-   *
-   * No utilizamos comandos RAW ni TPCL.
-   * --------------------------------------------------
+   * Para la prueba dejamos que el driver utilice
+   * su configuración predeterminada.
    */
 
   const config =
@@ -876,9 +865,7 @@ export async function printTestPage():
 
 
   /*
-   * --------------------------------------------------
    * CONTENIDO DE PRUEBA
-   * --------------------------------------------------
    */
 
   const html =
@@ -972,13 +959,12 @@ export async function printTestPage():
 
 
   /*
-   * --------------------------------------------------
-   * ENVIAR A LA IMPRESORA
-   * --------------------------------------------------
+   * DATOS DE IMPRESIÓN
    */
 
   const data = [
     {
+
       type:
         "pixel",
 
@@ -990,9 +976,14 @@ export async function printTestPage():
 
       data:
         html
+
     }
   ];
 
+
+  /*
+   * ENVIAR
+   */
 
   await qz.print(
     config,
