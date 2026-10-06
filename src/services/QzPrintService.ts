@@ -15,13 +15,6 @@ export const LABEL_PRINTER_STORAGE_KEY =
  * ==================================================
  * SEGURIDAD QZ TRAY
  * ==================================================
- *
- * El certificado público y la firma se obtienen
- * desde Cloudflare Pages Functions.
- *
- * La clave privada NUNCA llega al navegador.
- * Permanece guardada como Secret en Cloudflare.
- * ==================================================
  */
 
 let qzSecurityConfigured =
@@ -31,10 +24,6 @@ let qzSecurityConfigured =
 /*
  * ==================================================
  * PROMESA DE CONEXIÓN
- * ==================================================
- *
- * Evita que varias llamadas simultáneas intenten
- * abrir varias conexiones con QZ Tray a la vez.
  * ==================================================
  */
 
@@ -60,12 +49,6 @@ function configureQzSecurity():
 
   }
 
-
-  /*
-   * --------------------------------------------------
-   * CERTIFICADO PÚBLICO
-   * --------------------------------------------------
-   */
 
   qz.security.setCertificatePromise(
     async () => {
@@ -105,22 +88,10 @@ function configureQzSecurity():
   );
 
 
-  /*
-   * --------------------------------------------------
-   * ALGORITMO DE FIRMA
-   * --------------------------------------------------
-   */
-
   qz.security.setSignatureAlgorithm(
     "SHA512"
   );
 
-
-  /*
-   * --------------------------------------------------
-   * FIRMA DE PETICIONES
-   * --------------------------------------------------
-   */
 
   qz.security.setSignaturePromise(
     (
@@ -230,18 +201,8 @@ export function isQzConnected():
 export async function connectQz():
   Promise<void> {
 
-  /*
-   * La seguridad debe configurarse ANTES
-   * de abrir la conexión con QZ Tray.
-   */
-
   configureQzSecurity();
 
-
-  /*
-   * Si QZ ya está conectado,
-   * no hacemos nada.
-   */
 
   if (
     qz.websocket.isActive()
@@ -252,11 +213,6 @@ export async function connectQz():
   }
 
 
-  /*
-   * Si ya existe un intento de conexión,
-   * todas las llamadas esperan esa misma promesa.
-   */
-
   if (
     connectionPromise
   ) {
@@ -265,10 +221,6 @@ export async function connectQz():
 
   }
 
-
-  /*
-   * Abrimos UNA única conexión.
-   */
 
   connectionPromise =
     qz.websocket
@@ -303,11 +255,6 @@ export async function connectQz():
 
 export async function disconnectQz():
   Promise<void> {
-
-  /*
-   * Si todavía hay una conexión en proceso,
-   * esperamos a que termine.
-   */
 
   if (
     connectionPromise
@@ -357,12 +304,6 @@ export async function getInstalledPrinters():
   const printers =
     await qz.printers.find();
 
-
-  /*
-   * Dependiendo de la versión de QZ,
-   * find() puede devolver una impresora
-   * o una lista.
-   */
 
   if (
     Array.isArray(
@@ -499,15 +440,6 @@ export function getConfiguredLabelPrinter():
  * ==================================================
  * PREPARAR IMAGEN BASE64
  * ==================================================
- *
- * html-to-image devuelve normalmente:
- *
- * data:image/png;base64,AAAA...
- *
- * QZ Tray con flavor "base64" necesita solamente:
- *
- * AAAA...
- * ==================================================
  */
 
 function getBase64ImageData(
@@ -551,7 +483,6 @@ function getBase64ImageData(
  *
  * FORMATO 1
  * ----------
- *
  * Diseño:
  * 80 x 285 mm
  *
@@ -564,30 +495,18 @@ function getBase64ImageData(
  *
  * FORMATO 2
  * ----------
- *
  * Diseño:
  * 235 x 110 mm
  *
- * El driver Toshiba tiene el material definido
- * como:
- *
- * 110 x 235 mm
- *
- * y orientación horizontal.
- *
- * Por eso, para QZ:
- *
- * Papel:
+ * Papel enviado al driver:
  * 110 x 235 mm
  *
  * Orientación:
  * landscape
  *
- * De esta forma la superficie final resultante
- * vuelve a ser:
- *
- * 235 x 110 mm
- *
+ * Además añadimos un pequeño margen izquierdo
+ * para que la impresión no empiece tan pegada
+ * al borde.
  * ==================================================
  */
 
@@ -599,12 +518,6 @@ export async function printLabelImage(
 ):
   Promise<void> {
 
-  /*
-   * --------------------------------------------------
-   * VALIDAR IMAGEN
-   * --------------------------------------------------
-   */
-
   if (
     !imageDataUrl?.trim()
   ) {
@@ -615,12 +528,6 @@ export async function printLabelImage(
 
   }
 
-
-  /*
-   * --------------------------------------------------
-   * VALIDAR DIMENSIONES
-   * --------------------------------------------------
-   */
 
   if (
     !Number.isFinite(
@@ -640,12 +547,6 @@ export async function printLabelImage(
   }
 
 
-  /*
-   * --------------------------------------------------
-   * IMPRESORA CONFIGURADA
-   * --------------------------------------------------
-   */
-
   const configuredPrinter =
     getConfiguredLabelPrinter();
 
@@ -661,20 +562,8 @@ export async function printLabelImage(
   }
 
 
-  /*
-   * --------------------------------------------------
-   * CONECTAR CON QZ
-   * --------------------------------------------------
-   */
-
   await connectQz();
 
-
-  /*
-   * --------------------------------------------------
-   * COMPROBAR QUE LA IMPRESORA EXISTE
-   * --------------------------------------------------
-   */
 
   const printer =
     await findPrinter(
@@ -695,17 +584,7 @@ export async function printLabelImage(
 
   /*
    * ==================================================
-   * DETERMINAR ORIENTACIÓN
-   * ==================================================
-   *
-   * Si el diseño es más ancho que alto,
-   * estamos imprimiendo una etiqueta horizontal.
-   *
-   * FORMATO 2:
-   *
-   * 235 x 110
-   *
-   * => horizontal
+   * ORIENTACIÓN
    * ==================================================
    */
 
@@ -716,23 +595,12 @@ export async function printLabelImage(
 
   /*
    * ==================================================
-   * TAMAÑO DE PAPEL QUE RECIBE EL DRIVER
+   * TAMAÑO DE PAPEL PARA EL DRIVER
    * ==================================================
    *
-   * IMPORTANTE:
-   *
-   * Para etiquetas horizontales NO enviamos
-   * directamente 235 x 110 como papel.
-   *
-   * Enviamos:
-   *
-   * 110 x 235
-   *
-   * y después usamos landscape.
-   *
-   * Esto coincide con la definición física
-   * del material en el driver Toshiba.
-   * ==================================================
+   * Si la etiqueta es horizontal (Formato 2),
+   * mandamos al driver 110 x 235 y orientación
+   * landscape.
    */
 
   const pageWidthMm =
@@ -757,9 +625,25 @@ export async function printLabelImage(
 
   /*
    * ==================================================
-   * CONFIGURACIÓN FÍSICA
+   * MÁRGENES
+   * ==================================================
+   *
+   * Aquí damos un pequeño margen a la izquierda
+   * SOLO para formato horizontal.
+   *
+   * Si luego quieres más o menos, cambia este valor:
+   *
+   * 5 = valor actual recomendado
+   * 3 = menos margen
+   * 7 = más margen
    * ==================================================
    */
+
+  const leftMarginMm =
+    isLandscape
+      ? 5
+      : 0;
+
 
   const config =
     qz.configs.create(
@@ -768,14 +652,6 @@ export async function printLabelImage(
 
         units:
           "mm",
-
-
-        /*
-         * FORMATO 2:
-         *
-         * width  = 110
-         * height = 235
-         */
 
         size: {
 
@@ -787,27 +663,10 @@ export async function printLabelImage(
 
         },
 
-
-        /*
-         * FORMATO 2:
-         *
-         * landscape
-         */
-
         orientation,
-
-
-        /*
-         * Ajustar el PNG al área completa disponible.
-         */
 
         scaleContent:
           true,
-
-
-        /*
-         * Ningún margen añadido por QZ.
-         */
 
         margins: {
 
@@ -821,39 +680,21 @@ export async function printLabelImage(
             0,
 
           left:
-            0
+            leftMarginMm
 
         },
-
 
         copies:
           1,
 
-
-        /*
-         * Conserva mejor los bordes de
-         * los códigos de barras.
-         */
-
         interpolation:
           "nearest-neighbor",
-
 
         jobName
 
       }
     );
 
-
-  /*
-   * --------------------------------------------------
-   * INFORMACIÓN DE DIAGNÓSTICO
-   * --------------------------------------------------
-   *
-   * Nos permitirá comprobar en F12 exactamente
-   * qué tamaño está enviando el ordenador
-   * de la línea.
-   */
 
   console.log(
     "[QZ PRINT]",
@@ -863,30 +704,17 @@ export async function printLabelImage(
       pageWidthMm,
       pageHeightMm,
       orientation,
-      scaleContent:
-        true,
+      leftMarginMm,
       printer
     }
   );
 
-
-  /*
-   * --------------------------------------------------
-   * CONVERTIR DATA URL A BASE64
-   * --------------------------------------------------
-   */
 
   const base64Image =
     getBase64ImageData(
       imageDataUrl
     );
 
-
-  /*
-   * --------------------------------------------------
-   * DATOS DE IMPRESIÓN
-   * --------------------------------------------------
-   */
 
   const data = [
     {
@@ -905,12 +733,6 @@ export async function printLabelImage(
   ];
 
 
-  /*
-   * --------------------------------------------------
-   * ENVIAR A QZ TRAY
-   * --------------------------------------------------
-   */
-
   await qz.print(
     config,
     data
@@ -923,28 +745,10 @@ export async function printLabelImage(
  * ==================================================
  * IMPRESIÓN DE PRUEBA
  * ==================================================
- *
- * Esta función:
- *
- * - Utiliza la impresora configurada en este PC.
- * - Se comunica con QZ Tray.
- * - Utiliza el driver de Windows.
- * - NO modifica órdenes.
- * - NO modifica contadores.
- * - NO registra historial.
- *
- * Es únicamente una prueba física de comunicación.
- * ==================================================
  */
 
 export async function printTestPage():
   Promise<void> {
-
-  /*
-   * --------------------------------------------------
-   * IMPRESORA CONFIGURADA
-   * --------------------------------------------------
-   */
 
   const configuredPrinter =
     getConfiguredLabelPrinter();
@@ -961,20 +765,8 @@ export async function printTestPage():
   }
 
 
-  /*
-   * --------------------------------------------------
-   * CONECTAR CON QZ
-   * --------------------------------------------------
-   */
-
   await connectQz();
 
-
-  /*
-   * --------------------------------------------------
-   * COMPROBAR QUE LA IMPRESORA EXISTE
-   * --------------------------------------------------
-   */
 
   const printer =
     await findPrinter(
@@ -993,27 +785,11 @@ export async function printTestPage():
   }
 
 
-  /*
-   * --------------------------------------------------
-   * CONFIGURACIÓN DE IMPRESIÓN
-   * --------------------------------------------------
-   *
-   * Para la prueba usamos el driver instalado
-   * en Windows tal y como está configurado.
-   * --------------------------------------------------
-   */
-
   const config =
     qz.configs.create(
       printer
     );
 
-
-  /*
-   * --------------------------------------------------
-   * CONTENIDO DE PRUEBA
-   * --------------------------------------------------
-   */
 
   const html =
     `
@@ -1104,12 +880,6 @@ export async function printTestPage():
       </div>
     `;
 
-
-  /*
-   * --------------------------------------------------
-   * DATOS DE IMPRESIÓN
-   * --------------------------------------------------
-   */
 
   const data = [
     {
