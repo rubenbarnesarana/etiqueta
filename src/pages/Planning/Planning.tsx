@@ -83,53 +83,56 @@ export default function Planning() {
   }
 
 
-  useEffect(() => {
-
-    loadOrders();
-
-
-    function handleFocus() {
+  useEffect(
+    () => {
 
       loadOrders();
 
-    }
+
+      function handleFocus() {
+
+        loadOrders();
+
+      }
 
 
-    function handleOrdersUpdated() {
+      function handleOrdersUpdated() {
 
-      loadOrders();
+        loadOrders();
 
-    }
-
-
-    window.addEventListener(
-      "focus",
-      handleFocus
-    );
+      }
 
 
-    window.addEventListener(
-      "productionOrdersUpdated",
-      handleOrdersUpdated
-    );
-
-
-    return () => {
-
-      window.removeEventListener(
+      window.addEventListener(
         "focus",
         handleFocus
       );
 
 
-      window.removeEventListener(
+      window.addEventListener(
         "productionOrdersUpdated",
         handleOrdersUpdated
       );
 
-    };
 
-  }, []);
+      return () => {
+
+        window.removeEventListener(
+          "focus",
+          handleFocus
+        );
+
+
+        window.removeEventListener(
+          "productionOrdersUpdated",
+          handleOrdersUpdated
+        );
+
+      };
+
+    },
+    []
+  );
 
 
   /*
@@ -143,9 +146,18 @@ export default function Planning() {
       () =>
         orders.filter(
           order =>
-            order.productionLine === 0
+            order.productionLine ===
+              0 &&
+            order.status !==
+              "FINALIZADA" &&
+            getPendingQuantity(
+              order
+            ) >
+              0
         ),
-      [orders]
+      [
+        orders
+      ]
     );
 
 
@@ -192,41 +204,51 @@ export default function Planning() {
   }
 
 
+  /*
+   * ==================================================
+   * RENDER
+   * ==================================================
+   */
+
   return (
 
     <Box>
 
-      {/* =============================================
-          INICIO
-          ============================================= */}
+      {/* INICIO */}
 
       <BackButton
         showBack={false}
       />
 
 
-      {/* =============================================
-          CABECERA
-          ============================================= */}
+      {/* CABECERA */}
 
       <Box
         sx={{
-          mb: 4,
+          mb:
+            4,
 
-          display: "flex",
+          display:
+            "flex",
 
-          alignItems: "center",
+          alignItems:
+            "center",
 
-          justifyContent: "center",
+          justifyContent:
+            "center",
 
-          gap: 2
+          gap:
+            2
         }}
       >
 
         <CalendarMonthIcon
           sx={{
-            fontSize: 46,
-            color: "#0B7A3B"
+            fontSize:
+              46,
+
+            color:
+              "#0B7A3B"
           }}
         />
 
@@ -237,21 +259,18 @@ export default function Planning() {
             variant="h4"
             fontWeight={700}
           >
-
             Planificación
-
           </Typography>
 
 
           <Typography
             color="text.secondary"
             sx={{
-              mt: 0.5
+              mt:
+                0.5
             }}
           >
-
             Orden de fabricación de las líneas de producción
-
           </Typography>
 
         </Box>
@@ -259,746 +278,870 @@ export default function Planning() {
       </Box>
 
 
-      {/* =============================================
-          ÓRDENES ANTIGUAS SIN LÍNEA
-          ============================================= */}
+      {/* ÓRDENES ANTIGUAS SIN LÍNEA */}
 
-      {unassignedOrders.length > 0 && (
+      {
+        unassignedOrders.length >
+          0 &&
+        (
 
-        <Paper
-          elevation={0}
-          sx={{
-            mb: 3,
-            p: 2.5,
-            border:
-              "1px solid #FFCC80",
-            backgroundColor:
-              "#FFF8E1",
-            borderRadius: 2
-          }}
-        >
-
-          <Typography
-            fontWeight={700}
-          >
-
-            Órdenes sin línea asignada
-
-          </Typography>
-
-
-          <Typography
-            variant="body2"
-            color="text.secondary"
+          <Paper
+            elevation={0}
             sx={{
-              mt: 0.5
+              mb:
+                3,
+
+              p:
+                2.5,
+
+              border:
+                "1px solid #FFCC80",
+
+              backgroundColor:
+                "#FFF8E1",
+
+              borderRadius:
+                2
             }}
           >
 
-            Hay{" "}
-            {unassignedOrders.length}{" "}
-            orden(es) antiguas que todavía no tienen línea de producción asignada.
-
-          </Typography>
-
-
-          <Stack
-            direction="row"
-            spacing={1}
-            flexWrap="wrap"
-            useFlexGap
-            sx={{
-              mt: 1.5
-            }}
-          >
-
-            {unassignedOrders.map(
-              order => (
-
-                <Chip
-                  key={
-                    order.id
-                  }
-                  label={
-                    `${order.order} · ${order.sku}`
-                  }
-                  size="small"
-                  onClick={
-                    () =>
-                      openOrder(
-                        order
-                      )
-                  }
-                  sx={{
-                    cursor: "pointer"
-                  }}
-                />
-
-              )
-            )}
-
-          </Stack>
-
-        </Paper>
-
-      )}
+            <Typography
+              fontWeight={700}
+            >
+              Órdenes sin línea asignada
+            </Typography>
 
 
-      {/* =============================================
-          8 LÍNEAS
-          ============================================= */}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                mt:
+                  0.5
+              }}
+            >
+              Hay{" "}
+              {unassignedOrders.length}{" "}
+              orden(es) antiguas que todavía no tienen línea de producción asignada.
+            </Typography>
+
+
+            <Stack
+              direction="row"
+              spacing={1}
+              flexWrap="wrap"
+              useFlexGap
+              sx={{
+                mt:
+                  1.5
+              }}
+            >
+
+              {
+                unassignedOrders.map(
+                  order => (
+
+                    <Chip
+                      key={
+                        order.id
+                      }
+                      label={
+                        `${order.order} · ${order.sku}`
+                      }
+                      size="small"
+                      onClick={
+                        () =>
+                          openOrder(
+                            order
+                          )
+                      }
+                      sx={{
+                        cursor:
+                          "pointer"
+                      }}
+                    />
+
+                  )
+                )
+              }
+
+            </Stack>
+
+          </Paper>
+
+        )
+      }
+
+
+      {/* 8 LÍNEAS */}
 
       <Stack
         spacing={3}
       >
 
-        {PRODUCTION_LINES.map(
-          line => {
+        {
+          PRODUCTION_LINES.map(
+            line => {
 
-            const lineOrders =
-              orders
-                .filter(
-                  order =>
-                    order.productionLine ===
-                    line
-                )
-                .sort(
+              const lineOrders =
+                orders
+                  .filter(
+                    order =>
+                      order.productionLine ===
+                        line &&
+                      order.status !==
+                        "FINALIZADA" &&
+                      getPendingQuantity(
+                        order
+                      ) >
+                        0
+                  )
+                  .sort(
+                    (
+                      a,
+                      b
+                    ) =>
+                      a.planningPosition -
+                      b.planningPosition
+                  );
+
+
+              const total =
+                lineOrders.reduce(
                   (
-                    a,
-                    b
+                    sum,
+                    order
                   ) =>
-                    a.planningPosition -
-                    b.planningPosition
+                    sum +
+                    order.rolls,
+                  0
                 );
 
 
-            const total =
-              lineOrders.reduce(
-                (
-                  sum,
-                  order
-                ) =>
-                  sum +
-                  order.rolls,
-                0
-              );
-
-
-            const printed =
-              lineOrders.reduce(
-                (
-                  sum,
-                  order
-                ) =>
-                  sum +
-                  order.printed,
-                0
-              );
-
-
-            const pending =
-              lineOrders.reduce(
-                (
-                  sum,
-                  order
-                ) =>
-                  sum +
-                  getPendingQuantity(
+              const printed =
+                lineOrders.reduce(
+                  (
+                    sum,
                     order
-                  ),
-                0
-              );
+                  ) =>
+                    sum +
+                    order.printed,
+                  0
+                );
 
 
-            return (
+              const pending =
+                lineOrders.reduce(
+                  (
+                    sum,
+                    order
+                  ) =>
+                    sum +
+                    getPendingQuantity(
+                      order
+                    ),
+                  0
+                );
 
-              <Paper
-                key={
-                  line
-                }
-                elevation={0}
-                sx={{
-                  overflow: "hidden",
-                  border:
-                    "1px solid #E0E0E0",
-                  borderRadius: 2
-                }}
-              >
 
-                {/* =====================================
-                    CABECERA LÍNEA
-                    ===================================== */}
+              return (
 
-                <Box
+                <Paper
+                  key={
+                    line
+                  }
+                  elevation={0}
                   sx={{
-                    px: 2.5,
-                    py: 1.7,
+                    overflow:
+                      "hidden",
 
-                    backgroundColor:
-                      "#E8F3EB",
-
-                    borderBottom:
+                    border:
                       "1px solid #E0E0E0",
 
-                    display: "flex",
-
-                    alignItems: "center",
-
-                    gap: 1.5,
-
-                    flexWrap: "wrap"
+                    borderRadius:
+                      2
                   }}
                 >
 
-                  <FactoryIcon
-                    sx={{
-                      color: "#0B7A3B",
-                      fontSize: 28
-                    }}
-                  />
-
-
-                  <Typography
-                    variant="h6"
-                    fontWeight={800}
-                    sx={{
-                      color: "#0B7A3B",
-                      mr: "auto"
-                    }}
-                  >
-
-                    LÍNEA {line}
-
-                  </Typography>
-
-
-                  <Chip
-                    label={
-                      lineOrders.length === 1
-                        ? "1 orden"
-                        : `${lineOrders.length} órdenes`
-                    }
-                    size="small"
-                    sx={{
-                      fontWeight: 700,
-                      backgroundColor:
-                        "#FFFFFF"
-                    }}
-                  />
-
-
-                  <Chip
-                    label={
-                      `Total: ${total}`
-                    }
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      backgroundColor:
-                        "#FFFFFF"
-                    }}
-                  />
-
-
-                  <Chip
-                    label={
-                      `Impresas: ${printed}`
-                    }
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      backgroundColor:
-                        "#FFFFFF"
-                    }}
-                  />
-
-
-                  <Chip
-                    label={
-                      `Pendientes: ${pending}`
-                    }
-                    size="small"
-                    color={
-                      pending > 0
-                        ? "warning"
-                        : "success"
-                    }
-                    sx={{
-                      fontWeight: 600
-                    }}
-                  />
-
-                </Box>
-
-
-                {/* =====================================
-                    SIN ÓRDENES
-                    ===================================== */}
-
-                {lineOrders.length ===
-                0 ? (
+                  {/* CABECERA LÍNEA */}
 
                   <Box
                     sx={{
-                      p: 3,
-                      textAlign: "center",
+                      px:
+                        2.5,
+
+                      py:
+                        1.7,
+
                       backgroundColor:
-                        "#FAFAFA"
+                        "#E8F3EB",
+
+                      borderBottom:
+                        "1px solid #E0E0E0",
+
+                      display:
+                        "flex",
+
+                      alignItems:
+                        "center",
+
+                      gap:
+                        1.5,
+
+                      flexWrap:
+                        "wrap"
                     }}
                   >
 
+                    <FactoryIcon
+                      sx={{
+                        color:
+                          "#0B7A3B",
+
+                        fontSize:
+                          28
+                      }}
+                    />
+
+
                     <Typography
-                      color="text.secondary"
+                      variant="h6"
+                      fontWeight={800}
+                      sx={{
+                        color:
+                          "#0B7A3B",
+
+                        mr:
+                          "auto"
+                      }}
                     >
-
-                      Sin órdenes planificadas
-
+                      LÍNEA {line}
                     </Typography>
+
+
+                    <Chip
+                      label={
+                        lineOrders.length ===
+                          1
+                          ? "1 orden"
+                          : `${lineOrders.length} órdenes`
+                      }
+                      size="small"
+                      sx={{
+                        fontWeight:
+                          700,
+
+                        backgroundColor:
+                          "#FFFFFF"
+                      }}
+                    />
+
+
+                    <Chip
+                      label={
+                        `Total: ${total}`
+                      }
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        backgroundColor:
+                          "#FFFFFF"
+                      }}
+                    />
+
+
+                    <Chip
+                      label={
+                        `Impresas: ${printed}`
+                      }
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        backgroundColor:
+                          "#FFFFFF"
+                      }}
+                    />
+
+
+                    <Chip
+                      label={
+                        `Pendientes: ${pending}`
+                      }
+                      size="small"
+                      color={
+                        pending >
+                          0
+                          ? "warning"
+                          : "success"
+                      }
+                      sx={{
+                        fontWeight:
+                          600
+                      }}
+                    />
 
                   </Box>
 
-                ) : (
 
-                  <Box
-                    sx={{
-                      overflowX: "auto"
-                    }}
-                  >
+                  {/* SIN ÓRDENES */}
 
-                    <Box
-                      sx={{
-                        minWidth: 1260
-                      }}
-                    >
+                  {
+                    lineOrders.length ===
+                      0
+                      ? (
 
-                      {/* =================================
-                          CABECERA TABLA
-                          ================================= */}
+                        <Box
+                          sx={{
+                            p:
+                              3,
 
-                      <Box
-                        sx={{
-                          display: "grid",
+                            textAlign:
+                              "center",
 
-                          gridTemplateColumns:
-                            "60px 160px 130px minmax(240px, 1fr) 150px 100px 100px 110px 120px 90px",
+                            backgroundColor:
+                              "#FAFAFA"
+                          }}
+                        >
 
-                          alignItems: "center",
+                          <Typography
+                            color="text.secondary"
+                          >
+                            Sin órdenes planificadas
+                          </Typography>
 
-                          px: 2,
-                          py: 1.2,
+                        </Box>
 
-                          backgroundColor:
-                            "#F5F7FA",
+                      )
+                      : (
 
-                          borderBottom:
-                            "1px solid #E0E0E0"
-                        }}
-                      >
+                        <Box
+                          sx={{
+                            overflowX:
+                              "auto"
+                          }}
+                        >
 
-                        <Header>
-                          #
-                        </Header>
+                          <Box
+                            sx={{
+                              minWidth:
+                                1520
+                            }}
+                          >
 
-
-                        <Header>
-                          Orden
-                        </Header>
-
-
-                        <Header>
-                          SKU
-                        </Header>
-
-
-                        <Header>
-                          Producto
-                        </Header>
-
-
-                        <Header>
-                          Cliente
-                        </Header>
-
-
-                        <Header center>
-                          Total
-                        </Header>
-
-
-                        <Header center>
-                          Impresas
-                        </Header>
-
-
-                        <Header center>
-                          Pendientes
-                        </Header>
-
-
-                        <Header center>
-                          Progreso
-                        </Header>
-
-
-                        <Header center>
-                          Orden
-                        </Header>
-
-                      </Box>
-
-
-                      {/* =================================
-                          ÓRDENES
-                          ================================= */}
-
-                      {lineOrders.map(
-                        (
-                          order,
-                          index
-                        ) => {
-
-                          const orderPending =
-                            getPendingQuantity(
-                              order
-                            );
-
-
-                          const progress =
-                            order.rolls > 0
-                              ? Math.min(
-                                  100,
-                                  (
-                                    order.printed /
-                                    order.rolls
-                                  ) *
-                                    100
-                                )
-                              : 0;
-
-
-                          return (
+                            {/* CABECERA TABLA */}
 
                             <Box
-                              key={
-                                order.id
-                              }
-                              onClick={
-                                () =>
-                                  openOrder(
-                                    order
-                                  )
-                              }
                               sx={{
                                 display:
                                   "grid",
 
                                 gridTemplateColumns:
-                                  "60px 160px 130px minmax(240px, 1fr) 150px 100px 100px 110px 120px 90px",
+                                  "60px 160px 130px minmax(240px, 1fr) 150px minmax(220px, 260px) 100px 100px 110px 120px 90px",
 
                                 alignItems:
                                   "center",
 
-                                minHeight:
-                                  64,
-
                                 px:
                                   2,
 
-                                cursor:
-                                  "pointer",
-
-                                borderBottom:
-                                  index ===
-                                  lineOrders.length -
-                                    1
-                                    ? "none"
-                                    : "1px solid #EEEEEE",
+                                py:
+                                  1.2,
 
                                 backgroundColor:
-                                  order.status ===
-                                  "FINALIZADA"
-                                    ? "#F1F8E9"
-                                    : "#FFFFFF",
+                                  "#F5F7FA",
 
-                                transition:
-                                  "background-color 0.15s ease",
-
-                                "&:hover": {
-                                  backgroundColor:
-                                    order.status ===
-                                    "FINALIZADA"
-                                      ? "#E8F5E9"
-                                      : "#F1F8E9"
-                                }
+                                borderBottom:
+                                  "1px solid #E0E0E0"
                               }}
                             >
 
-                              <Typography
-                                fontWeight={700}
-                                color="text.secondary"
+                              <Header>
+                                #
+                              </Header>
+
+
+                              <Header>
+                                Orden
+                              </Header>
+
+
+                              <Header>
+                                SKU
+                              </Header>
+
+
+                              <Header>
+                                Producto
+                              </Header>
+
+
+                              <Header>
+                                Cliente
+                              </Header>
+
+
+                              <Header>
+                                Comentarios
+                              </Header>
+
+
+                              <Header
+                                center
                               >
-
-                                {index + 1}
-
-                              </Typography>
+                                Total
+                              </Header>
 
 
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1
-                                }}
+                              <Header
+                                center
                               >
-
-                                <Typography
-                                  fontWeight={700}
-                                  color="primary.main"
-                                >
-
-                                  {order.order}
-
-                                </Typography>
+                                Impresas
+                              </Header>
 
 
-                                <PrintIcon
-                                  sx={{
-                                    fontSize: 17,
-                                    color:
-                                      "#0B7A3B"
-                                  }}
-                                />
-
-                              </Box>
-
-
-                              <Typography
-                                variant="body2"
+                              <Header
+                                center
                               >
-
-                                {order.sku}
-
-                              </Typography>
+                                Pendientes
+                              </Header>
 
 
-                              <Box
-                                sx={{
-                                  pr: 2
-                                }}
+                              <Header
+                                center
                               >
-
-                                <Typography
-                                  variant="body2"
-                                  fontWeight={500}
-                                >
-
-                                  {order.product}
-
-                                </Typography>
+                                Progreso
+                              </Header>
 
 
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-
-                                  Lote:{" "}
-                                  {order.lot}
-
-                                </Typography>
-
-                              </Box>
-
-
-                              {/* CLIENTE */}
-
-                              <Typography
-                                variant="body2"
-                                fontWeight={500}
-                                sx={{
-                                  pr: 2
-                                }}
+                              <Header
+                                center
                               >
-
-                                {order.customer || "-"}
-
-                              </Typography>
-
-
-                              <Typography
-                                textAlign="center"
-                                fontWeight={600}
-                              >
-
-                                {order.rolls}
-
-                              </Typography>
-
-
-                              <Typography
-                                textAlign="center"
-                              >
-
-                                {order.printed}
-
-                              </Typography>
-
-
-                              <Typography
-                                textAlign="center"
-                                fontWeight={700}
-                                color={
-                                  orderPending === 0
-                                    ? "success.main"
-                                    : "warning.dark"
-                                }
-                              >
-
-                                {orderPending}
-
-                              </Typography>
-
-
-                              <Box
-                                sx={{
-                                  px: 1
-                                }}
-                              >
-
-                                <LinearProgress
-                                  variant="determinate"
-                                  value={
-                                    progress
-                                  }
-                                  sx={{
-                                    height: 8,
-                                    borderRadius: 5
-                                  }}
-                                />
-
-
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-
-                                  {
-                                    Math.round(
-                                      progress
-                                    )
-                                  }%
-
-                                </Typography>
-
-                              </Box>
-
-
-                              {/* SUBIR / BAJAR */}
-
-                              <Box
-                                onClick={
-                                  event =>
-                                    event.stopPropagation()
-                                }
-                                sx={{
-                                  display: "flex",
-                                  justifyContent:
-                                    "center"
-                                }}
-                              >
-
-                                <Tooltip
-                                  title="Subir"
-                                >
-
-                                  <span>
-
-                                    <IconButton
-                                      size="small"
-                                      disabled={
-                                        index === 0
-                                      }
-                                      onClick={
-                                        event => {
-
-                                          event.stopPropagation();
-
-
-                                          moveOrder(
-                                            order.id,
-                                            "UP"
-                                          );
-
-                                        }
-                                      }
-                                    >
-
-                                      <KeyboardArrowUpIcon />
-
-                                    </IconButton>
-
-                                  </span>
-
-                                </Tooltip>
-
-
-                                <Tooltip
-                                  title="Bajar"
-                                >
-
-                                  <span>
-
-                                    <IconButton
-                                      size="small"
-                                      disabled={
-                                        index ===
-                                        lineOrders.length -
-                                          1
-                                      }
-                                      onClick={
-                                        event => {
-
-                                          event.stopPropagation();
-
-
-                                          moveOrder(
-                                            order.id,
-                                            "DOWN"
-                                          );
-
-                                        }
-                                      }
-                                    >
-
-                                      <KeyboardArrowDownIcon />
-
-                                    </IconButton>
-
-                                  </span>
-
-                                </Tooltip>
-
-                              </Box>
+                                Orden
+                              </Header>
 
                             </Box>
 
-                          );
 
-                        }
-                      )}
+                            {/* ÓRDENES */}
 
-                    </Box>
+                            {
+                              lineOrders.map(
+                                (
+                                  order,
+                                  index
+                                ) => {
 
-                  </Box>
+                                  const orderPending =
+                                    getPendingQuantity(
+                                      order
+                                    );
 
-                )}
 
-              </Paper>
+                                  const progress =
+                                    order.rolls >
+                                      0
+                                      ? Math.min(
+                                          100,
+                                          (
+                                            order.printed /
+                                            order.rolls
+                                          ) *
+                                            100
+                                        )
+                                      : 0;
 
-            );
 
-          }
-        )}
+                                  return (
+
+                                    <Box
+                                      key={
+                                        order.id
+                                      }
+                                      onClick={
+                                        () =>
+                                          openOrder(
+                                            order
+                                          )
+                                      }
+                                      sx={{
+                                        display:
+                                          "grid",
+
+                                        gridTemplateColumns:
+                                          "60px 160px 130px minmax(240px, 1fr) 150px minmax(220px, 260px) 100px 100px 110px 120px 90px",
+
+                                        alignItems:
+                                          "center",
+
+                                        minHeight:
+                                          64,
+
+                                        px:
+                                          2,
+
+                                        cursor:
+                                          "pointer",
+
+                                        borderBottom:
+                                          index ===
+                                          lineOrders.length -
+                                            1
+                                            ? "none"
+                                            : "1px solid #EEEEEE",
+
+                                        backgroundColor:
+                                          order.status ===
+                                          "FINALIZADA"
+                                            ? "#F1F8E9"
+                                            : "#FFFFFF",
+
+                                        transition:
+                                          "background-color 0.15s ease",
+
+                                        "&:hover": {
+                                          backgroundColor:
+                                            order.status ===
+                                            "FINALIZADA"
+                                              ? "#E8F5E9"
+                                              : "#F1F8E9"
+                                        }
+                                      }}
+                                    >
+
+                                      {/* POSICIÓN */}
+
+                                      <Typography
+                                        fontWeight={700}
+                                        color="text.secondary"
+                                      >
+                                        {index + 1}
+                                      </Typography>
+
+
+                                      {/* ORDEN */}
+
+                                      <Box
+                                        sx={{
+                                          display:
+                                            "flex",
+
+                                          alignItems:
+                                            "center",
+
+                                          gap:
+                                            1
+                                        }}
+                                      >
+
+                                        <Typography
+                                          fontWeight={700}
+                                          color="primary.main"
+                                        >
+                                          {order.order}
+                                        </Typography>
+
+
+                                        <PrintIcon
+                                          sx={{
+                                            fontSize:
+                                              17,
+
+                                            color:
+                                              "#0B7A3B"
+                                          }}
+                                        />
+
+                                      </Box>
+
+
+                                      {/* SKU */}
+
+                                      <Typography
+                                        variant="body2"
+                                      >
+                                        {order.sku}
+                                      </Typography>
+
+
+                                      {/* PRODUCTO */}
+
+                                      <Box
+                                        sx={{
+                                          pr:
+                                            2
+                                        }}
+                                      >
+
+                                        <Typography
+                                          variant="body2"
+                                          fontWeight={500}
+                                        >
+                                          {order.product}
+                                        </Typography>
+
+
+                                        <Typography
+                                          variant="caption"
+                                          color="text.secondary"
+                                        >
+                                          Lote:{" "}
+                                          {order.lot}
+                                        </Typography>
+
+                                      </Box>
+
+
+                                      {/* CLIENTE */}
+
+                                      <Typography
+                                        variant="body2"
+                                        fontWeight={500}
+                                        sx={{
+                                          pr:
+                                            2
+                                        }}
+                                      >
+                                        {order.customer || "-"}
+                                      </Typography>
+
+
+                                      {/* COMENTARIOS */}
+
+                                      <Box
+                                        sx={{
+                                          pr:
+                                            2,
+
+                                          minWidth:
+                                            0
+                                        }}
+                                      >
+
+                                        {
+                                          order.comments
+                                            ? (
+
+                                              <Typography
+                                                variant="body2"
+                                                fontWeight={700}
+                                                sx={{
+                                                  color:
+                                                    "#D84315",
+
+                                                  lineHeight:
+                                                    1.25,
+
+                                                  whiteSpace:
+                                                    "normal",
+
+                                                  overflowWrap:
+                                                    "anywhere"
+                                                }}
+                                              >
+                                                {order.comments}
+                                              </Typography>
+
+                                            )
+                                            : (
+
+                                              <Typography
+                                                variant="body2"
+                                                color="text.secondary"
+                                              >
+                                                -
+                                              </Typography>
+
+                                            )
+                                        }
+
+                                      </Box>
+
+
+                                      {/* TOTAL */}
+
+                                      <Typography
+                                        textAlign="center"
+                                        fontWeight={600}
+                                      >
+                                        {order.rolls}
+                                      </Typography>
+
+
+                                      {/* IMPRESAS */}
+
+                                      <Typography
+                                        textAlign="center"
+                                      >
+                                        {order.printed}
+                                      </Typography>
+
+
+                                      {/* PENDIENTES */}
+
+                                      <Typography
+                                        textAlign="center"
+                                        fontWeight={700}
+                                        color={
+                                          orderPending ===
+                                            0
+                                            ? "success.main"
+                                            : "warning.dark"
+                                        }
+                                      >
+                                        {orderPending}
+                                      </Typography>
+
+
+                                      {/* PROGRESO */}
+
+                                      <Box
+                                        sx={{
+                                          px:
+                                            1
+                                        }}
+                                      >
+
+                                        <LinearProgress
+                                          variant="determinate"
+                                          value={
+                                            progress
+                                          }
+                                          sx={{
+                                            height:
+                                              8,
+
+                                            borderRadius:
+                                              5
+                                          }}
+                                        />
+
+
+                                        <Typography
+                                          variant="caption"
+                                          color="text.secondary"
+                                        >
+                                          {
+                                            Math.round(
+                                              progress
+                                            )
+                                          }%
+                                        </Typography>
+
+                                      </Box>
+
+
+                                      {/* SUBIR / BAJAR */}
+
+                                      <Box
+                                        onClick={
+                                          event =>
+                                            event.stopPropagation()
+                                        }
+                                        sx={{
+                                          display:
+                                            "flex",
+
+                                          justifyContent:
+                                            "center"
+                                        }}
+                                      >
+
+                                        <Tooltip
+                                          title="Subir"
+                                        >
+
+                                          <span>
+
+                                            <IconButton
+                                              size="small"
+                                              disabled={
+                                                index ===
+                                                  0
+                                              }
+                                              onClick={
+                                                event => {
+
+                                                  event.stopPropagation();
+
+
+                                                  moveOrder(
+                                                    order.id,
+                                                    "UP"
+                                                  );
+
+                                                }
+                                              }
+                                            >
+
+                                              <KeyboardArrowUpIcon />
+
+                                            </IconButton>
+
+                                          </span>
+
+                                        </Tooltip>
+
+
+                                        <Tooltip
+                                          title="Bajar"
+                                        >
+
+                                          <span>
+
+                                            <IconButton
+                                              size="small"
+                                              disabled={
+                                                index ===
+                                                lineOrders.length -
+                                                  1
+                                              }
+                                              onClick={
+                                                event => {
+
+                                                  event.stopPropagation();
+
+
+                                                  moveOrder(
+                                                    order.id,
+                                                    "DOWN"
+                                                  );
+
+                                                }
+                                              }
+                                            >
+
+                                              <KeyboardArrowDownIcon />
+
+                                            </IconButton>
+
+                                          </span>
+
+                                        </Tooltip>
+
+                                      </Box>
+
+                                    </Box>
+
+                                  );
+
+                                }
+                              )
+                            }
+
+                          </Box>
+
+                        </Box>
+
+                      )
+                  }
+
+                </Paper>
+
+              );
+
+            }
+          )
+        }
 
       </Stack>
 
@@ -1039,9 +1182,7 @@ function Header({
           "uppercase"
       }}
     >
-
       {children}
-
     </Typography>
 
   );

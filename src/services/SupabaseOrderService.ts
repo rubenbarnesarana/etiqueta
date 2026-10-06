@@ -8,29 +8,18 @@ import type {
 
 
 interface ProductionOrderRow {
-
   id: number;
-
   order_number: string;
-
   lot: string;
-
   customer: string;
-
+  comments: string;
   sku: string;
-
   product: string;
-
   template_id: number;
-
   rolls: number;
-
   first_coil: number;
-
   printer: string;
-
   production_line: number;
-
   planning_position: number;
 
   status:
@@ -38,7 +27,23 @@ interface ProductionOrderRow {
     | "FINALIZADA";
 
   printed: number;
+}
 
+
+/*
+ * ==================================================
+ * RESULTADO REAPERTURA
+ * ==================================================
+ */
+
+interface ReopenProductionOrderRow {
+  id: number;
+  order_number: string;
+  rolls: number;
+  printed: number;
+  status: string;
+  production_line: number;
+  planning_position: number;
 }
 
 
@@ -49,38 +54,25 @@ interface ProductionOrderRow {
  */
 
 interface OrderPrintLockRow {
-
   success: boolean;
-
   message: string;
-
   coil_number: number;
-
   printed: number;
-
   rolls: number;
-
   status: string;
-
 }
 
 
 export interface OrderPrintLockResult {
-
   success: boolean;
-
   message: string;
-
   coilNumber: number;
-
   printed: number;
-
   rolls: number;
 
   status:
     | "ABIERTA"
     | "FINALIZADA";
-
 }
 
 
@@ -91,34 +83,21 @@ export interface OrderPrintLockResult {
  */
 
 interface OrderPrintCommitRow {
-
   success: boolean;
-
   message: string;
-
   coil_number: number;
-
   printed: number;
-
   rolls: number;
-
   status: string;
-
   finished: boolean;
-
 }
 
 
 export interface OrderPrintCommitResult {
-
   success: boolean;
-
   message: string;
-
   coilNumber: number;
-
   printed: number;
-
   rolls: number;
 
   status:
@@ -126,7 +105,6 @@ export interface OrderPrintCommitResult {
     | "FINALIZADA";
 
   finished: boolean;
-
 }
 
 
@@ -139,8 +117,30 @@ export interface OrderPrintCommitResult {
 const READ_BATCH_SIZE =
   1000;
 
-const WRITE_BATCH_SIZE =
-  500;
+
+/*
+ * ==================================================
+ * CAMPOS ORDEN
+ * ==================================================
+ */
+
+const ORDER_SELECT_FIELDS = `
+  id,
+  order_number,
+  lot,
+  customer,
+  comments,
+  sku,
+  product,
+  template_id,
+  rolls,
+  first_coil,
+  printer,
+  production_line,
+  planning_position,
+  status,
+  printed
+`;
 
 
 /*
@@ -170,6 +170,10 @@ function mapRowToOrder(
 
     customer:
       row.customer ??
+      "",
+
+    comments:
+      row.comments ??
       "",
 
     sku:
@@ -239,7 +243,7 @@ function mapRowToOrder(
 
 function mapOrderToRow(
   order: ProductionOrder
-) {
+): ProductionOrderRow {
 
   return {
 
@@ -255,6 +259,10 @@ function mapOrderToRow(
 
     customer:
       order.customer ??
+      "",
+
+    comments:
+      order.comments ??
       "",
 
     sku:
@@ -326,6 +334,118 @@ function normalizeStatus(
 
 /*
  * ==================================================
+ * VERIFICAR ORDEN GUARDADA
+ * ==================================================
+ */
+
+function verifySavedOrder(
+  expected: ProductionOrderRow,
+  saved: ProductionOrderRow
+) {
+
+  const expectedStatus =
+    normalizeStatus(
+      expected.status
+    );
+
+
+  const savedStatus =
+    normalizeStatus(
+      saved.status
+    );
+
+
+  const expectedPrinted =
+    Number(
+      expected.printed ??
+      0
+    );
+
+
+  const savedPrinted =
+    Number(
+      saved.printed ??
+      0
+    );
+
+
+  if (
+    expectedStatus !==
+      savedStatus ||
+    expectedPrinted !==
+      savedPrinted
+  ) {
+
+    throw new Error(
+      [
+        `Supabase no guardó correctamente la orden ${expected.order_number}.`,
+        `Esperado: status=${expectedStatus}, printed=${expectedPrinted}.`,
+        `Guardado: status=${savedStatus}, printed=${savedPrinted}.`
+      ].join(
+        " "
+      )
+    );
+
+  }
+
+}
+
+
+/*
+ * ==================================================
+ * OBTENER UNA ORDEN DESDE SUPABASE
+ * ==================================================
+ */
+
+async function getSupabaseOrder(
+  orderNumber: string
+):
+Promise<ProductionOrderRow | null> {
+
+  const {
+    data,
+    error
+  } =
+    await supabase
+      .from(
+        "production_orders"
+      )
+      .select(
+        ORDER_SELECT_FIELDS
+      )
+      .eq(
+        "order_number",
+        orderNumber
+      )
+      .maybeSingle();
+
+
+  if (
+    error
+  ) {
+
+    console.error(
+      `Error obteniendo la orden ${orderNumber}:`,
+      error
+    );
+
+
+    throw error;
+
+  }
+
+
+  return (
+    data as
+      ProductionOrderRow |
+      null
+  );
+
+}
+
+
+/*
+ * ==================================================
  * OBTENER TODAS LAS ÓRDENES
  * ==================================================
  */
@@ -360,22 +480,7 @@ Promise<ProductionOrder[]> {
           "production_orders"
         )
         .select(
-          `
-            id,
-            order_number,
-            lot,
-            customer,
-            sku,
-            product,
-            template_id,
-            rolls,
-            first_coil,
-            printer,
-            production_line,
-            planning_position,
-            status,
-            printed
-          `
+          ORDER_SELECT_FIELDS
         )
         .order(
           "id",
@@ -398,6 +503,7 @@ Promise<ProductionOrder[]> {
         "Error cargando órdenes desde Supabase:",
         error
       );
+
 
       throw error;
 
@@ -444,6 +550,101 @@ Promise<ProductionOrder[]> {
 
 /*
  * ==================================================
+ * REABRIR / REDUCIR CONTADOR
+ * ==================================================
+ */
+
+async function reopenSupabaseOrder(
+  orderNumber: string,
+  printed: number
+): Promise<void> {
+
+  console.log(
+    `[ORDEN ${orderNumber}] Reabriendo mediante RPC. Nuevo contador: ${printed}`
+  );
+
+
+  const {
+    data,
+    error
+  } =
+    await supabase.rpc(
+      "reopen_production_order",
+      {
+
+        p_order_number:
+          orderNumber,
+
+        p_printed:
+          printed
+
+      }
+    );
+
+
+  if (
+    error
+  ) {
+
+    console.error(
+      `Error reabriendo la orden ${orderNumber}:`,
+      error
+    );
+
+
+    throw error;
+
+  }
+
+
+  const rows =
+    (
+      data ??
+      []
+    ) as ReopenProductionOrderRow[];
+
+
+  const row =
+    rows[0];
+
+
+  if (
+    !row
+  ) {
+
+    throw new Error(
+      `Supabase no devolvió ningún resultado al reabrir la orden ${orderNumber}.`
+    );
+
+  }
+
+
+  console.log(
+    `[ORDEN ${orderNumber}] Resultado reapertura:`,
+    row
+  );
+
+
+  if (
+    Number(
+      row.printed
+    ) !==
+      Number(
+        printed
+      )
+  ) {
+
+    throw new Error(
+      `No se pudo modificar el contador de la orden ${orderNumber}. Esperado=${printed}, Guardado=${row.printed}.`
+    );
+
+  }
+
+}
+
+
+/*
+ * ==================================================
  * GUARDAR UNA ORDEN
  * ==================================================
  */
@@ -452,21 +653,372 @@ export async function saveSupabaseOrder(
   order: ProductionOrder
 ): Promise<void> {
 
+  const expectedRow =
+    mapOrderToRow(
+      order
+    );
+
+
+  /*
+   * ==================================================
+   * 1. COMPROBAR ESTADO ACTUAL
+   * ==================================================
+   */
+
+  const existingOrder =
+    await getSupabaseOrder(
+      expectedRow.order_number
+    );
+
+
+  /*
+   * ==================================================
+   * 2. ORDEN NUEVA
+   * ==================================================
+   */
+
+  if (
+    !existingOrder
+  ) {
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .from(
+          "production_orders"
+        )
+        .insert(
+          expectedRow
+        )
+        .select(
+          ORDER_SELECT_FIELDS
+        );
+
+
+    if (
+      error
+    ) {
+
+      console.error(
+        `Error insertando la orden ${expectedRow.order_number}:`,
+        error
+      );
+
+
+      throw error;
+
+    }
+
+
+    const rows =
+      (
+        data ??
+        []
+      ) as ProductionOrderRow[];
+
+
+    const saved =
+      rows[0];
+
+
+    if (
+      !saved
+    ) {
+
+      throw new Error(
+        `Supabase no devolvió la nueva orden ${expectedRow.order_number}.`
+      );
+
+    }
+
+
+    verifySavedOrder(
+      expectedRow,
+      saved
+    );
+
+
+    return;
+
+  }
+
+
+  /*
+   * ==================================================
+   * 3. DETECTAR SI ESTAMOS REDUCIENDO IMPRESIONES
+   * ==================================================
+   */
+
+  const currentPrinted =
+    Number(
+      existingOrder.printed ??
+      0
+    );
+
+
+  const newPrinted =
+    Number(
+      expectedRow.printed ??
+      0
+    );
+
+
+  const isPrintedDecrease =
+    newPrinted <
+    currentPrinted;
+
+
+  if (
+    isPrintedDecrease
+  ) {
+
+    await reopenSupabaseOrder(
+      expectedRow.order_number,
+      newPrinted
+    );
+
+
+    /*
+     * Después de la reapertura volvemos a leer
+     * la orden para obtener estado real.
+     */
+
+    const reopenedOrder =
+      await getSupabaseOrder(
+        expectedRow.order_number
+      );
+
+
+    if (
+      !reopenedOrder
+    ) {
+
+      throw new Error(
+        `No se pudo recuperar la orden ${expectedRow.order_number} después de reabrirla.`
+      );
+
+    }
+
+
+    /*
+     * Actualizamos el resto de metadatos.
+     *
+     * NO tocamos:
+     *
+     * - printed
+     * - status
+     * - planning_position
+     */
+
+    const {
+      data:
+        updatedMetadata,
+      error:
+        metadataError
+    } =
+      await supabase
+        .from(
+          "production_orders"
+        )
+        .update({
+
+          lot:
+            expectedRow.lot,
+
+          customer:
+            expectedRow.customer,
+
+          comments:
+            expectedRow.comments,
+
+          sku:
+            expectedRow.sku,
+
+          product:
+            expectedRow.product,
+
+          template_id:
+            expectedRow.template_id,
+
+          rolls:
+            expectedRow.rolls,
+
+          first_coil:
+            expectedRow.first_coil,
+
+          printer:
+            expectedRow.printer,
+
+          production_line:
+            expectedRow.production_line
+
+        })
+        .eq(
+          "order_number",
+          expectedRow.order_number
+        )
+        .select(
+          ORDER_SELECT_FIELDS
+        );
+
+
+    if (
+      metadataError
+    ) {
+
+      console.error(
+        `Error actualizando datos de la orden ${expectedRow.order_number}:`,
+        metadataError
+      );
+
+
+      throw metadataError;
+
+    }
+
+
+    const metadataRows =
+      (
+        updatedMetadata ??
+        []
+      ) as ProductionOrderRow[];
+
+
+    const finalSavedOrder =
+      metadataRows[0];
+
+
+    if (
+      !finalSavedOrder
+    ) {
+
+      throw new Error(
+        `Supabase no devolvió la orden ${expectedRow.order_number} después de actualizar sus datos.`
+      );
+
+    }
+
+
+    if (
+      Number(
+        finalSavedOrder.printed
+      ) !==
+        newPrinted
+    ) {
+
+      throw new Error(
+        `La reapertura de la orden ${expectedRow.order_number} no conservó el contador correcto.`
+      );
+
+    }
+
+
+    const expectedStatus:
+      "ABIERTA" |
+      "FINALIZADA" =
+
+      newPrinted <
+      Number(
+        expectedRow.rolls
+      )
+        ? "ABIERTA"
+        : "FINALIZADA";
+
+
+    if (
+      normalizeStatus(
+        finalSavedOrder.status
+      ) !==
+      expectedStatus
+    ) {
+
+      throw new Error(
+        `La reapertura de la orden ${expectedRow.order_number} no conservó el estado correcto.`
+      );
+
+    }
+
+
+    console.log(
+      `[ORDEN ${expectedRow.order_number}] Reapertura guardada correctamente:`,
+      finalSavedOrder
+    );
+
+
+    return;
+
+  }
+
+
+  /*
+   * ==================================================
+   * 4. ACTUALIZACIÓN NORMAL
+   * ==================================================
+   */
+
+  const updateData = {
+
+    lot:
+      expectedRow.lot,
+
+    customer:
+      expectedRow.customer,
+
+    comments:
+      expectedRow.comments,
+
+    sku:
+      expectedRow.sku,
+
+    product:
+      expectedRow.product,
+
+    template_id:
+      expectedRow.template_id,
+
+    rolls:
+      expectedRow.rolls,
+
+    first_coil:
+      expectedRow.first_coil,
+
+    printer:
+      expectedRow.printer,
+
+    production_line:
+      expectedRow.production_line,
+
+    planning_position:
+      expectedRow.planning_position,
+
+    status:
+      expectedRow.status,
+
+    printed:
+      expectedRow.printed
+
+  };
+
+
   const {
+    data,
     error
   } =
     await supabase
       .from(
         "production_orders"
       )
-      .upsert(
-        mapOrderToRow(
-          order
-        ),
-        {
-          onConflict:
-            "order_number"
-        }
+      .update(
+        updateData
+      )
+      .eq(
+        "order_number",
+        expectedRow.order_number
+      )
+      .select(
+        ORDER_SELECT_FIELDS
       );
 
 
@@ -475,13 +1027,42 @@ export async function saveSupabaseOrder(
   ) {
 
     console.error(
-      "Error guardando orden en Supabase:",
+      `Error actualizando la orden ${expectedRow.order_number}:`,
       error
     );
+
 
     throw error;
 
   }
+
+
+  const rows =
+    (
+      data ??
+      []
+    ) as ProductionOrderRow[];
+
+
+  const saved =
+    rows[0];
+
+
+  if (
+    !saved
+  ) {
+
+    throw new Error(
+      `Supabase no actualizó la orden ${expectedRow.order_number}.`
+    );
+
+  }
+
+
+  verifySavedOrder(
+    expectedRow,
+    saved
+  );
 
 }
 
@@ -506,57 +1087,14 @@ export async function saveSupabaseOrders(
   }
 
 
-  const rows =
-    orders.map(
-      order =>
-        mapOrderToRow(
-          order
-        )
-    );
-
-
   for (
-    let index = 0;
-    index < rows.length;
-    index += WRITE_BATCH_SIZE
+    const order
+    of orders
   ) {
 
-    const batch =
-      rows.slice(
-        index,
-        index +
-        WRITE_BATCH_SIZE
-      );
-
-
-    const {
-      error
-    } =
-      await supabase
-        .from(
-          "production_orders"
-        )
-        .upsert(
-          batch,
-          {
-            onConflict:
-              "order_number"
-          }
-        );
-
-
-    if (
-      error
-    ) {
-
-      console.error(
-        "Error guardando órdenes en Supabase:",
-        error
-      );
-
-      throw error;
-
-    }
+    await saveSupabaseOrder(
+      order
+    );
 
   }
 
@@ -596,6 +1134,7 @@ export async function deleteSupabaseOrder(
       error
     );
 
+
     throw error;
 
   }
@@ -605,17 +1144,254 @@ export async function deleteSupabaseOrder(
 
 /*
  * ==================================================
- * RESERVAR IMPRESIÓN
+ * REORDENAR PLANIFICACIÓN AL FINALIZAR
  * ==================================================
- *
- * Reserva temporalmente la siguiente bobina
- * de una orden.
- *
- * Solamente un equipo puede tener la reserva
- * activa al mismo tiempo.
- *
- * NO incrementa el contador.
- *
+ */
+
+async function reorderPlanningAfterFinishedOrder(
+  orderNumber: string
+): Promise<void> {
+
+  const {
+    data:
+      finishedOrder,
+    error:
+      finishedOrderError
+  } =
+    await supabase
+      .from(
+        "production_orders"
+      )
+      .select(
+        `
+          id,
+          order_number,
+          production_line,
+          planning_position,
+          status
+        `
+      )
+      .eq(
+        "order_number",
+        orderNumber
+      )
+      .maybeSingle();
+
+
+  if (
+    finishedOrderError
+  ) {
+
+    console.error(
+      "Error obteniendo la orden finalizada para reordenar:",
+      finishedOrderError
+    );
+
+
+    return;
+
+  }
+
+
+  if (
+    !finishedOrder
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    finishedOrder.status !==
+    "FINALIZADA"
+  ) {
+
+    return;
+
+  }
+
+
+  const productionLine =
+    Number(
+      finishedOrder.production_line ??
+      0
+    );
+
+
+  const finishedPosition =
+    Number(
+      finishedOrder.planning_position ??
+      0
+    );
+
+
+  if (
+    productionLine <=
+      0 ||
+    finishedPosition <=
+      0
+  ) {
+
+    return;
+
+  }
+
+
+  const {
+    error:
+      finishedPositionError
+  } =
+    await supabase
+      .from(
+        "production_orders"
+      )
+      .update({
+        planning_position:
+          0
+      })
+      .eq(
+        "order_number",
+        orderNumber
+      );
+
+
+  if (
+    finishedPositionError
+  ) {
+
+    console.error(
+      "Error retirando la orden finalizada de la planificación:",
+      finishedPositionError
+    );
+
+
+    return;
+
+  }
+
+
+  const {
+    data:
+      followingOrders,
+    error:
+      followingOrdersError
+  } =
+    await supabase
+      .from(
+        "production_orders"
+      )
+      .select(
+        `
+          id,
+          order_number,
+          planning_position
+        `
+      )
+      .eq(
+        "production_line",
+        productionLine
+      )
+      .eq(
+        "status",
+        "ABIERTA"
+      )
+      .gt(
+        "planning_position",
+        finishedPosition
+      )
+      .order(
+        "planning_position",
+        {
+          ascending:
+            true
+        }
+      );
+
+
+  if (
+    followingOrdersError
+  ) {
+
+    console.error(
+      "Error obteniendo las órdenes posteriores:",
+      followingOrdersError
+    );
+
+
+    return;
+
+  }
+
+
+  const ordersToMove =
+    followingOrders ??
+    [];
+
+
+  for (
+    const followingOrder
+    of ordersToMove
+  ) {
+
+    const currentPosition =
+      Number(
+        followingOrder.planning_position ??
+        0
+      );
+
+
+    if (
+      currentPosition <=
+      0
+    ) {
+
+      continue;
+
+    }
+
+
+    const {
+      error:
+        moveError
+    } =
+      await supabase
+        .from(
+          "production_orders"
+        )
+        .update({
+          planning_position:
+            currentPosition -
+            1
+        })
+        .eq(
+          "id",
+          followingOrder.id
+        );
+
+
+    if (
+      moveError
+    ) {
+
+      console.error(
+        `Error moviendo la orden ${followingOrder.order_number} a la posición ${currentPosition - 1}:`,
+        moveError
+      );
+
+
+      return;
+
+    }
+
+  }
+
+}
+
+
+/*
+ * ==================================================
+ * RESERVAR IMPRESIÓN
  * ==================================================
  */
 
@@ -650,6 +1426,7 @@ export async function acquireSupabaseOrderPrintLock(
       "Error reservando impresión de orden:",
       error
     );
+
 
     throw error;
 
@@ -723,19 +1500,6 @@ export async function acquireSupabaseOrderPrintLock(
  * ==================================================
  * CONFIRMAR IMPRESIÓN
  * ==================================================
- *
- * Se ejecuta SOLAMENTE después de que QZ haya
- * confirmado correctamente la impresión física.
- *
- * Supabase:
- *
- * - comprueba que la reserva pertenece al equipo
- * - comprueba el número de bobina
- * - incrementa printed de forma atómica
- * - actualiza el estado
- * - libera el bloqueo
- *
- * ==================================================
  */
 
 export async function commitSupabaseOrderPrint(
@@ -774,6 +1538,7 @@ export async function commitSupabaseOrderPrint(
       error
     );
 
+
     throw error;
 
   }
@@ -801,7 +1566,8 @@ export async function commitSupabaseOrderPrint(
   }
 
 
-  return {
+  const result:
+    OrderPrintCommitResult = {
 
     success:
       Boolean(
@@ -844,22 +1610,41 @@ export async function commitSupabaseOrderPrint(
 
   };
 
+
+  if (
+    result.success &&
+    result.finished
+  ) {
+
+    try {
+
+      await reorderPlanningAfterFinishedOrder(
+        orderNumber
+      );
+
+    }
+    catch (
+      reorderError
+    ) {
+
+      console.error(
+        "La orden terminó correctamente, pero hubo un problema al reordenar la planificación:",
+        reorderError
+      );
+
+    }
+
+  }
+
+
+  return result;
+
 }
 
 
 /*
  * ==================================================
  * LIBERAR RESERVA DE IMPRESIÓN
- * ==================================================
- *
- * Se utiliza cuando:
- *
- * - falla QZ
- * - falla la generación de la imagen
- * - se produce cualquier error antes de confirmar
- *
- * NO modifica el contador.
- *
  * ==================================================
  */
 
@@ -894,6 +1679,7 @@ export async function releaseSupabaseOrderPrintLock(
       "Error liberando reserva de impresión:",
       error
     );
+
 
     throw error;
 

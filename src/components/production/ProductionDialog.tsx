@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useState
 } from "react";
 
@@ -12,12 +13,23 @@ import {
   Grid,
   TextField,
   MenuItem,
-  Typography
+  Alert,
+  Typography,
+  Box,
+  Autocomplete
 } from "@mui/material";
+
+import type {
+  ProductionOrder
+} from "../../services/OrderStorage";
 
 import type {
   Product
 } from "../../models/Product";
+
+import {
+  getProducts
+} from "../../services/ProductStorage";
 
 import {
   getTemplates
@@ -31,15 +43,88 @@ interface Props {
   onClose: () => void;
 
   onSave: (
-    product: Product
+    order: ProductionOrder
   ) => void;
 
-  product?: Product;
+  editing?: ProductionOrder;
 
 }
 
 
-export default function ProductDialog({
+/*
+ * ==================================================
+ * LÍNEAS DE PRODUCCIÓN
+ * ==================================================
+ */
+
+const PRODUCTION_LINES = [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8
+];
+
+
+/*
+ * ==================================================
+ * GENERAR LOTE AUTOMÁTICO
+ * ==================================================
+ */
+
+function getTodayLot():
+string {
+
+  const today =
+    new Date();
+
+
+  const year =
+    String(
+      today.getFullYear()
+    ).slice(
+      -2
+    );
+
+
+  const month =
+    String(
+      today.getMonth() +
+      1
+    ).padStart(
+      2,
+      "0"
+    );
+
+
+  const day =
+    String(
+      today.getDate()
+    ).padStart(
+      2,
+      "0"
+    );
+
+
+  return (
+    year +
+    month +
+    day
+  );
+
+}
+
+
+/*
+ * ==================================================
+ * COMPONENTE
+ * ==================================================
+ */
+
+export default function ProductionDialog({
 
   open,
 
@@ -47,85 +132,443 @@ export default function ProductDialog({
 
   onSave,
 
-  product
+  editing
 
 }: Props) {
 
 
+  /*
+   * ==================================================
+   * DATOS
+   * ==================================================
+   */
+
+  const products =
+    useMemo(
+      () =>
+        getProducts(),
+      [
+        open
+      ]
+    );
+
+
   const templates =
-    getTemplates();
-
-
-  const [
-    sapCode,
-    setSapCode
-  ] = useState("");
-
-
-  const [
-    description,
-    setDescription
-  ] = useState("");
+    useMemo(
+      () =>
+        getTemplates(),
+      [
+        open
+      ]
+    );
 
 
   /*
-   * Texto que aparecerá en la mitad
-   * superior de la etiqueta a 180°.
+   * ==================================================
+   * ESTADOS
+   * ==================================================
    */
 
   const [
-    upperText,
-    setUpperText
-  ] = useState("");
+    order,
+    setOrder
+  ] =
+    useState(
+      ""
+    );
 
 
   const [
-    diameter,
-    setDiameter
-  ] = useState("");
+    lot,
+    setLot
+  ] =
+    useState(
+      getTodayLot()
+    );
 
 
   const [
-    thickness,
-    setThickness
-  ] = useState("");
+    customer,
+    setCustomer
+  ] =
+    useState(
+      ""
+    );
 
 
   const [
-    flow,
-    setFlow
-  ] = useState("");
+    comments,
+    setComments
+  ] =
+    useState(
+      ""
+    );
 
 
   const [
-    spacing,
-    setSpacing
-  ] = useState("");
+    sku,
+    setSku
+  ] =
+    useState(
+      ""
+    );
 
 
   const [
-    dripper,
-    setDripper
-  ] = useState("");
+    productName,
+    setProductName
+  ] =
+    useState(
+      ""
+    );
 
 
   const [
     templateId,
     setTemplateId
-  ] = useState<number>(0);
+  ] =
+    useState<number>(
+      0
+    );
+
+
+  const [
+    rolls,
+    setRolls
+  ] =
+    useState<number>(
+      1
+    );
+
+
+  const [
+    firstCoil,
+    setFirstCoil
+  ] =
+    useState<number>(
+      1
+    );
+
+
+  const [
+    printer,
+    setPrinter
+  ] =
+    useState(
+      "Toshiba BA420"
+    );
+
+
+  const [
+    productionLine,
+    setProductionLine
+  ] =
+    useState<number>(
+      0
+    );
 
 
   /*
    * ==================================================
-   * CARGAR PRODUCTO
+   * PRODUCTO SELECCIONADO
    * ==================================================
    */
 
-  useEffect(() => {
+  const selectedProduct:
+    Product |
+    undefined =
+
+    products.find(
+      product =>
+        product.sapCode ===
+        sku
+    );
+
+
+  /*
+   * ==================================================
+   * PLANTILLA SELECCIONADA
+   * ==================================================
+   */
+
+  const selectedTemplate =
+    templates.find(
+      template =>
+        Number(
+          template.id
+        ) ===
+        Number(
+          templateId
+        )
+    );
+
+
+  /*
+   * ==================================================
+   * CARGAR ORDEN
+   * ==================================================
+   */
+
+  useEffect(
+    () => {
+
+      if (
+        !open
+      ) {
+
+        return;
+
+      }
+
+
+      /*
+       * EDITAR ORDEN EXISTENTE
+       */
+
+      if (
+        editing
+      ) {
+
+        setOrder(
+          editing.order ??
+          ""
+        );
+
+
+        setLot(
+          editing.lot ??
+          getTodayLot()
+        );
+
+
+        setCustomer(
+          editing.customer ??
+          ""
+        );
+
+
+        setComments(
+          editing.comments ??
+          ""
+        );
+
+
+        setSku(
+          editing.sku ??
+          ""
+        );
+
+
+        setProductName(
+          editing.product ??
+          ""
+        );
+
+
+        setTemplateId(
+          Number(
+            editing.templateId ??
+            0
+          )
+        );
+
+
+        setRolls(
+          Number(
+            editing.rolls ??
+            1
+          )
+        );
+
+
+        setFirstCoil(
+          Number(
+            editing.firstCoil ??
+            1
+          )
+        );
+
+
+        setPrinter(
+          editing.printer ||
+          "Toshiba BA420"
+        );
+
+
+        setProductionLine(
+          Number(
+            editing.productionLine ??
+            0
+          )
+        );
+
+
+        return;
+
+      }
+
+
+      /*
+       * NUEVA ORDEN
+       */
+
+      setOrder(
+        ""
+      );
+
+
+      setLot(
+        getTodayLot()
+      );
+
+
+      setCustomer(
+        ""
+      );
+
+
+      setComments(
+        ""
+      );
+
+
+      setSku(
+        ""
+      );
+
+
+      setProductName(
+        ""
+      );
+
+
+      setTemplateId(
+        0
+      );
+
+
+      setRolls(
+        1
+      );
+
+
+      setFirstCoil(
+        1
+      );
+
+
+      setPrinter(
+        "Toshiba BA420"
+      );
+
+
+      setProductionLine(
+        0
+      );
+
+    },
+    [
+      editing,
+      open
+    ]
+  );
+
+
+  /*
+   * ==================================================
+   * SELECCIONAR SKU
+   * ==================================================
+   */
+
+  function handleProductSelect(
+    product:
+      Product |
+      null
+  ) {
 
     if (
-      !open
+      !product
     ) {
+
+      setSku(
+        ""
+      );
+
+
+      setProductName(
+        ""
+      );
+
+
+      setTemplateId(
+        0
+      );
+
+
+      return;
+
+    }
+
+
+    setSku(
+      product.sapCode
+    );
+
+
+    setProductName(
+      product.description
+    );
+
+
+    setTemplateId(
+      Number(
+        product.templateId
+      )
+    );
+
+  }
+
+
+  /*
+   * ==================================================
+   * GUARDAR
+   * ==================================================
+   */
+
+  function save() {
+
+    const cleanOrder =
+      order.trim();
+
+
+    const cleanLot =
+      lot.trim();
+
+
+    const cleanCustomer =
+      customer.trim();
+
+
+    const cleanComments =
+      comments.trim();
+
+
+    const cleanSku =
+      sku.trim();
+
+
+    /*
+     * VALIDACIONES
+     */
+
+    if (
+      !cleanOrder
+    ) {
+
+      alert(
+        "Debes indicar la Orden SAP."
+      );
+
 
       return;
 
@@ -133,62 +576,125 @@ export default function ProductDialog({
 
 
     if (
-      product
+      !cleanLot
     ) {
 
-      setSapCode(
-        product.sapCode ??
-        ""
+      alert(
+        "No se ha podido generar el lote."
       );
 
 
-      setDescription(
-        product.description ??
-        ""
+      return;
+
+    }
+
+
+    if (
+      !cleanSku
+    ) {
+
+      alert(
+        "Debes seleccionar un SKU."
       );
 
 
-      setUpperText(
-        product.upperText ??
-        ""
+      return;
+
+    }
+
+
+    if (
+      !selectedProduct
+    ) {
+
+      alert(
+        "El SKU seleccionado no existe en Productos."
       );
 
 
-      setDiameter(
-        product.diameter ??
-        ""
+      return;
+
+    }
+
+
+    if (
+      !templateId
+    ) {
+
+      alert(
+        "El producto no tiene una plantilla asignada."
       );
 
 
-      setThickness(
-        product.thickness ??
-        ""
+      return;
+
+    }
+
+
+    if (
+      productionLine <
+        1 ||
+      productionLine >
+        8
+    ) {
+
+      alert(
+        "Debes seleccionar una línea de producción."
       );
 
 
-      setFlow(
-        product.flow ??
-        ""
+      return;
+
+    }
+
+
+    if (
+      !Number.isFinite(
+        rolls
+      ) ||
+      rolls <
+        1
+    ) {
+
+      alert(
+        "El número de rollos debe ser mayor que 0."
       );
 
 
-      setSpacing(
-        product.spacing ??
-        ""
+      return;
+
+    }
+
+
+    if (
+      !Number.isFinite(
+        firstCoil
+      ) ||
+      firstCoil <
+        1 ||
+      firstCoil >
+        9999
+    ) {
+
+      alert(
+        "La primera bobina debe estar entre 1 y 9999."
       );
 
 
-      setDripper(
-        product.dripper ??
-        ""
-      );
+      return;
+
+    }
 
 
-      setTemplateId(
-        Number(
-          product.templateId ??
-          0
-        )
+    if (
+      firstCoil +
+      rolls -
+      1 >
+      9999
+    ) {
+
+      alert(
+        "La numeración de bobinas supera el máximo 9999."
       );
 
 
@@ -198,115 +704,72 @@ export default function ProductDialog({
 
 
     /*
-     * NUEVO PRODUCTO
+     * ==================================================
+     * GUARDAR ORDEN
+     * ==================================================
      */
-
-    setSapCode("");
-
-    setDescription("");
-
-    setUpperText("");
-
-    setDiameter("");
-
-    setThickness("");
-
-    setFlow("");
-
-    setSpacing("");
-
-    setDripper("");
-
-    setTemplateId(0);
-
-
-  }, [
-    product,
-    open
-  ]);
-
-
-  /*
-   * ==================================================
-   * GUARDAR PRODUCTO
-   * ==================================================
-   */
-
-  function save() {
-
-    const cleanSapCode =
-      sapCode.trim();
-
-
-    const cleanDescription =
-      description.trim();
-
-
-    if (
-      !cleanSapCode
-    ) {
-
-      alert(
-        "Introduce el Código SAP."
-      );
-
-      return;
-
-    }
-
-
-    if (
-      !cleanDescription
-    ) {
-
-      alert(
-        "Introduce la descripción del producto."
-      );
-
-      return;
-
-    }
-
 
     onSave({
 
-      /*
-       * Si estamos editando mantenemos
-       * exactamente el mismo ID.
-       */
-
       id:
-        product?.id ??
+        editing?.id ??
         Date.now(),
 
-      sapCode:
-        cleanSapCode,
+      order:
+        cleanOrder,
 
-      /*
-       * DESCRIPCIÓN INFERIOR
-       */
+      lot:
+        cleanLot,
 
-      description:
-        cleanDescription,
+      customer:
+        cleanCustomer,
 
-      /*
-       * TEXTO SUPERIOR 180°
-       */
+      comments:
+        cleanComments,
 
-      upperText:
-        upperText.trim(),
+      sku:
+        cleanSku,
 
-      diameter,
+      product:
+        selectedProduct.description,
 
-      thickness,
+      templateId:
+        Number(
+          templateId
+        ),
 
-      flow,
+      rolls:
+        Math.floor(
+          Number(
+            rolls
+          )
+        ),
 
-      spacing,
+      firstCoil:
+        Math.floor(
+          Number(
+            firstCoil
+          )
+        ),
 
-      dripper,
+      printer:
+        printer.trim() ||
+        "Toshiba BA420",
 
-      templateId
+      productionLine:
+        productionLine,
+
+      planningPosition:
+        editing?.planningPosition ??
+        0,
+
+      status:
+        editing?.status ??
+        "ABIERTA",
+
+      printed:
+        editing?.printed ??
+        0
 
     });
 
@@ -335,9 +798,9 @@ export default function ProductDialog({
       <DialogTitle>
 
         {
-          product
-            ? "Editar Producto"
-            : "Nuevo Producto"
+          editing
+            ? "Editar Orden de Producción"
+            : "Nueva Orden de Producción"
         }
 
       </DialogTitle>
@@ -347,421 +810,639 @@ export default function ProductDialog({
 
         <Grid
           container
-          spacing={2}
+          spacing={
+            2
+          }
           sx={{
-            mt: 1
+            mt:
+              0.5
           }}
         >
 
-          {/* ============================================
-              CÓDIGO SAP
-             ============================================ */}
+
+          {/* ORDEN SAP */}
 
           <Grid
             size={{
-              xs: 12,
-              md: 6
+              xs:
+                12,
+
+              md:
+                6
             }}
           >
 
             <TextField
-              fullWidth
-              label="Código SAP"
+              label="Orden SAP"
               value={
-                sapCode
+                order
               }
               onChange={
                 event =>
-                  setSapCode(
+                  setOrder(
                     event.target.value
                   )
               }
+              placeholder="Ejemplo: 8900005103"
+              fullWidth
+              autoFocus
             />
 
           </Grid>
 
 
-          {/* ============================================
-              DESCRIPCIÓN INFERIOR
-             ============================================ */}
+          {/* LOTE */}
 
           <Grid
             size={{
-              xs: 12,
-              md: 6
+              xs:
+                12,
+
+              md:
+                6
             }}
           >
 
             <TextField
-              fullWidth
-              label="Descripción"
+              label="Lote"
               value={
-                description
+                lot
               }
-              onChange={
-                event =>
-                  setDescription(
-                    event.target.value
-                  )
-              }
-              helperText="Descripción que aparecerá en la parte inferior de la etiqueta."
-            />
-
-          </Grid>
-
-
-          {/* ============================================
-              TEXTO SUPERIOR 180°
-             ============================================ */}
-
-          <Grid
-            size={{
-              xs: 12
-            }}
-          >
-
-            <Typography
-              variant="subtitle2"
-              fontWeight="bold"
-              sx={{
-                mb: 1
+              fullWidth
+              helperText="Generado automáticamente con la fecha de hoy."
+              slotProps={{
+                input: {
+                  readOnly:
+                    true
+                }
               }}
-            >
-
-              Texto superior de la etiqueta
-
-            </Typography>
-
-
-            <TextField
-              fullWidth
-              multiline
-              minRows={5}
-              maxRows={8}
-              label="Texto superior (180°)"
-              value={
-                upperText
-              }
-              onChange={
-                event =>
-                  setUpperText(
-                    event.target.value
-                  )
-              }
-              placeholder={
-`AMNON PC AS 20/3.8
-50 CM R-300M 1,2MM
-Emitting Pipe
-Max Pressure 3,5 BAR
-ISO 9261`
-              }
-              helperText="Este texto aparecerá en la mitad superior de la etiqueta con orientación 180°. Respeta los saltos de línea."
             />
 
           </Grid>
 
 
-          {/* ============================================
-              DIÁMETRO
-             ============================================ */}
+          {/* CLIENTE */}
 
           <Grid
             size={{
-              xs: 12,
-              md: 6
+              xs:
+                12,
+
+              md:
+                6
             }}
           >
 
             <TextField
-              fullWidth
-              select
-              label="Diámetro"
+              label="Cliente"
               value={
-                diameter
+                customer
               }
               onChange={
                 event =>
-                  setDiameter(
+                  setCustomer(
                     event.target.value
                   )
               }
-            >
-
-              <MenuItem value="16">
-                16 mm
-              </MenuItem>
-
-              <MenuItem value="17">
-                17 mm
-              </MenuItem>
-
-              <MenuItem value="20">
-                20 mm
-              </MenuItem>
-
-              <MenuItem value="22">
-                22 mm
-              </MenuItem>
-
-              <MenuItem value="23">
-                23 mm
-              </MenuItem>
-
-              <MenuItem value="25">
-                25 mm
-              </MenuItem>
-
-            </TextField>
-
-          </Grid>
-
-
-          {/* ============================================
-              ESPESOR
-             ============================================ */}
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}
-          >
-
-            <TextField
+              placeholder="Ej.: M P A"
               fullWidth
-              select
-              label="Espesor"
-              value={
-                thickness
-              }
-              onChange={
-                event =>
-                  setThickness(
-                    event.target.value
-                  )
-              }
-            >
-
-              {[
-                "6",
-                "8",
-                "10",
-                "12",
-                "13",
-                "15",
-                "18",
-                "20",
-                "25",
-                "30",
-                "35",
-                "40",
-                "43",
-                "45",
-                "47"
-              ].map(
-                mil => (
-
-                  <MenuItem
-                    key={
-                      mil
-                    }
-                    value={
-                      mil
-                    }
-                  >
-
-                    {mil} mil
-
-                  </MenuItem>
-
-                )
-              )}
-
-            </TextField>
-
-          </Grid>
-
-
-          {/* ============================================
-              CAUDAL
-             ============================================ */}
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}
-          >
-
-            <TextField
-              fullWidth
-              select
-              label="Caudal"
-              value={
-                flow
-              }
-              onChange={
-                event =>
-                  setFlow(
-                    event.target.value
-                  )
-              }
-            >
-
-              {[
-                "0.6",
-                "0.8",
-                "0.95",
-                "1.0",
-                "1.1",
-                "1.4",
-                "1.5",
-                "1.6",
-                "2.0",
-                "2.1",
-                "2.2",
-                "3.5",
-                "3.8",
-                "4.0"
-              ].map(
-                flowValue => (
-
-                  <MenuItem
-                    key={
-                      flowValue
-                    }
-                    value={
-                      flowValue
-                    }
-                  >
-
-                    {flowValue} l/h
-
-                  </MenuItem>
-
-                )
-              )}
-
-            </TextField>
-
-          </Grid>
-
-
-          {/* ============================================
-              ESPACIADO
-             ============================================ */}
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}
-          >
-
-            <TextField
-              fullWidth
-              label="Espaciado"
-              value={
-                spacing
-              }
-              onChange={
-                event =>
-                  setSpacing(
-                    event.target.value
-                  )
-              }
             />
 
           </Grid>
 
 
-          {/* ============================================
-              TIPO DE GOTERO
-             ============================================ */}
+          {/* LÍNEA */}
 
           <Grid
             size={{
-              xs: 12,
-              md: 6
+              xs:
+                12,
+
+              md:
+                6
             }}
           >
 
             <TextField
-              fullWidth
-              label="Tipo de gotero"
-              value={
-                dripper
-              }
-              onChange={
-                event =>
-                  setDripper(
-                    event.target.value
-                  )
-              }
-            />
-
-          </Grid>
-
-
-          {/* ============================================
-              PLANTILLA
-             ============================================ */}
-
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}
-          >
-
-            <TextField
-              fullWidth
               select
-              label="Plantilla"
+              label="Línea de producción"
               value={
-                templateId
+                productionLine
               }
               onChange={
                 event =>
-                  setTemplateId(
+                  setProductionLine(
                     Number(
                       event.target.value
                     )
                   )
               }
+              fullWidth
+              required
+              helperText="La orden se añadirá a la planificación de esta línea."
             >
 
               <MenuItem
-                value={0}
+                value={
+                  0
+                }
               >
-
-                Sin plantilla
-
+                Seleccionar línea
               </MenuItem>
 
 
-              {templates.map(
-                template => (
+              {
+                PRODUCTION_LINES.map(
+                  line => (
 
-                  <MenuItem
-                    key={
-                      template.id
-                    }
-                    value={
-                      template.id
-                    }
-                  >
+                    <MenuItem
+                      key={
+                        line
+                      }
+                      value={
+                        line
+                      }
+                    >
+                      Línea {line}
+                    </MenuItem>
 
-                    {template.name}
-
-                  </MenuItem>
-
+                  )
                 )
-              )}
+              }
 
             </TextField>
 
           </Grid>
+
+
+          {/* SKU */}
+
+          <Grid
+            size={{
+              xs:
+                12,
+
+              md:
+                6
+            }}
+          >
+
+            <Autocomplete
+              options={
+                products
+              }
+              value={
+                selectedProduct ??
+                null
+              }
+              onChange={
+                (
+                  _event,
+                  value
+                ) =>
+                  handleProductSelect(
+                    value
+                  )
+              }
+              getOptionLabel={
+                product =>
+                  `${product.sapCode} - ${product.description}`
+              }
+              isOptionEqualToValue={
+                (
+                  option,
+                  value
+                ) =>
+                  option.id ===
+                  value.id
+              }
+              filterOptions={
+                (
+                  options,
+                  state
+                ) => {
+
+                  const search =
+                    state.inputValue
+                      .trim()
+                      .toLowerCase();
+
+
+                  if (
+                    !search
+                  ) {
+
+                    return [];
+
+                  }
+
+
+                  return options.filter(
+                    product =>
+                      product.sapCode
+                        .toLowerCase()
+                        .includes(
+                          search
+                        ) ||
+                      product.description
+                        .toLowerCase()
+                        .includes(
+                          search
+                        )
+                  );
+
+                }
+              }
+              noOptionsText="No se ha encontrado ningún SKU"
+              renderOption={
+                (
+                  props,
+                  product
+                ) => (
+
+                  <Box
+                    component="li"
+                    {...props}
+                    key={
+                      product.id
+                    }
+                  >
+
+                    <Box>
+
+                      <Typography
+                        fontWeight={
+                          700
+                        }
+                      >
+                        {product.sapCode}
+                      </Typography>
+
+
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                      >
+                        {product.description}
+                      </Typography>
+
+                    </Box>
+
+                  </Box>
+
+                )
+              }
+              renderInput={
+                params => (
+
+                  <TextField
+                    {...params}
+                    label="SKU"
+                    placeholder="Escribe el SKU..."
+                    helperText="Escribe parte del SKU para buscar el producto."
+                    fullWidth
+                  />
+
+                )
+              }
+            />
+
+          </Grid>
+
+
+          {/* PRODUCTO */}
+
+          <Grid
+            size={{
+              xs:
+                12,
+
+              md:
+                6
+            }}
+          >
+
+            <TextField
+              label="Producto"
+              value={
+                productName
+              }
+              fullWidth
+              slotProps={{
+                input: {
+                  readOnly:
+                    true
+                }
+              }}
+            />
+
+          </Grid>
+
+
+          {/* PLANTILLA */}
+
+          <Grid
+            size={{
+              xs:
+                12,
+
+              md:
+                6
+            }}
+          >
+
+            <TextField
+              label="Plantilla"
+              value={
+                selectedTemplate?.name ??
+                ""
+              }
+              fullWidth
+              slotProps={{
+                input: {
+                  readOnly:
+                    true
+                }
+              }}
+              helperText="Se obtiene automáticamente del producto."
+            />
+
+          </Grid>
+
+
+          {/* ROLLOS */}
+
+          <Grid
+            size={{
+              xs:
+                12,
+
+              md:
+                6
+            }}
+          >
+
+            <TextField
+              label="Número de rollos / bobinas"
+              type="number"
+              value={
+                rolls
+              }
+              onChange={
+                event =>
+                  setRolls(
+                    Number(
+                      event.target.value
+                    )
+                  )
+              }
+              slotProps={{
+                htmlInput: {
+                  min:
+                    1,
+
+                  max:
+                    9999
+                }
+              }}
+              fullWidth
+            />
+
+          </Grid>
+
+
+          {/* PRIMERA BOBINA */}
+
+          <Grid
+            size={{
+              xs:
+                12,
+
+              md:
+                6
+            }}
+          >
+
+            <TextField
+              label="Primera bobina"
+              type="number"
+              value={
+                firstCoil
+              }
+              onChange={
+                event =>
+                  setFirstCoil(
+                    Number(
+                      event.target.value
+                    )
+                  )
+              }
+              slotProps={{
+                htmlInput: {
+                  min:
+                    1,
+
+                  max:
+                    9999
+                }
+              }}
+              helperText="La numeración continuará automáticamente."
+              fullWidth
+            />
+
+          </Grid>
+
+
+          {/* IMPRESORA */}
+
+          <Grid
+            size={{
+              xs:
+                12,
+
+              md:
+                6
+            }}
+          >
+
+            <TextField
+              label="Impresora"
+              value={
+                printer
+              }
+              onChange={
+                event =>
+                  setPrinter(
+                    event.target.value
+                  )
+              }
+              fullWidth
+            />
+
+          </Grid>
+
+
+          {/* COMENTARIOS */}
+
+          <Grid
+            size={{
+              xs:
+                12
+            }}
+          >
+
+            <TextField
+              label="Comentarios de planificación"
+              value={
+                comments
+              }
+              onChange={
+                event =>
+                  setComments(
+                    event.target.value
+                  )
+              }
+              placeholder="Ej.: Palets nuevos 20 bobinas"
+              multiline
+              minRows={
+                2
+              }
+              maxRows={
+                4
+              }
+              helperText="Este comentario aparecerá en la pantalla de Planificación."
+              fullWidth
+            />
+
+          </Grid>
+
+
+          {/* POSICIÓN ACTUAL */}
+
+          {
+            editing &&
+            productionLine >
+              0 &&
+            (
+
+              <Grid
+                size={{
+                  xs:
+                    12,
+
+                  md:
+                    6
+                }}
+              >
+
+                <TextField
+                  label="Posición en planificación"
+                  value={
+                    editing.planningPosition >
+                      0
+                      ? editing.planningPosition
+                      : "Sin planificar"
+                  }
+                  fullWidth
+                  slotProps={{
+                    input: {
+                      readOnly:
+                        true
+                    }
+                  }}
+                  helperText="El orden se modifica desde la pantalla Planificación."
+                />
+
+              </Grid>
+
+            )
+          }
+
+
+          {/* INFORMACIÓN DEL PRODUCTO */}
+
+          {
+            selectedProduct &&
+            (
+
+              <Grid
+                size={{
+                  xs:
+                    12
+                }}
+              >
+
+                <Alert
+                  severity={
+                    selectedTemplate
+                      ? "success"
+                      : "warning"
+                  }
+                >
+
+                  <Box>
+
+                    <Typography
+                      fontWeight={
+                        700
+                      }
+                    >
+
+                      {selectedProduct.sapCode}
+
+                      {" — "}
+
+                      {selectedProduct.description}
+
+                    </Typography>
+
+
+                    <Typography
+                      variant="body2"
+                    >
+
+                      Plantilla:{" "}
+
+                      {
+                        selectedTemplate?.name ??
+                        "Sin plantilla"
+                      }
+
+                    </Typography>
+
+
+                    {
+                      productionLine >
+                        0 &&
+                      (
+
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            mt:
+                              0.5,
+
+                            fontWeight:
+                              700
+                          }}
+                        >
+
+                          Línea de producción:{" "}
+                          {productionLine}
+
+                        </Typography>
+
+                      )
+                    }
+
+                  </Box>
+
+                </Alert>
+
+              </Grid>
+
+            )
+          }
 
         </Grid>
 
@@ -775,9 +1456,7 @@ ISO 9261`
             onClose
           }
         >
-
-          Cancelar
-
+          CANCELAR
         </Button>
 
 
@@ -789,7 +1468,11 @@ ISO 9261`
           }
         >
 
-          Guardar
+          {
+            editing
+              ? "GUARDAR CAMBIOS"
+              : "CREAR ORDEN"
+          }
 
         </Button>
 
