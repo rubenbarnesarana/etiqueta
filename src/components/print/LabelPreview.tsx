@@ -15,9 +15,7 @@ import type {
   DesignerElement
 } from "../designer/DesignerTypes";
 
-
 interface LabelData {
-
   ORDER?: string;
   SKU?: string;
   DESCRIPTION?: string;
@@ -34,12 +32,9 @@ interface LabelData {
   LOT?: string;
   COIL?: string;
   ROLLS?: string;
-
 }
 
-
 interface Props {
-
   elements:
     DesignerElement[];
 
@@ -52,9 +47,7 @@ interface Props {
 
   labelData?:
     LabelData;
-
 }
-
 
 /*
  * ==================================================
@@ -64,7 +57,6 @@ interface Props {
  */
 
 const CODE128_PATTERNS = [
-
   "212222",
   "222122",
   "222221",
@@ -182,9 +174,7 @@ const CODE128_PATTERNS = [
   "211214",
   "211232",
   "2331112"
-
 ];
-
 
 /*
  * ==================================================
@@ -196,33 +186,25 @@ const CODE128_PATTERNS = [
 function buildTecItCode128(
   value: string
 ) {
-
   const numeric =
     /^\d+$/.test(
       value
     );
 
-
   if (!numeric) {
-
     return null;
-
   }
-
 
   const codes:
     number[] = [];
-
 
   if (
     value.length ===
     1
   ) {
-
     codes.push(
       104
     );
-
 
     codes.push(
       value.charCodeAt(
@@ -230,13 +212,11 @@ function buildTecItCode128(
       ) -
       32
     );
-
-  } else {
-
+  }
+  else {
     codes.push(
       105
     );
-
 
     const evenPartLength =
       value.length %
@@ -246,39 +226,32 @@ function buildTecItCode128(
         : value.length -
           1;
 
-
     for (
       let i = 0;
       i < evenPartLength;
       i += 2
     ) {
-
       const pair =
         value.substring(
           i,
           i + 2
         );
 
-
       codes.push(
         Number(
           pair
         )
       );
-
     }
-
 
     if (
       value.length %
       2 !==
       0
     ) {
-
       codes.push(
         100
       );
-
 
       const lastCharacter =
         value.charAt(
@@ -286,85 +259,65 @@ function buildTecItCode128(
           1
         );
 
-
       codes.push(
         lastCharacter.charCodeAt(
           0
         ) -
         32
       );
-
     }
-
   }
-
 
   let checksum =
     codes[0];
-
 
   for (
     let i = 1;
     i < codes.length;
     i++
   ) {
-
     checksum +=
       codes[i] *
       i;
-
   }
-
 
   checksum =
     checksum %
     103;
 
-
   codes.push(
     checksum
   );
-
 
   codes.push(
     106
   );
 
-
   let modules =
     "";
-
 
   for (
     const code of codes
   ) {
-
     const pattern =
       CODE128_PATTERNS[
         code
       ];
 
-
     if (!pattern) {
-
       continue;
-
     }
-
 
     let black =
       true;
 
-
     for (
       const character of pattern
     ) {
-
       const width =
         Number(
           character
         );
-
 
       modules +=
         (
@@ -375,19 +328,13 @@ function buildTecItCode128(
           width
         );
 
-
       black =
         !black;
-
     }
-
   }
 
-
   return modules;
-
 }
-
 
 /*
  * ==================================================
@@ -401,7 +348,6 @@ function BarcodePreview({
 }: {
   value: string;
 }) {
-
   const svgRef =
     useRef<
       SVGSVGElement
@@ -409,26 +355,19 @@ function BarcodePreview({
       null
     );
 
-
   useEffect(() => {
-
     const svg =
       svgRef.current;
 
-
     if (!svg) {
-
       return;
-
     }
-
 
     const barcodeValue =
       String(
         value ||
         "123456789"
       ).trim();
-
 
     /*
      * Limpiar SVG
@@ -437,13 +376,10 @@ function BarcodePreview({
     while (
       svg.firstChild
     ) {
-
       svg.removeChild(
         svg.firstChild
       );
-
     }
-
 
     /*
      * Código numérico:
@@ -455,14 +391,11 @@ function BarcodePreview({
         barcodeValue
       );
 
-
     if (
       modules
     ) {
-
       const namespace =
         "http://www.w3.org/2000/svg";
-
 
       /*
        * EXACTAMENTE LOS MISMOS
@@ -472,37 +405,29 @@ function BarcodePreview({
       const moduleWidth =
         2;
 
-
       const barcodeWidth =
         modules.length *
         moduleWidth;
 
-
       const barHeight =
         76;
-
 
       const textGap =
         4;
 
-
       const textSize =
         18;
-
 
       const textSpace =
         24;
 
-
       const totalWidth =
         barcodeWidth;
-
 
       const totalHeight =
         barHeight +
         textGap +
         textSpace;
-
 
       /*
        * VIEWBOX
@@ -513,12 +438,10 @@ function BarcodePreview({
         `0 0 ${totalWidth} ${totalHeight}`
       );
 
-
       svg.setAttribute(
         "preserveAspectRatio",
         "xMidYMid meet"
       );
-
 
       /*
        * FONDO
@@ -530,18 +453,15 @@ function BarcodePreview({
           "rect"
         );
 
-
       background.setAttribute(
         "x",
         "0"
       );
 
-
       background.setAttribute(
         "y",
         "0"
       );
-
 
       background.setAttribute(
         "width",
@@ -550,7 +470,6 @@ function BarcodePreview({
         )
       );
 
-
       background.setAttribute(
         "height",
         String(
@@ -558,17 +477,14 @@ function BarcodePreview({
         )
       );
 
-
       background.setAttribute(
         "fill",
         "#ffffff"
       );
 
-
       svg.appendChild(
         background
       );
-
 
       /*
        * BARRAS
@@ -577,38 +493,29 @@ function BarcodePreview({
       let x =
         0;
 
-
       let index =
         0;
-
 
       while (
         index <
         modules.length
       ) {
-
         if (
           modules[
             index
           ] ===
           "0"
         ) {
-
           x +=
             moduleWidth;
 
-
           index++;
 
-
           continue;
-
         }
-
 
         let blackModules =
           0;
-
 
         while (
           index <
@@ -618,20 +525,16 @@ function BarcodePreview({
           ] ===
             "1"
         ) {
-
           blackModules++;
 
           index++;
-
         }
-
 
         const rectangle =
           document.createElementNS(
             namespace,
             "rect"
           );
-
 
         rectangle.setAttribute(
           "x",
@@ -640,12 +543,10 @@ function BarcodePreview({
           )
         );
 
-
         rectangle.setAttribute(
           "y",
           "0"
         );
-
 
         rectangle.setAttribute(
           "width",
@@ -655,7 +556,6 @@ function BarcodePreview({
           )
         );
 
-
         rectangle.setAttribute(
           "height",
           String(
@@ -663,24 +563,19 @@ function BarcodePreview({
           )
         );
 
-
         rectangle.setAttribute(
           "fill",
           "#000000"
         );
 
-
         svg.appendChild(
           rectangle
         );
 
-
         x +=
           blackModules *
           moduleWidth;
-
       }
-
 
       /*
        * NÚMERO DEL SKU
@@ -692,7 +587,6 @@ function BarcodePreview({
           "text"
         );
 
-
       text.setAttribute(
         "x",
         String(
@@ -700,7 +594,6 @@ function BarcodePreview({
           2
         )
       );
-
 
       text.setAttribute(
         "y",
@@ -711,18 +604,15 @@ function BarcodePreview({
         )
       );
 
-
       text.setAttribute(
         "text-anchor",
         "middle"
       );
 
-
       text.setAttribute(
         "font-family",
         "Arial, Helvetica, sans-serif"
       );
-
 
       text.setAttribute(
         "font-size",
@@ -731,32 +621,25 @@ function BarcodePreview({
         )
       );
 
-
       text.setAttribute(
         "font-weight",
         "400"
       );
-
 
       text.setAttribute(
         "fill",
         "#000000"
       );
 
-
       text.textContent =
         barcodeValue;
-
 
       svg.appendChild(
         text
       );
 
-
       return;
-
     }
-
 
     /*
      * Si algún día existe un SKU
@@ -764,12 +647,10 @@ function BarcodePreview({
      */
 
     try {
-
       JsBarcode(
         svg,
         barcodeValue,
         {
-
           format:
             "CODE128",
 
@@ -817,31 +698,24 @@ function BarcodePreview({
 
           lineColor:
             "#000000"
-
         }
       );
-
-    } catch (
+    }
+    catch (
       error
     ) {
-
       console.error(
         "Error generando código de barras:",
         error
       );
-
     }
-
   }, [
     value
   ]);
 
-
   return (
-
     <Box
       sx={{
-
         width:
           "100%",
 
@@ -862,10 +736,8 @@ function BarcodePreview({
 
         backgroundColor:
           "#ffffff"
-
       }}
     >
-
       <svg
         ref={
           svgRef
@@ -874,7 +746,6 @@ function BarcodePreview({
         preserveAspectRatio="xMidYMid meet"
 
         style={{
-
           width:
             "100%",
 
@@ -886,16 +757,11 @@ function BarcodePreview({
 
           overflow:
             "visible"
-
         }}
       />
-
     </Box>
-
   );
-
 }
-
 
 /*
  * ==================================================
@@ -908,7 +774,6 @@ function QRPreview({
 }: {
   value: string;
 }) {
-
   const ref =
     useRef<
       HTMLCanvasElement
@@ -916,47 +781,36 @@ function QRPreview({
       null
     );
 
-
   useEffect(() => {
-
     if (
       !ref.current
     ) {
-
       return;
-
     }
-
 
     QRCode.toCanvas(
       ref.current,
       value ||
       "123456789",
       {
-
         margin:
           0,
 
         width:
           100
-
       }
     );
-
   }, [
     value
   ]);
 
-
   return (
-
     <canvas
       ref={
         ref
       }
 
       style={{
-
         width:
           "100%",
 
@@ -965,14 +819,10 @@ function QRPreview({
 
         display:
           "block"
-
       }}
     />
-
   );
-
 }
-
 
 /*
  * ==================================================
@@ -986,11 +836,16 @@ export default function LabelPreview({
   labelFormat = "FORMATO_1",
   labelData
 }: Props) {
-
-
   /*
    * ==================================================
    * DIMENSIONES
+   * ==================================================
+   *
+   * FORMATO 1:
+   * 80 x 285 mm
+   *
+   * FORMATO 2:
+   * 235 x 110 mm
    * ==================================================
    */
 
@@ -999,25 +854,20 @@ export default function LabelPreview({
     "FORMATO_2"
 
       ? {
-
           width:
-            240,
+            235,
 
           height:
             110
-
         }
 
       : {
-
           width:
             80,
 
           height:
             285
-
         };
-
 
   /*
    * ==================================================
@@ -1031,32 +881,26 @@ export default function LabelPreview({
       ? 850
       : 360;
 
-
   const maxPreviewHeight =
     labelFormat ===
     "FORMATO_2"
       ? 430
       : 650;
 
-
   const MM_TO_PX =
     96 /
     25.4;
-
 
   const realWidthPx =
     format.width *
     MM_TO_PX;
 
-
   const realHeightPx =
     format.height *
     MM_TO_PX;
 
-
   const scale =
     Math.min(
-
       maxPreviewWidth /
       realWidthPx,
 
@@ -1064,19 +908,15 @@ export default function LabelPreview({
       realHeightPx,
 
       1
-
     );
-
 
   const previewWidth =
     realWidthPx *
     scale;
 
-
   const previewHeight =
     realHeightPx *
     scale;
-
 
   /*
    * ==================================================
@@ -1088,8 +928,6 @@ export default function LabelPreview({
     element:
       DesignerElement
   ): string {
-
-
     /*
      * BINDING
      */
@@ -1098,7 +936,6 @@ export default function LabelPreview({
       element.binding &&
       labelData
     ) {
-
       const field =
         element.binding
           .replace(
@@ -1112,26 +949,20 @@ export default function LabelPreview({
           .trim() as
           keyof LabelData;
 
-
       const value =
         labelData[
           field
         ];
 
-
       if (
         value !==
         undefined
       ) {
-
         return String(
           value
         );
-
       }
-
     }
-
 
     /*
      * FIELD
@@ -1141,7 +972,6 @@ export default function LabelPreview({
       element.field &&
       labelData
     ) {
-
       const field =
         String(
           element.field
@@ -1157,26 +987,20 @@ export default function LabelPreview({
           .trim() as
           keyof LabelData;
 
-
       const value =
         labelData[
           field
         ];
 
-
       if (
         value !==
         undefined
       ) {
-
         return String(
           value
         );
-
       }
-
     }
-
 
     /*
      * PLACEHOLDERS
@@ -1186,17 +1010,14 @@ export default function LabelPreview({
       element.text &&
       labelData
     ) {
-
       let text =
         element.text;
-
 
       const replacements:
         Record<
           string,
           string
         > = {
-
         ORDER:
           labelData.ORDER ??
           "",
@@ -1252,9 +1073,7 @@ export default function LabelPreview({
         ROLLS:
           labelData.ROLLS ??
           ""
-
       };
-
 
       Object.entries(
         replacements
@@ -1263,7 +1082,6 @@ export default function LabelPreview({
           key,
           value
         ]) => {
-
           text =
             text
               .replaceAll(
@@ -1274,24 +1092,18 @@ export default function LabelPreview({
                 `\${${key}}`,
                 value
               );
-
         }
       );
 
-
       return text;
-
     }
-
 
     return String(
       element.value ??
       element.text ??
       ""
     );
-
   }
-
 
   /*
    * ==================================================
@@ -1307,13 +1119,11 @@ export default function LabelPreview({
     | "left"
     | "center"
     | "right" {
-
     const field =
       String(
         element.field ??
         ""
       ).toUpperCase();
-
 
     if (
       field ===
@@ -1321,11 +1131,8 @@ export default function LabelPreview({
       field ===
         "DESCRIPTION"
     ) {
-
       return "center";
-
     }
-
 
     if (
       field ===
@@ -1333,21 +1140,15 @@ export default function LabelPreview({
       field ===
         "COIL_TECHNICAL"
     ) {
-
       return "center";
-
     }
-
 
     if (
       field ===
       "COIL_ORIGIN"
     ) {
-
       return "center";
-
     }
-
 
     if (
       field ===
@@ -1359,16 +1160,11 @@ export default function LabelPreview({
       field ===
         "SKU"
     ) {
-
       return "center";
-
     }
 
-
     return "left";
-
   }
-
 
   /*
    * ==================================================
@@ -1377,10 +1173,8 @@ export default function LabelPreview({
    */
 
   return (
-
     <Box
       sx={{
-
         width:
           `${previewWidth}px`,
 
@@ -1401,13 +1195,10 @@ export default function LabelPreview({
 
         margin:
           "0 auto"
-
       }}
     >
-
       <Box
         sx={{
-
           position:
             "absolute",
 
@@ -1434,15 +1225,11 @@ export default function LabelPreview({
 
           overflow:
             "hidden"
-
         }}
       >
-
-
         {/* FONDO */}
 
         {backgroundImage && (
-
           <img
             src={
               backgroundImage
@@ -1455,7 +1242,6 @@ export default function LabelPreview({
             }
 
             style={{
-
               position:
                 "absolute",
 
@@ -1494,12 +1280,9 @@ export default function LabelPreview({
 
               userSelect:
                 "none"
-
             }}
           />
-
         )}
-
 
         {/* ELEMENTOS */}
 
@@ -1511,12 +1294,10 @@ export default function LabelPreview({
           )
           .map(
             element => {
-
               const value =
                 getElementValue(
                   element
                 );
-
 
               const field =
                 String(
@@ -1524,37 +1305,30 @@ export default function LabelPreview({
                   ""
                 ).toUpperCase();
 
-
               const textAlign =
                 getTextAlign(
                   element
                 );
 
-
               const isUpperText =
                 field ===
                 "UPPER_TEXT";
-
 
               const isCoilDescription =
                 field ===
                 "COIL_DESCRIPTION";
 
-
               const isCoilTechnical =
                 field ===
                 "COIL_TECHNICAL";
-
 
               const isCoilLegal =
                 field ===
                 "COIL_LEGAL";
 
-
               const isCoilOrigin =
                 field ===
                 "COIL_ORIGIN";
-
 
               const isBoxField =
                 field ===
@@ -1564,14 +1338,12 @@ export default function LabelPreview({
                 field ===
                   "COIL";
 
-
               const centerVertically =
                 isUpperText ||
                 isCoilDescription ||
                 isCoilTechnical ||
                 isCoilOrigin ||
                 isBoxField;
-
 
               /*
                * ==================================================
@@ -1581,7 +1353,6 @@ export default function LabelPreview({
                */
 
               const commonStyle = {
-
                 position:
                   "absolute" as const,
 
@@ -1634,9 +1405,7 @@ export default function LabelPreview({
 
                 pointerEvents:
                   "none" as const
-
               };
-
 
               /*
                * ==================================================
@@ -1648,9 +1417,7 @@ export default function LabelPreview({
                 element.type ===
                 "barcode"
               ) {
-
                 return (
-
                   <Box
                     key={
                       element.id
@@ -1660,19 +1427,14 @@ export default function LabelPreview({
                       commonStyle
                     }
                   >
-
                     <BarcodePreview
                       value={
                         value
                       }
                     />
-
                   </Box>
-
                 );
-
               }
-
 
               /*
                * ==================================================
@@ -1684,9 +1446,7 @@ export default function LabelPreview({
                 element.type ===
                 "qr"
               ) {
-
                 return (
-
                   <Box
                     key={
                       element.id
@@ -1696,19 +1456,14 @@ export default function LabelPreview({
                       commonStyle
                     }
                   >
-
                     <QRPreview
                       value={
                         value
                       }
                     />
-
                   </Box>
-
                 );
-
               }
-
 
               /*
                * ==================================================
@@ -1720,9 +1475,7 @@ export default function LabelPreview({
                 element.type ===
                 "logo"
               ) {
-
                 return (
-
                   <Box
                     key={
                       element.id
@@ -1732,7 +1485,6 @@ export default function LabelPreview({
                       commonStyle
                     }
                   >
-
                     <Box
                       component="img"
 
@@ -1741,7 +1493,6 @@ export default function LabelPreview({
                       alt="Rivulis"
 
                       sx={{
-
                         width:
                           "100%",
 
@@ -1750,16 +1501,11 @@ export default function LabelPreview({
 
                         objectFit:
                           "contain"
-
                       }}
                     />
-
                   </Box>
-
                 );
-
               }
-
 
               /*
                * ==================================================
@@ -1773,9 +1519,7 @@ export default function LabelPreview({
                 element.type ===
                   "field"
               ) {
-
                 return (
-
                   <Box
                     key={
                       element.id
@@ -1785,12 +1529,10 @@ export default function LabelPreview({
                       commonStyle
                     }
                   >
-
                     <Typography
                       component="div"
 
                       sx={{
-
                         width:
                           "100%",
 
@@ -1853,30 +1595,20 @@ export default function LabelPreview({
 
                         p:
                           0
-
                       }}
                     >
-
                       {value}
-
                     </Typography>
-
                   </Box>
-
                 );
-
               }
 
-
               return null;
-
             }
           )}
 
       </Box>
 
     </Box>
-
   );
-
 }
