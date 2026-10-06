@@ -1,13 +1,5 @@
-import {
-  useEffect,
-  useRef,
-  useState
-} from "react";
-
-import {
-  useSearchParams
-} from "react-router-dom";
-
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Box,
   Card,
@@ -32,13 +24,8 @@ import BackButton from "../../components/common/BackButton";
 import LabelPreview from "../../components/print/LabelPreview";
 import PalletLabelDialog from "../../components/print/PalletLabelDialog";
 
-import type {
-  ProductionOrder
-} from "../../services/OrderStorage";
-
-import {
-  findOrder
-} from "../../services/OrderStorage";
+import type { ProductionOrder } from "../../services/OrderStorage";
+import { findOrder } from "../../services/OrderStorage";
 
 import {
   prepareReservedPrintLabel,
@@ -52,33 +39,15 @@ import {
   releaseSupabaseOrderPrintLock
 } from "../../services/SupabaseOrderService";
 
-import {
-  registerPrint
-} from "../../services/PrintHistoryService";
+import { registerPrint } from "../../services/PrintHistoryService";
+import { findProduct } from "../../services/ProductStorage";
+import { findTemplate } from "../../services/TemplateStorage";
+import { getAssignedTemplate } from "../../services/ProductTemplateStorage";
+import { useAuth } from "../../auth/AuthContext";
 
-import {
-  findProduct
-} from "../../services/ProductStorage";
+import type { DesignerElement } from "../../components/designer/DesignerTypes";
 
-import {
-  findTemplate
-} from "../../services/TemplateStorage";
-
-import {
-  getAssignedTemplate
-} from "../../services/ProductTemplateStorage";
-
-import {
-  useAuth
-} from "../../auth/AuthContext";
-
-import type {
-  DesignerElement
-} from "../../components/designer/DesignerTypes";
-
-import {
-  renderLabelToPng
-} from "../../services/LabelImageService";
+import { renderLabelToPng } from "../../services/LabelImageService";
 
 import {
   getConfiguredLabelPrinter,
@@ -86,36 +55,14 @@ import {
 } from "../../services/QzPrintService";
 
 export default function OrderPrint() {
+  const { user } = useAuth();
 
-  const {
-    user
-  } = useAuth();
-
-  const [
-    searchParams
-  ] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const [
     order,
     setOrder
-  ] =
-    useState<
-      ProductionOrder |
-      null
-    >(null);
-
-  /*
-   * ==================================================
-   * REVISIÓN DE DATOS DE REFERENCIA
-   * ==================================================
-   *
-   * Productos y plantillas se mantienen sincronizados
-   * en localStorage desde App.tsx mediante Realtime.
-   *
-   * Esta revisión solo fuerza un nuevo render cuando
-   * cambian esos datos para que esta pantalla refleje
-   * inmediatamente la plantilla real del SKU.
-   */
+  ] = useState<ProductionOrder | null>(null);
 
   const [
     referenceDataRevision,
@@ -142,12 +89,6 @@ export default function OrderPrint() {
     setReprintOpen
   ] = useState(false);
 
-  /*
-   * ==================================================
-   * ETIQUETA DE PALET
-   * ==================================================
-   */
-
   const [
     palletLabelOpen,
     setPalletLabelOpen
@@ -166,205 +107,140 @@ export default function OrderPrint() {
   const [
     label,
     setLabel
-  ] =
-    useState<
-      DesignerElement[]
-    >([]);
+  ] = useState<DesignerElement[]>([]);
 
   const [
     backgroundImage,
     setBackgroundImage
-  ] =
-    useState<
-      string |
-      undefined
-    >();
+  ] = useState<string | undefined>();
 
   const [
     labelFormat,
     setLabelFormat
-  ] =
-    useState<
-      "FORMATO_1" |
-      "FORMATO_2"
-    >(
-      "FORMATO_1"
-    );
+  ] = useState<
+    "FORMATO_1" |
+    "FORMATO_2"
+  >(
+    "FORMATO_1"
+  );
 
   const [
     labelData,
     setLabelData
-  ] =
-    useState<any>();
-
-  /*
-   * Impide dos impresiones simultáneas
-   * dentro de este navegador.
-   */
+  ] = useState<any>();
 
   const [
     printing,
     setPrinting
   ] = useState(false);
 
-  /*
-   * Contenedor oculto utilizado para generar
-   * la imagen física de la etiqueta.
-   */
-
   const labelRenderRef =
     useRef<HTMLDivElement>(null);
 
-  /*
-   * Guardamos el total final antes
-   * de limpiar/actualizar la orden.
-   */
-
-  const finalPrintedRef =
-    useRef<number>(0);
-
-  /*
-   * ==================================================
-   * CARGAR ORDEN DESDE URL
-   * ==================================================
-   */
-
-  useEffect(() => {
-
-    const orderNumber =
-      searchParams.get(
-        "order"
-      );
-
-    function loadCurrentOrder() {
-
-      if (
-        !orderNumber
-      ) {
-
-        setError(
-          "No se ha indicado ninguna orden de producción."
+  useEffect(
+    () => {
+      const orderNumber =
+        searchParams.get(
+          "order"
         );
+
+      function loadCurrentOrder() {
+        if (
+          !orderNumber
+        ) {
+          setError(
+            "No se ha indicado ninguna orden de producción."
+          );
+
+          setOrder(
+            null
+          );
+
+          return;
+        }
+
+        const productionOrder =
+          findOrder(
+            orderNumber
+          );
+
+        if (
+          !productionOrder
+        ) {
+          setError(
+            `La orden ${orderNumber} no existe.`
+          );
+
+          setOrder(
+            null
+          );
+
+          return;
+        }
 
         setOrder(
-          null
+          productionOrder
         );
 
-        return;
-
+        setError("");
       }
-
-      const productionOrder =
-        findOrder(
-          orderNumber
-        );
-
-      if (
-        !productionOrder
-      ) {
-
-        setError(
-          `La orden ${orderNumber} no existe.`
-        );
-
-        setOrder(
-          null
-        );
-
-        return;
-
-      }
-
-      setOrder(
-        productionOrder
-      );
-
-      finalPrintedRef.current =
-        productionOrder.printed;
-
-      setError("");
-
-    }
-
-    loadCurrentOrder();
-
-    function handleOrdersUpdated() {
 
       loadCurrentOrder();
 
-    }
+      function handleOrdersUpdated() {
+        loadCurrentOrder();
+      }
 
-    window.addEventListener(
-      "productionOrdersUpdated",
-      handleOrdersUpdated
-    );
-
-    return () => {
-
-      window.removeEventListener(
+      window.addEventListener(
         "productionOrdersUpdated",
         handleOrdersUpdated
       );
 
-    };
+      return () => {
+        window.removeEventListener(
+          "productionOrdersUpdated",
+          handleOrdersUpdated
+        );
+      };
+    },
+    [
+      searchParams
+    ]
+  );
 
-  }, [
-    searchParams
-  ]);
+  useEffect(
+    () => {
+      function handleReferenceDataUpdated() {
+        setReferenceDataRevision(
+          current =>
+            current + 1
+        );
+      }
 
-  /*
-   * ==================================================
-   * ACTUALIZAR PRODUCTO / PLANTILLA EN TIEMPO REAL
-   * ==================================================
-   *
-   * App.tsx actualiza primero las cachés locales y
-   * después emite estos eventos. Aquí solo necesitamos
-   * forzar un nuevo render para que findProduct(),
-   * getAssignedTemplate() y findTemplate() utilicen
-   * inmediatamente los datos recién sincronizados.
-   */
-
-  useEffect(() => {
-
-    function handleReferenceDataUpdated() {
-
-      setReferenceDataRevision(
-        current => current + 1
-      );
-
-    }
-
-    window.addEventListener(
-      "productsUpdated",
-      handleReferenceDataUpdated
-    );
-
-    window.addEventListener(
-      "templatesUpdated",
-      handleReferenceDataUpdated
-    );
-
-    return () => {
-
-      window.removeEventListener(
+      window.addEventListener(
         "productsUpdated",
         handleReferenceDataUpdated
       );
 
-      window.removeEventListener(
+      window.addEventListener(
         "templatesUpdated",
         handleReferenceDataUpdated
       );
 
-    };
+      return () => {
+        window.removeEventListener(
+          "productsUpdated",
+          handleReferenceDataUpdated
+        );
 
-  }, []);
-
-  /*
-   * ==================================================
-   * REGISTRAR IMPRESIÓN EN BASE DE DATOS
-   * ==================================================
-   */
+        window.removeEventListener(
+          "templatesUpdated",
+          handleReferenceDataUpdated
+        );
+      };
+    },
+    []
+  );
 
   async function savePrintHistory(
     productionOrder: ProductionOrder,
@@ -374,25 +250,11 @@ export default function OrderPrint() {
       | "REPRINT" =
       "PRINT"
   ) {
-
     try {
-
-      /*
-       * IMPORTANTE:
-       *
-       * Guardamos la impresora REAL configurada
-       * en este PC mediante QZ Tray.
-       *
-       * Ya no usamos productionOrder.printer,
-       * porque ese dato puede no coincidir con
-       * la impresora física que ha imprimido.
-       */
-
       const configuredPrinter =
         getConfiguredLabelPrinter();
 
       await registerPrint({
-
         username:
           user?.fullName ??
           "Usuario desconocido",
@@ -425,28 +287,17 @@ export default function OrderPrint() {
 
         productionLine:
           productionOrder.productionLine
-
       });
-
     }
     catch (
       historyError
     ) {
-
       console.error(
         "La etiqueta se imprimió, pero no se pudo registrar en el historial:",
         historyError
       );
-
     }
-
   }
-
-  /*
-   * ==================================================
-   * CARGAR VISTA PREVIA
-   * ==================================================
-   */
 
   function loadPreview(
     result: {
@@ -458,7 +309,6 @@ export default function OrderPrint() {
       labelData?: any;
     }
   ) {
-
     setLabel(
       result.label ??
       []
@@ -483,22 +333,13 @@ export default function OrderPrint() {
 
     setTimeout(
       () => {
-
         setPreviewOpen(
           false
         );
-
       },
       2000
     );
-
   }
-
-  /*
-   * ==================================================
-   * PREPARAR ETIQUETA PARA IMPRESIÓN FÍSICA
-   * ==================================================
-   */
 
   function setLabelResult(
     result: {
@@ -510,7 +351,6 @@ export default function OrderPrint() {
       labelData?: any;
     }
   ) {
-
     setLabel(
       result.label ??
       []
@@ -528,65 +368,34 @@ export default function OrderPrint() {
     setLabelData(
       result.labelData
     );
-
   }
-
-  /*
-   * Esperamos dos frames.
-   *
-   * Esto permite que React pinte la etiqueta,
-   * el código de barras y el QR antes de
-   * convertir el DOM a PNG.
-   */
 
   async function waitForLabelRender():
     Promise<void> {
-
     await new Promise<void>(
       resolve => {
-
         requestAnimationFrame(
           () => {
-
             requestAnimationFrame(
               () => {
-
                 resolve();
-
               }
             );
-
           }
         );
-
       }
     );
-
   }
-
-  /*
-   * LabelPreview genera:
-   *
-   * wrapper nuestro
-   *   -> contenedor preview
-   *      -> etiqueta física
-   *
-   * Necesitamos únicamente el elemento interior
-   * que tiene las dimensiones reales en mm.
-   */
 
   function getPhysicalLabelElement():
     HTMLElement | null {
-
     const wrapper =
       labelRenderRef.current;
 
     if (
       !wrapper
     ) {
-
       return null;
-
     }
 
     const previewContainer =
@@ -598,76 +407,41 @@ export default function OrderPrint() {
     return physicalLabel instanceof HTMLElement
       ? physicalLabel
       : null;
-
   }
-
-  /*
-   * ==================================================
-   * DIMENSIONES FÍSICAS
-   * ==================================================
-   */
 
   function getLabelDimensions(
     format?:
       | "FORMATO_1"
       | "FORMATO_2"
   ) {
-
     if (
       format ===
       "FORMATO_2"
     ) {
-
       return {
-        width: 240,
-        height: 110
-      };
+        width:
+          235,
 
+        height:
+          110
+      };
     }
 
     return {
-      width: 80,
-      height: 285
-    };
+      width:
+        80,
 
+      height:
+        285
+    };
   }
 
-  /*
-   * ==================================================
-   * IMPRIMIR
-   * ==================================================
-   *
-   * NUEVO ORDEN DEL PROCESO:
-   *
-   * 1. Reservar bobina en Supabase.
-   * 2. Generar exactamente esa bobina.
-   * 3. Renderizar etiqueta.
-   * 4. Convertir a PNG.
-   * 5. Enviar a QZ Tray.
-   * 6. Confirmar impresión atómicamente en Supabase.
-   * 7. Registrar historial.
-   *
-   * Si falla antes de QZ:
-   * - se libera la reserva
-   * - el contador NO se modifica
-   *
-   * Si QZ ya ha aceptado la etiqueta pero falla
-   * la confirmación de Supabase:
-   * - NO se libera automáticamente la reserva
-   * - se avisa al operario para evitar duplicados
-   *
-   * ==================================================
-   */
-
   async function printCurrentLabel() {
-
     if (
       !order ||
       printing
     ) {
-
       return;
-
     }
 
     setPrinting(
@@ -684,13 +458,6 @@ export default function OrderPrint() {
       false;
 
     try {
-
-      /*
-       * ==================================================
-       * 1. RESERVAR BOBINA EN SUPABASE
-       * ==================================================
-       */
-
       lockToken =
         typeof crypto !== "undefined" &&
         typeof crypto.randomUUID === "function"
@@ -706,26 +473,18 @@ export default function OrderPrint() {
       if (
         !lockResult.success
       ) {
-
         alert(
           lockResult.message
         );
 
         return;
-
       }
 
       lockAcquired =
         true;
 
-      /*
-       * Utilizamos el contador real devuelto
-       * por Supabase durante esta impresión.
-       */
-
       const reservedOrder:
         ProductionOrder = {
-
         ...order,
 
         printed:
@@ -736,14 +495,7 @@ export default function OrderPrint() {
 
         status:
           lockResult.status
-
       };
-
-      /*
-       * ==================================================
-       * 2. PREPARAR EXACTAMENTE LA BOBINA RESERVADA
-       * ==================================================
-       */
 
       const result =
         prepareReservedPrintLabel(
@@ -754,17 +506,10 @@ export default function OrderPrint() {
       if (
         !result.success
       ) {
-
         throw new Error(
           result.message
         );
-
       }
-
-      /*
-       * Renderizar los datos exactos
-       * de esta bobina.
-       */
 
       setLabelResult(
         result
@@ -772,41 +517,26 @@ export default function OrderPrint() {
 
       await waitForLabelRender();
 
-      /*
-       * Obtener únicamente la etiqueta física.
-       */
-
       const physicalLabel =
         getPhysicalLabelElement();
 
       if (
         !physicalLabel
       ) {
-
         throw new Error(
           "No se ha podido preparar la etiqueta para imprimir."
         );
-
       }
-
-      /*
-       * Dimensiones según formato.
-       */
 
       const dimensions =
         getLabelDimensions(
           result.labelFormat
         );
 
-      /*
-       * Convertir etiqueta a PNG a 203 dpi.
-       */
-
       const imageDataUrl =
         await renderLabelToPng(
           physicalLabel,
           {
-
             widthMm:
               dimensions.width,
 
@@ -815,15 +545,8 @@ export default function OrderPrint() {
 
             dpi:
               203
-
           }
         );
-
-      /*
-       * ==================================================
-       * 3. IMPRESIÓN FÍSICA
-       * ==================================================
-       */
 
       await printLabelImage(
         imageDataUrl,
@@ -835,12 +558,6 @@ export default function OrderPrint() {
       physicalPrintCompleted =
         true;
 
-      /*
-       * ==================================================
-       * 4. CONFIRMAR EN SUPABASE
-       * ==================================================
-       */
-
       const commitResult =
         await commitSupabaseOrderPrint(
           order.order,
@@ -851,41 +568,19 @@ export default function OrderPrint() {
       if (
         !commitResult.success
       ) {
-
         throw new Error(
           commitResult.message
         );
-
       }
-
-      /*
-       * La confirmación correcta ya ha liberado
-       * la reserva en Supabase.
-       */
 
       lockAcquired =
         false;
-
-      /*
-       * ==================================================
-       * 5. REGISTRAR HISTORIAL
-       * ==================================================
-       */
 
       await savePrintHistory(
         reservedOrder,
         result.coilNumber,
         "PRINT"
       );
-
-      /*
-       * ==================================================
-       * 6. REFRESCAR CACHE LOCAL DESDE SUPABASE
-       * ==================================================
-       *
-       * No utilizamos updateOrder() aquí.
-       * Supabase ya es la fuente de verdad.
-       */
 
       const latestOrders =
         await getSupabaseOrders();
@@ -913,20 +608,13 @@ export default function OrderPrint() {
       if (
         updated
       ) {
-
         setOrder(
           updated
         );
-
-        finalPrintedRef.current =
-          updated.printed;
-
       }
       else {
-
         const updatedFromCommit:
           ProductionOrder = {
-
           ...reservedOrder,
 
           printed:
@@ -934,22 +622,12 @@ export default function OrderPrint() {
 
           status:
             commitResult.status
-
         };
 
         setOrder(
           updatedFromCommit
         );
-
-        finalPrintedRef.current =
-          commitResult.printed;
-
       }
-
-      /*
-       * Mostrar la misma vista previa
-       * que teníamos hasta ahora.
-       */
 
       setPreviewOpen(
         true
@@ -957,7 +635,6 @@ export default function OrderPrint() {
 
       setTimeout(
         () => {
-
           setPreviewOpen(
             false
           );
@@ -965,53 +642,36 @@ export default function OrderPrint() {
           if (
             commitResult.finished
           ) {
-
             setFinishedOpen(
               true
             );
-
           }
-
         },
         2000
       );
-
     }
     catch (
       printError
     ) {
-
-      /*
-       * Si todavía NO se ha enviado físicamente
-       * la etiqueta a QZ, podemos liberar la reserva
-       * de forma segura.
-       */
-
       if (
         lockAcquired &&
         lockToken &&
         !physicalPrintCompleted
       ) {
-
         try {
-
           await releaseSupabaseOrderPrintLock(
             order.order,
             lockToken
           );
-
         }
         catch (
           releaseError
         ) {
-
           console.error(
             "No se pudo liberar la reserva de impresión:",
             releaseError
           );
-
         }
-
       }
 
       console.error(
@@ -1019,18 +679,9 @@ export default function OrderPrint() {
         printError
       );
 
-      /*
-       * Si QZ ya aceptó la etiqueta NO liberamos
-       * automáticamente la reserva.
-       *
-       * De esta forma reducimos el riesgo de imprimir
-       * otra vez la misma bobina.
-       */
-
       if (
         physicalPrintCompleted
       ) {
-
         alert(
           "La etiqueta se ha enviado a la impresora, pero no se ha podido confirmar correctamente el contador en Supabase. NO vuelvas a imprimir esta orden hasta comprobar el contador. " +
           (
@@ -1039,61 +690,38 @@ export default function OrderPrint() {
               : "Error desconocido."
           )
         );
-
       }
       else {
-
         alert(
           printError instanceof Error
             ? printError.message
             : "No se ha podido imprimir la etiqueta."
         );
-
       }
-
     }
     finally {
-
       setPrinting(
         false
       );
-
     }
-
   }
 
-  /*
-   * ==================================================
-   * ABRIR REIMPRESIÓN
-   * ==================================================
-   */
-
   function repeatLabel() {
-
     if (
       !order
     ) {
-
       return;
-
     }
 
     setReprintError("");
 
     if (
-      order.printed <= 0
+      order.printed <=
+      0
     ) {
-
       setReprintCoil("");
-
     }
     else {
-
-      /*
-       * Proponemos por defecto la última
-       * bobina realmente impresa.
-       */
-
       setReprintCoil(
         String(
           order.firstCoil +
@@ -1101,44 +729,19 @@ export default function OrderPrint() {
           1
         )
       );
-
     }
 
     setReprintOpen(
       true
     );
-
   }
 
-  /*
-   * ==================================================
-   * CONFIRMAR REIMPRESIÓN
-   * ==================================================
-   *
-   * La reimpresión:
-   *
-   * - imprime físicamente
-   * - registra historial
-   *
-   * PERO NO:
-   *
-   * - incrementa impresos
-   * - cambia pendientes
-   * - cambia próxima bobina
-   * - cambia estado
-   *
-   * ==================================================
-   */
-
   async function confirmReprint() {
-
     if (
       !order ||
       printing
     ) {
-
       return;
-
     }
 
     const coilNumber =
@@ -1151,20 +754,12 @@ export default function OrderPrint() {
         coilNumber
       )
     ) {
-
       setReprintError(
         "Introduce un número de bobina válido."
       );
 
       return;
-
     }
-
-    /*
-     * Generamos exactamente la bobina solicitada.
-     *
-     * reprintLabel NO modifica contador.
-     */
 
     const result =
       reprintLabel(
@@ -1175,13 +770,11 @@ export default function OrderPrint() {
     if (
       !result.success
     ) {
-
       setReprintError(
         result.message
       );
 
       return;
-
     }
 
     setPrinting(
@@ -1191,7 +784,6 @@ export default function OrderPrint() {
     setReprintError("");
 
     try {
-
       setLabelResult(
         result
       );
@@ -1204,11 +796,9 @@ export default function OrderPrint() {
       if (
         !physicalLabel
       ) {
-
         throw new Error(
           "No se ha podido preparar la etiqueta para reimprimir."
         );
-
       }
 
       const dimensions =
@@ -1220,7 +810,6 @@ export default function OrderPrint() {
         await renderLabelToPng(
           physicalLabel,
           {
-
             widthMm:
               dimensions.width,
 
@@ -1229,13 +818,8 @@ export default function OrderPrint() {
 
             dpi:
               203
-
           }
         );
-
-      /*
-       * IMPRESIÓN FÍSICA.
-       */
 
       await printLabelImage(
         imageDataUrl,
@@ -1243,12 +827,6 @@ export default function OrderPrint() {
         dimensions.height,
         `Rivulis ${order.order} - Reimpresión bobina ${coilNumber}`
       );
-
-      /*
-       * Historial después de QZ.
-       *
-       * NO modificamos contador.
-       */
 
       await savePrintHistory(
         order,
@@ -1265,12 +843,10 @@ export default function OrderPrint() {
       loadPreview(
         result
       );
-
     }
     catch (
       printError
     ) {
-
       console.error(
         "Error reimprimiendo etiqueta:",
         printError
@@ -1281,23 +857,13 @@ export default function OrderPrint() {
           ? printError.message
           : "No se ha podido reimprimir la etiqueta."
       );
-
     }
     finally {
-
       setPrinting(
         false
       );
-
     }
-
   }
-
-  /*
-   * ==================================================
-   * CONTADORES
-   * ==================================================
-   */
 
   const pending =
     order
@@ -1315,7 +881,8 @@ export default function OrderPrint() {
 
   const nextCoil =
     order &&
-    pending > 0
+    pending >
+      0
       ? order.firstCoil +
         order.printed
       : null;
@@ -1327,24 +894,17 @@ export default function OrderPrint() {
 
   const lastReprintCoil =
     order &&
-    order.printed > 0
+    order.printed >
+      0
       ? order.firstCoil +
         order.printed -
         1
       : null;
 
-  /*
-   * ==================================================
-   * ERROR
-   * ==================================================
-   */
-
   if (
     error
   ) {
-
     return (
-
       <Box>
 
         <BackButton />
@@ -1356,23 +916,13 @@ export default function OrderPrint() {
         </Alert>
 
       </Box>
-
     );
-
   }
-
-  /*
-   * ==================================================
-   * CARGANDO
-   * ==================================================
-   */
 
   if (
     !order
   ) {
-
     return (
-
       <Box>
 
         <BackButton />
@@ -1382,27 +932,8 @@ export default function OrderPrint() {
         </Typography>
 
       </Box>
-
     );
-
   }
-
-  /*
-   * ==================================================
-   * PLANTILLA REAL DE LA ORDEN
-   * ==================================================
-   *
-   * Utilizamos exactamente el mismo criterio
-   * que PrintService:
-   *
-   * 1. Asignación específica SKU -> plantilla
-   * 2. Plantilla configurada en el producto
-   *
-   * De esta forma el botón de etiqueta de palet
-   * solamente aparece cuando la etiqueta que
-   * realmente utiliza el SKU es FORMATO_2.
-   * ==================================================
-   */
 
   void referenceDataRevision;
 
@@ -1431,19 +962,6 @@ export default function OrderPrint() {
     realTemplate?.labelFormat ===
     "FORMATO_2";
 
-  /*
-   * Nombre que aparecerá en la cabecera
-   * de la etiqueta de palet.
-   *
-   * Ejemplo:
-   *
-   * TURBO EXCEL BOBINAS
-   *
-   * pasa a:
-   *
-   * TURBO EXCEL
-   */
-
   const palletProductTitle =
     realTemplate?.name
       ?.replace(
@@ -1453,46 +971,44 @@ export default function OrderPrint() {
       .trim() ||
     order.product;
 
-  /*
-   * ==================================================
-   * PANTALLA
-   * ==================================================
-   */
-
   return (
-
     <Box>
-
-      {/* =============================================
-          VOLVER
-          ============================================= */}
 
       <BackButton />
 
-      {/* =============================================
-          CABECERA
-          ============================================= */}
-
       <Box
         sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
-          mb: 4,
-          flexWrap: "wrap"
+          display:
+            "flex",
+
+          alignItems:
+            "center",
+
+          gap:
+            2,
+
+          mb:
+            4,
+
+          flexWrap:
+            "wrap"
         }}
       >
 
         <PrintIcon
           sx={{
-            color: "#0B7A3B",
-            fontSize: 46
+            color:
+              "#0B7A3B",
+
+            fontSize:
+              46
           }}
         />
 
         <Box
           sx={{
-            flexGrow: 1
+            flexGrow:
+              1
           }}
         >
 
@@ -1506,7 +1022,8 @@ export default function OrderPrint() {
           <Typography
             color="text.secondary"
             sx={{
-              mt: 0.5
+              mt:
+                0.5
             }}
           >
             Orden de producción {order.order}
@@ -1515,24 +1032,44 @@ export default function OrderPrint() {
         </Box>
 
         {
-          order.productionLine > 0
-          &&
+          order.productionLine >
+            0 &&
           (
-
             <Box
               sx={{
-                minWidth: 145,
-                height: 105,
-                px: 2.5,
-                borderRadius: 3,
-                backgroundColor: "#0B7A3B",
-                color: "#FFFFFF",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
+                minWidth:
+                  145,
+
+                height:
+                  105,
+
+                px:
+                  2.5,
+
+                borderRadius:
+                  3,
+
+                backgroundColor:
+                  "#0B7A3B",
+
+                color:
+                  "#FFFFFF",
+
+                display:
+                  "flex",
+
+                flexDirection:
+                  "column",
+
+                alignItems:
+                  "center",
+
+                justifyContent:
+                  "center",
+
                 boxShadow:
                   "0 5px 14px rgba(11, 122, 59, 0.22)",
+
                 border:
                   "2px solid #086530"
               }}
@@ -1540,11 +1077,20 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  fontSize: 16,
-                  fontWeight: 800,
-                  letterSpacing: 1.2,
-                  lineHeight: 1,
-                  mb: 0.5
+                  fontSize:
+                    16,
+
+                  fontWeight:
+                    800,
+
+                  letterSpacing:
+                    1.2,
+
+                  lineHeight:
+                    1,
+
+                  mb:
+                    0.5
                 }}
               >
                 LÍNEA
@@ -1552,56 +1098,61 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  fontSize: 54,
-                  fontWeight: 900,
-                  lineHeight: 0.95
+                  fontSize:
+                    54,
+
+                  fontWeight:
+                    900,
+
+                  lineHeight:
+                    0.95
                 }}
               >
                 {order.productionLine}
               </Typography>
 
             </Box>
-
           )
         }
 
         {
-          order.planningPosition > 0
-          &&
+          order.planningPosition >
+            0 &&
           (
-
             <Chip
               label={
                 `Posición ${order.planningPosition}`
               }
               variant="outlined"
               sx={{
-                fontWeight: 700
+                fontWeight:
+                  700
               }}
             />
-
           )
         }
 
       </Box>
-
-      {/* =============================================
-          ORDEN
-          ============================================= */}
 
       <Card
         elevation={0}
         sx={{
           border:
             "1px solid #E0E0E0",
-          borderRadius: 3,
-          overflow: "hidden"
+
+          borderRadius:
+            3,
+
+          overflow:
+            "hidden"
         }}
       >
 
         <Box
           sx={{
-            height: 7,
+            height:
+              7,
+
             backgroundColor:
               "#0B7A3B"
           }}
@@ -1610,14 +1161,20 @@ export default function OrderPrint() {
         <CardContent
           sx={{
             p: {
-              xs: 3,
-              md: 4
+              xs:
+                3,
+
+              md:
+                4
             },
 
             "&:last-child": {
               pb: {
-                xs: 3,
-                md: 4
+                xs:
+                  3,
+
+                md:
+                  4
               }
             }
           }}
@@ -1628,12 +1185,13 @@ export default function OrderPrint() {
             spacing={3}
           >
 
-            {/* DATOS */}
-
             <Grid
               size={{
-                xs: 12,
-                md: 8
+                xs:
+                  12,
+
+                md:
+                  8
               }}
             >
 
@@ -1641,8 +1199,11 @@ export default function OrderPrint() {
                 variant="h5"
                 fontWeight={700}
                 sx={{
-                  mb: 3,
-                  color: "#0B7A3B"
+                  mb:
+                    3,
+
+                  color:
+                    "#0B7A3B"
                 }}
               >
                 Orden {order.order}
@@ -1650,7 +1211,8 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  mb: 1.5
+                  mb:
+                    1.5
                 }}
               >
                 <b>SKU:</b>{" "}
@@ -1659,7 +1221,8 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  mb: 1.5
+                  mb:
+                    1.5
                 }}
               >
                 <b>Producto:</b>{" "}
@@ -1668,7 +1231,8 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  mb: 1.5
+                  mb:
+                    1.5
                 }}
               >
                 <b>Cliente:</b>{" "}
@@ -1677,7 +1241,8 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  mb: 1.5
+                  mb:
+                    1.5
                 }}
               >
                 <b>Lote:</b>{" "}
@@ -1686,7 +1251,8 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  mb: 1.5
+                  mb:
+                    1.5
                 }}
               >
                 <b>Plantilla:</b>{" "}
@@ -1695,7 +1261,8 @@ export default function OrderPrint() {
 
               <Typography
                 sx={{
-                  mb: 1.5
+                  mb:
+                    1.5
                 }}
               >
                 <b>Impresora:</b>{" "}
@@ -1704,10 +1271,17 @@ export default function OrderPrint() {
 
               <Box
                 sx={{
-                  mb: 1.5,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1
+                  mb:
+                    1.5,
+
+                  display:
+                    "flex",
+
+                  alignItems:
+                    "center",
+
+                  gap:
+                    1
                 }}
               >
 
@@ -1726,20 +1300,21 @@ export default function OrderPrint() {
                       : "warning"
                   }
                   sx={{
-                    fontWeight: 700
+                    fontWeight:
+                      700
                   }}
                 />
 
               </Box>
 
               {
-                order.productionLine > 0
-                &&
+                order.productionLine >
+                  0 &&
                 (
-
                   <Typography
                     sx={{
-                      mb: 1.5
+                      mb:
+                        1.5
                     }}
                   >
                     <b>
@@ -1747,26 +1322,21 @@ export default function OrderPrint() {
                     </b>{" "}
                     {order.productionLine}
                   </Typography>
-
                 )
               }
 
               {
-                order.planningPosition > 0
-                &&
+                order.planningPosition >
+                  0 &&
                 (
-
                   <Typography>
                     <b>
                       Posición en planificación:
                     </b>{" "}
                     {order.planningPosition}
                   </Typography>
-
                 )
               }
-
-              {/* BOTONES */}
 
               <Box
                 display="flex"
@@ -1789,9 +1359,15 @@ export default function OrderPrint() {
                     printCurrentLabel
                   }
                   sx={{
-                    minWidth: 190,
-                    minHeight: 56,
-                    fontWeight: 700,
+                    minWidth:
+                      190,
+
+                    minHeight:
+                      56,
+
+                    fontWeight:
+                      700,
+
                     backgroundColor:
                       "#0B7A3B",
 
@@ -1815,21 +1391,33 @@ export default function OrderPrint() {
                     <ReplayIcon />
                   }
                   disabled={
-                    order.printed <= 0 ||
+                    order.printed <=
+                      0 ||
                     printing
                   }
                   onClick={
                     repeatLabel
                   }
                   sx={{
-                    minWidth: 210,
-                    minHeight: 56,
-                    fontWeight: 700,
-                    color: "#0B7A3B",
-                    borderColor: "#0B7A3B",
+                    minWidth:
+                      210,
+
+                    minHeight:
+                      56,
+
+                    fontWeight:
+                      700,
+
+                    color:
+                      "#0B7A3B",
+
+                    borderColor:
+                      "#0B7A3B",
 
                     "&:hover": {
-                      borderColor: "#086530",
+                      borderColor:
+                        "#086530",
+
                       backgroundColor:
                         "#F2F8F4"
                     }
@@ -1839,10 +1427,8 @@ export default function OrderPrint() {
                 </Button>
 
                 {
-                  isFormat2
-                  &&
+                  isFormat2 &&
                   (
-
                     <Button
                       variant="outlined"
                       size="large"
@@ -1856,14 +1442,25 @@ export default function OrderPrint() {
                           )
                       }
                       sx={{
-                        minWidth: 230,
-                        minHeight: 56,
-                        fontWeight: 700,
-                        color: "#0B7A3B",
-                        borderColor: "#0B7A3B",
+                        minWidth:
+                          230,
+
+                        minHeight:
+                          56,
+
+                        fontWeight:
+                          700,
+
+                        color:
+                          "#0B7A3B",
+
+                        borderColor:
+                          "#0B7A3B",
 
                         "&:hover": {
-                          borderColor: "#086530",
+                          borderColor:
+                            "#086530",
+
                           backgroundColor:
                             "#F2F8F4"
                         }
@@ -1871,7 +1468,6 @@ export default function OrderPrint() {
                     >
                       ETIQUETA DE PALET
                     </Button>
-
                   )
                 }
 
@@ -1879,12 +1475,13 @@ export default function OrderPrint() {
 
             </Grid>
 
-            {/* CONTADORES */}
-
             <Grid
               size={{
-                xs: 12,
-                md: 4
+                xs:
+                  12,
+
+                md:
+                  4
               }}
             >
 
@@ -1900,7 +1497,8 @@ export default function OrderPrint() {
                   textAlign:
                     "center",
 
-                  p: 2.5,
+                  p:
+                    2.5,
 
                   borderRadius:
                     3
@@ -1911,7 +1509,8 @@ export default function OrderPrint() {
                   variant="h6"
                   fontWeight={700}
                   sx={{
-                    opacity: 0.9
+                    opacity:
+                      0.9
                   }}
                 >
                   TOTAL
@@ -1920,8 +1519,11 @@ export default function OrderPrint() {
                 <Typography
                   sx={{
                     fontSize: {
-                      xs: 64,
-                      md: 82
+                      xs:
+                        64,
+
+                      md:
+                        82
                     },
 
                     fontWeight:
@@ -1954,8 +1556,12 @@ export default function OrderPrint() {
 
                 <Box
                   sx={{
-                    mt: 2.5,
-                    pt: 2,
+                    mt:
+                      2.5,
+
+                    pt:
+                      2,
+
                     borderTop:
                       "1px solid rgba(255,255,255,0.30)"
                   }}
@@ -1973,8 +1579,11 @@ export default function OrderPrint() {
                   <Typography
                     sx={{
                       fontSize: {
-                        xs: 48,
-                        md: 58
+                        xs:
+                          48,
+
+                        md:
+                          58
                       },
 
                       fontWeight:
@@ -1987,7 +1596,8 @@ export default function OrderPrint() {
                         0.5,
 
                       color:
-                        pending === 0
+                        pending ===
+                          0
                           ? "#B7E27A"
                           : "#FF8A80"
                     }}
@@ -2002,12 +1612,21 @@ export default function OrderPrint() {
               <Card
                 elevation={0}
                 sx={{
-                  mt: 2,
-                  p: 2.5,
-                  textAlign: "center",
-                  borderRadius: 3,
+                  mt:
+                    2,
+
+                  p:
+                    2.5,
+
+                  textAlign:
+                    "center",
+
+                  borderRadius:
+                    3,
+
                   border:
                     "2px solid #1976D2",
+
                   backgroundColor:
                     "#FFFFFF"
                 }}
@@ -2015,9 +1634,14 @@ export default function OrderPrint() {
 
                 <Typography
                   sx={{
-                    fontSize: 17,
-                    fontWeight: 600,
-                    color: "#555"
+                    fontSize:
+                      17,
+
+                    fontWeight:
+                      600,
+
+                    color:
+                      "#555"
                   }}
                 >
                   Próxima bobina
@@ -2026,36 +1650,50 @@ export default function OrderPrint() {
                 {
                   nextCoil !== null
                     ? (
-
                       <Typography
                         sx={{
-                          mt: 0.5,
+                          mt:
+                            0.5,
+
                           fontSize: {
-                            xs: 48,
-                            md: 58
+                            xs:
+                              48,
+
+                            md:
+                              58
                           },
-                          fontWeight: 700,
-                          lineHeight: 1,
-                          color: "#1976D2"
+
+                          fontWeight:
+                            700,
+
+                          lineHeight:
+                            1,
+
+                          color:
+                            "#1976D2"
                         }}
                       >
                         {nextCoil}
                       </Typography>
-
                     )
                     : (
-
                       <Typography
                         sx={{
-                          mt: 1,
-                          fontSize: 24,
-                          fontWeight: 700,
-                          color: "#4CAF50"
+                          mt:
+                            1,
+
+                          fontSize:
+                            24,
+
+                          fontWeight:
+                            700,
+
+                          color:
+                            "#4CAF50"
                         }}
                       >
                         FINALIZADA
                       </Typography>
-
                     )
                 }
 
@@ -2069,27 +1707,19 @@ export default function OrderPrint() {
 
       </Card>
 
-      {/* =============================================
-          VENTANA REIMPRESIÓN
-          ============================================= */}
-
       <Dialog
         open={
           reprintOpen
         }
         onClose={
           () => {
-
             if (
               !printing
             ) {
-
               setReprintOpen(
                 false
               );
-
             }
-
           }
         }
         fullWidth
@@ -2098,18 +1728,30 @@ export default function OrderPrint() {
 
         <DialogTitle
           sx={{
-            fontWeight: 800,
-            fontSize: 26,
-            color: "#0B7A3B",
-            display: "flex",
-            alignItems: "center",
-            gap: 1
+            fontWeight:
+              800,
+
+            fontSize:
+              26,
+
+            color:
+              "#0B7A3B",
+
+            display:
+              "flex",
+
+            alignItems:
+              "center",
+
+            gap:
+              1
           }}
         >
 
           <ReplayIcon
             sx={{
-              fontSize: 32
+              fontSize:
+                32
             }}
           />
 
@@ -2121,55 +1763,58 @@ export default function OrderPrint() {
 
           <Typography
             sx={{
-              mb: 2
+              mb:
+                2
             }}
           >
             Orden de producción{" "}
+
             <b>
               {order.order}
             </b>
           </Typography>
 
           {
-            lastReprintCoil !== null
-            &&
+            lastReprintCoil !== null &&
             (
-
               <Alert
                 severity="info"
                 sx={{
-                  mb: 3
+                  mb:
+                    3
                 }}
               >
                 Puedes reimprimir las bobinas{" "}
+
                 <b>
                   {firstReprintCoil}
                 </b>
+
                 {" "}a{" "}
+
                 <b>
                   {lastReprintCoil}
                 </b>.
+
                 {" "}
+
                 La reimpresión no modificará los contadores de la orden.
               </Alert>
-
             )
           }
 
           {
-            reprintError
-            &&
+            reprintError &&
             (
-
               <Alert
                 severity="error"
                 sx={{
-                  mb: 2
+                  mb:
+                    2
                 }}
               >
                 {reprintError}
               </Alert>
-
             )
           }
 
@@ -2186,33 +1831,26 @@ export default function OrderPrint() {
             }
             onChange={
               event => {
-
                 setReprintCoil(
                   event.target.value
                 );
 
                 setReprintError("");
-
               }
             }
             onKeyDown={
               event => {
-
                 if (
                   event.key ===
                     "Enter" &&
                   !printing
                 ) {
-
                   void confirmReprint();
-
                 }
-
               }
             }
             slotProps={{
               htmlInput: {
-
                 min:
                   firstReprintCoil,
 
@@ -2225,12 +1863,18 @@ export default function OrderPrint() {
               }
             }}
             sx={{
-              mt: 1,
+              mt:
+                1,
 
               "& input": {
-                fontSize: 28,
-                fontWeight: 700,
-                textAlign: "center"
+                fontSize:
+                  28,
+
+                fontWeight:
+                  700,
+
+                textAlign:
+                  "center"
               }
             }}
           />
@@ -2239,9 +1883,14 @@ export default function OrderPrint() {
 
         <DialogActions
           sx={{
-            px: 3,
-            pb: 3,
-            gap: 1
+            px:
+              3,
+
+            pb:
+              3,
+
+            gap:
+              1
           }}
         >
 
@@ -2256,7 +1905,8 @@ export default function OrderPrint() {
                 )
             }
             sx={{
-              fontWeight: 700
+              fontWeight:
+                700
             }}
           >
             CANCELAR
@@ -2274,9 +1924,15 @@ export default function OrderPrint() {
               confirmReprint
             }
             sx={{
-              minHeight: 48,
-              px: 3,
-              fontWeight: 800,
+              minHeight:
+                48,
+
+              px:
+                3,
+
+              fontWeight:
+                800,
+
               backgroundColor:
                 "#0B7A3B",
 
@@ -2297,10 +1953,6 @@ export default function OrderPrint() {
 
       </Dialog>
 
-      {/* =============================================
-          ETIQUETA DE PALET
-          ============================================= */}
-
       <PalletLabelDialog
         open={
           palletLabelOpen
@@ -2318,10 +1970,6 @@ export default function OrderPrint() {
             )
         }
       />
-
-      {/* =============================================
-          RENDER OCULTO PARA IMPRESIÓN FÍSICA
-          ============================================= */}
 
       <Box
         ref={
@@ -2362,10 +2010,6 @@ export default function OrderPrint() {
 
       </Box>
 
-      {/* =============================================
-          VISTA PREVIA
-          ============================================= */}
-
       <Dialog
         open={
           previewOpen
@@ -2381,7 +2025,8 @@ export default function OrderPrint() {
 
         <DialogTitle
           sx={{
-            fontWeight: 700
+            fontWeight:
+              700
           }}
         >
           Vista previa de etiqueta
@@ -2408,10 +2053,6 @@ export default function OrderPrint() {
 
       </Dialog>
 
-      {/* =============================================
-          ORDEN FINALIZADA
-          ============================================= */}
-
       <Dialog
         open={
           finishedOpen
@@ -2422,39 +2063,65 @@ export default function OrderPrint() {
               false
             )
         }
+        fullWidth
+        maxWidth="sm"
       >
 
         <DialogTitle
           sx={{
-            fontWeight: 700
+            fontWeight:
+              800,
+
+            fontSize:
+              26,
+
+            color:
+              "#0B7A3B"
           }}
         >
-          ✅ Pedido finalizado
+          Orden de fabricación acabada
         </DialogTitle>
 
         <DialogContent>
 
-          <Typography>
-            Se ha impreso la última etiqueta de esta orden de producción.
+          <Typography
+            sx={{
+              fontSize:
+                18
+            }}
+          >
+            Se han impreso todas las etiquetas de esta orden.
           </Typography>
 
           <Typography
-            mt={2}
-            fontWeight="bold"
-          >
-            Total de bobinas impresas:{" "}
-            {finalPrintedRef.current}
-          </Typography>
+            sx={{
+              mt:
+                2,
 
-          <Typography
-            mt={2}
+              fontSize:
+                18
+            }}
           >
-            Ya no es posible imprimir más etiquetas para esta orden.
+            Podrás volver a consultar esta orden introduciendo manualmente el número de orden en{" "}
+
+            <b>
+              Cargar orden de fabricación
+            </b>
+
+            .
           </Typography>
 
         </DialogContent>
 
-        <DialogActions>
+        <DialogActions
+          sx={{
+            px:
+              3,
+
+            pb:
+              3
+          }}
+        >
 
           <Button
             variant="contained"
@@ -2465,6 +2132,15 @@ export default function OrderPrint() {
                 )
             }
             sx={{
+              minHeight:
+                48,
+
+              px:
+                3,
+
+              fontWeight:
+                800,
+
               backgroundColor:
                 "#0B7A3B",
 
@@ -2482,7 +2158,5 @@ export default function OrderPrint() {
       </Dialog>
 
     </Box>
-
   );
-
 }
