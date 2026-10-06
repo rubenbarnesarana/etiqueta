@@ -9,7 +9,8 @@ import {
   TextField,
   Divider,
   Paper,
-  Box
+  Box,
+  Alert
 } from "@mui/material";
 
 import {
@@ -72,6 +73,26 @@ export default function ProductionManageDialog({
   } = useDesigner();
 
 
+  /*
+   * ==================================================
+   * TOTAL ROLLOS / BOBINAS
+   * ==================================================
+   */
+
+  const [
+    rolls,
+    setRolls
+  ] = useState(
+    1
+  );
+
+
+  /*
+   * ==================================================
+   * ETIQUETAS IMPRESAS
+   * ==================================================
+   */
+
   const [
     printed,
     setPrinted
@@ -80,6 +101,12 @@ export default function ProductionManageDialog({
   );
 
 
+  /*
+   * ==================================================
+   * COMENTARIOS
+   * ==================================================
+   */
+
   const [
     comments,
     setComments
@@ -87,6 +114,12 @@ export default function ProductionManageDialog({
     ""
   );
 
+
+  /*
+   * ==================================================
+   * VISTA PREVIA
+   * ==================================================
+   */
 
   const [
     showPreview,
@@ -122,14 +155,16 @@ export default function ProductionManageDialog({
 
   /*
    * ==================================================
-   * VALORES DE LA ORDEN
+   * VALORES SEGUROS
    * ==================================================
    */
 
   const totalRolls =
-    Number(
-      order?.rolls ??
-      0
+    Math.max(
+      1,
+      Number(
+        rolls
+      ) || 1
     );
 
 
@@ -167,6 +202,19 @@ export default function ProductionManageDialog({
 
   /*
    * ==================================================
+   * SABER SI EL TOTAL ES VÁLIDO
+   * ==================================================
+   */
+
+  const rollsError =
+    totalRolls <
+    Number(
+      printed
+    );
+
+
+  /*
+   * ==================================================
    * ABRIR ORDEN
    * ==================================================
    */
@@ -181,6 +229,17 @@ export default function ProductionManageDialog({
         return;
 
       }
+
+
+      setRolls(
+        Math.max(
+          1,
+          Number(
+            order.rolls ??
+            1
+          )
+        )
+      );
 
 
       setPrinted(
@@ -237,9 +296,7 @@ export default function ProductionManageDialog({
 
       const currentPrinted =
         Math.min(
-          Number(
-            order.rolls
-          ),
+          totalRolls,
           Math.max(
             0,
             Number(
@@ -258,9 +315,7 @@ export default function ProductionManageDialog({
 
       if (
         currentPrinted >=
-        Number(
-          order.rolls
-        )
+        totalRolls
       ) {
 
         return;
@@ -292,6 +347,7 @@ export default function ProductionManageDialog({
     },
     [
       printed,
+      totalRolls,
       order,
       showPreview,
       setLabelData
@@ -321,6 +377,15 @@ export default function ProductionManageDialog({
    */
 
   function loadLabel() {
+
+    if (
+      rollsError
+    ) {
+
+      return;
+
+    }
+
 
     /*
      * ==================================================
@@ -381,7 +446,6 @@ export default function ProductionManageDialog({
     /*
      * ==================================================
      * FORMATO 1
-     * ROLLOS
      * ==================================================
      */
 
@@ -396,7 +460,6 @@ export default function ProductionManageDialog({
     /*
      * ==================================================
      * FORMATO 2
-     * BOBINAS
      * ==================================================
      */
 
@@ -427,19 +490,11 @@ export default function ProductionManageDialog({
       "FORMATO_2"
     ) {
 
-      /*
-       * DESCRIPCIÓN ORIGINAL DEL SKU
-       */
-
       coilDescription =
         generateCoilDescription(
           product
         );
 
-
-      /*
-       * INFORMACIÓN TÉCNICA AUTOMÁTICA
-       */
 
       coilTechnical =
         generateCoilTechnicalText(
@@ -448,29 +503,15 @@ export default function ProductionManageDialog({
         );
 
 
-      /*
-       * TEXTO LEGAL
-       */
-
       coilLegal =
         generateCoilLegalText();
 
-
-      /*
-       * MADE IN SPAIN / QI02
-       */
 
       coilOrigin =
         generateCoilOriginText();
 
     }
     else {
-
-      /*
-       * ==================================================
-       * FORMATO 1
-       * ==================================================
-       */
 
       upperText =
         generateUpperText(
@@ -601,15 +642,43 @@ export default function ProductionManageDialog({
 
   function save() {
 
+    const finalRolls =
+      Math.max(
+        1,
+        Number(
+          rolls
+        ) || 1
+      );
+
+
+    const currentPrinted =
+      Math.max(
+        0,
+        Number(
+          printed
+        ) || 0
+      );
+
+
+    /*
+     * No permitimos que el total sea inferior
+     * a lo que ya está impreso.
+     */
+
+    if (
+      finalRolls <
+      currentPrinted
+    ) {
+
+      return;
+
+    }
+
+
     const newPrinted =
       Math.min(
-        totalRolls,
-        Math.max(
-          0,
-          Number(
-            printed
-          )
-        )
+        finalRolls,
+        currentPrinted
       );
 
 
@@ -618,7 +687,7 @@ export default function ProductionManageDialog({
       "FINALIZADA" =
 
       newPrinted >=
-      totalRolls
+      finalRolls
         ? "FINALIZADA"
         : "ABIERTA";
 
@@ -626,6 +695,9 @@ export default function ProductionManageDialog({
     onSave({
 
       ...order,
+
+      rolls:
+        finalRolls,
 
       comments:
         comments.trim(),
@@ -697,6 +769,15 @@ export default function ProductionManageDialog({
    */
 
   function nextLabel() {
+
+    if (
+      rollsError
+    ) {
+
+      return;
+
+    }
+
 
     if (
       safePrinted >=
@@ -914,7 +995,7 @@ export default function ProductionManageDialog({
           </Paper>
 
 
-          {/* COMENTARIOS DE PLANIFICACIÓN */}
+          {/* COMENTARIOS */}
 
           <TextField
             label="Comentarios de planificación"
@@ -958,10 +1039,43 @@ export default function ProductionManageDialog({
 
           <TextField
             label="Total de rollos / bobinas"
+            type="number"
             value={
-              totalRolls
+              rolls
             }
-            disabled
+            onChange={
+              event => {
+
+                const value =
+                  Number(
+                    event.target.value
+                  );
+
+
+                setRolls(
+                  Math.max(
+                    1,
+                    value
+                  )
+                );
+
+              }
+            }
+            inputProps={{
+              min:
+                1,
+
+              step:
+                1
+            }}
+            error={
+              rollsError
+            }
+            helperText={
+              rollsError
+                ? `El total no puede ser menor que las ${printed} etiquetas ya impresas.`
+                : "Puedes modificar la cantidad total que se debe fabricar."
+            }
             fullWidth
           />
 
@@ -1002,6 +1116,20 @@ export default function ProductionManageDialog({
             }}
             fullWidth
           />
+
+
+          {
+            rollsError &&
+            (
+
+              <Alert
+                severity="warning"
+              >
+                El número total de rollos / bobinas debe ser igual o superior al número de etiquetas ya impresas.
+              </Alert>
+
+            )
+          }
 
 
           <TextField
@@ -1076,6 +1204,9 @@ export default function ProductionManageDialog({
                 variant="contained"
                 onClick={
                   loadLabel
+                }
+                disabled={
+                  rollsError
                 }
                 fullWidth
               >
@@ -1226,6 +1357,14 @@ export default function ProductionManageDialog({
 
 
                     <Typography>
+                      Total:{" "}
+                      <strong>
+                        {totalRolls}
+                      </strong>
+                    </Typography>
+
+
+                    <Typography>
                       Pendientes:{" "}
                       <strong>
                         {pending}
@@ -1237,8 +1376,6 @@ export default function ProductionManageDialog({
                 </Paper>
 
 
-                {/* SIMULACIÓN IMPRESIÓN */}
-
                 <Button
                   variant="contained"
                   size="large"
@@ -1247,7 +1384,8 @@ export default function ProductionManageDialog({
                   }
                   disabled={
                     pending ===
-                    0
+                      0 ||
+                    rollsError
                   }
                   fullWidth
                 >
@@ -1299,6 +1437,9 @@ export default function ProductionManageDialog({
           variant="contained"
           onClick={
             save
+          }
+          disabled={
+            rollsError
           }
         >
           Guardar
