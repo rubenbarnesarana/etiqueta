@@ -483,14 +483,8 @@ function getBase64ImageData(
  *
  * FORMATO 1
  * ----------
- * Diseño:
- * 80 x 285 mm
- *
- * Papel:
- * 80 x 285 mm
- *
- * Orientación:
- * portrait
+ * Margen izquierdo:
+ * 0 mm
  *
  *
  * FORMATO 2
@@ -498,15 +492,20 @@ function getBase64ImageData(
  * Diseño:
  * 235 x 110 mm
  *
- * Papel enviado al driver:
- * 110 x 235 mm
+ * Margen izquierdo:
+ * 8 mm
  *
- * Orientación:
- * landscape
  *
- * Además añadimos un pequeño margen izquierdo
- * para que la impresión no empiece tan pegada
- * al borde.
+ * ETIQUETA DE PALET
+ * -----------------
+ * Diseño:
+ * 235 x 110 mm
+ *
+ * Se identifica mediante el nombre del trabajo
+ * de impresión.
+ *
+ * Margen izquierdo:
+ * 12 mm
  * ==================================================
  */
 
@@ -595,12 +594,41 @@ export async function printLabelImage(
 
   /*
    * ==================================================
-   * TAMAÑO DE PAPEL PARA EL DRIVER
+   * DETECTAR ETIQUETA DE PALET
    * ==================================================
    *
-   * Si la etiqueta es horizontal (Formato 2),
-   * mandamos al driver 110 x 235 y orientación
-   * landscape.
+   * Formato 2 y Palet tienen el mismo tamaño:
+   * 235 x 110 mm.
+   *
+   * Por eso diferenciamos el palet por el nombre
+   * del trabajo de impresión.
+   * ==================================================
+   */
+
+  const isPalletLabel =
+    jobName
+      .toLowerCase()
+      .includes(
+        "etiqueta de palet"
+      );
+
+
+  /*
+   * ==================================================
+   * DETECTAR FORMATO 2
+   * ==================================================
+   */
+
+  const isFormat2 =
+    labelWidthMm === 235 &&
+    labelHeightMm === 110 &&
+    !isPalletLabel;
+
+
+  /*
+   * ==================================================
+   * TAMAÑO DE PAPEL PARA EL DRIVER
+   * ==================================================
    */
 
   const pageWidthMm =
@@ -625,24 +653,26 @@ export async function printLabelImage(
 
   /*
    * ==================================================
-   * MÁRGENES
+   * MARGEN IZQUIERDO
    * ==================================================
    *
-   * Aquí damos un pequeño margen a la izquierda
-   * SOLO para formato horizontal.
+   * Formato 1:
+   * 0 mm
    *
-   * Si luego quieres más o menos, cambia este valor:
+   * Formato 2:
+   * 8 mm
    *
-   * 5 = valor actual recomendado
-   * 3 = menos margen
-   * 7 = más margen
+   * Etiqueta de palet:
+   * 12 mm
    * ==================================================
    */
 
   const leftMarginMm =
-    isLandscape
-      ? 5
-      : 0;
+    isPalletLabel
+      ? 12
+      : isFormat2
+        ? 8
+        : 0;
 
 
   const config =
@@ -699,11 +729,14 @@ export async function printLabelImage(
   console.log(
     "[QZ PRINT]",
     {
+      jobName,
       labelWidthMm,
       labelHeightMm,
       pageWidthMm,
       pageHeightMm,
       orientation,
+      isFormat2,
+      isPalletLabel,
       leftMarginMm,
       printer
     }
