@@ -51,7 +51,8 @@ import {
   getOrders,
   addOrder,
   updateOrder,
-  deleteOrder
+  deleteOrder,
+  getPendingQuantity
 } from "../../services/OrderStorage";
 
 import {
@@ -65,12 +66,6 @@ import {
 } from "../../services/ProductionLineStorage";
 
 
-/*
- * ==================================================
- * LÍNEAS
- * ==================================================
- */
-
 const PRODUCTION_LINES = [
   1,
   2,
@@ -82,12 +77,6 @@ const PRODUCTION_LINES = [
   8
 ];
 
-
-/*
- * ==================================================
- * FORMATEAR NÚMERO
- * ==================================================
- */
 
 function formatNumber(
   value: number
@@ -123,12 +112,6 @@ function formatNumber(
 }
 
 
-/*
- * ==================================================
- * FORMATEAR CANTIDAD
- * ==================================================
- */
-
 function formatQuantity(
   quantity: number,
   unit: "M" | "UN"
@@ -153,38 +136,39 @@ function formatQuantity(
   }
 
 
-  const formatted =
-    formatNumber(
-      value
-    );
-
-
   return unit ===
     "UN"
 
-    ? `${formatted} un`
+    ? `${formatNumber(
+        value
+      )} un`
 
-    : `${formatted} m`;
+    : `${formatNumber(
+        value
+      )} m`;
 
 }
 
 
 /*
- * ==================================================
- * TOTAL ORDEN
- * ==================================================
+ * quantity = cantidad por bobina
+ *
+ * Lo que mostramos en Producción es lo pendiente:
+ *
+ * R/B pendientes × cantidad por bobina
  */
 
-function getOrderTotalQuantity(
+function getOrderPendingAmount(
   order: ProductionOrder
 ): number {
 
-  const rolls =
+  const pendingRolls =
     Math.max(
       0,
       Number(
-        order.rolls ??
-        0
+        getPendingQuantity(
+          order
+        )
       )
     );
 
@@ -200,18 +184,12 @@ function getOrderTotalQuantity(
 
 
   return (
-    rolls *
+    pendingRolls *
     quantityPerRoll
   );
 
 }
 
-
-/*
- * ==================================================
- * COMPONENTE
- * ==================================================
- */
 
 export default function Production() {
 
@@ -272,12 +250,6 @@ export default function Production() {
     >();
 
 
-  /*
-   * ==================================================
-   * COMENTARIOS DE LÍNEA
-   * ==================================================
-   */
-
   const [
     lineComments,
     setLineComments
@@ -323,12 +295,6 @@ export default function Production() {
     );
 
 
-  /*
-   * ==================================================
-   * CARGAR ÓRDENES
-   * ==================================================
-   */
-
   function loadOrders() {
 
     setOrders(
@@ -337,12 +303,6 @@ export default function Production() {
 
   }
 
-
-  /*
-   * ==================================================
-   * CARGAR COMENTARIO
-   * ==================================================
-   */
 
   function loadLineComments(
     line: number
@@ -361,12 +321,6 @@ export default function Production() {
 
   }
 
-
-  /*
-   * ==================================================
-   * EVENTOS
-   * ==================================================
-   */
 
   useEffect(
     () => {
@@ -467,12 +421,6 @@ export default function Production() {
   );
 
 
-  /*
-   * ==================================================
-   * GUARDAR ORDEN
-   * ==================================================
-   */
-
   function saveOrder(
     order: ProductionOrder
   ) {
@@ -541,12 +489,6 @@ export default function Production() {
   }
 
 
-  /*
-   * ==================================================
-   * NUEVA ORDEN
-   * ==================================================
-   */
-
   function newOrder() {
 
     setEditing(
@@ -561,12 +503,6 @@ export default function Production() {
   }
 
 
-  /*
-   * ==================================================
-   * GESTIONAR ORDEN
-   * ==================================================
-   */
-
   function manageOrder(
     order: ProductionOrder
   ) {
@@ -577,12 +513,6 @@ export default function Production() {
 
   }
 
-
-  /*
-   * ==================================================
-   * ELIMINAR
-   * ==================================================
-   */
 
   function askRemoveOrder(
     order: ProductionOrder
@@ -629,12 +559,6 @@ export default function Production() {
 
   }
 
-
-  /*
-   * ==================================================
-   * COMENTARIO DE LÍNEA
-   * ==================================================
-   */
 
   function openCommentsDialog() {
 
@@ -756,22 +680,12 @@ export default function Production() {
   }
 
 
-  /*
-   * ==================================================
-   * NOMBRE PLANTILLA
-   * ==================================================
-   */
-
   function getTemplateName(
     templateId: number
   ): string {
 
-    const templates =
-      getTemplates();
-
-
     const template =
-      templates.find(
+      getTemplates().find(
         item =>
           Number(
             item.id
@@ -789,12 +703,6 @@ export default function Production() {
 
   }
 
-
-  /*
-   * ==================================================
-   * ÓRDENES DE LA LÍNEA
-   * ==================================================
-   */
 
   const lineOrders =
     useMemo(
@@ -890,36 +798,21 @@ export default function Production() {
     );
 
 
-  /*
-   * ==================================================
-   * SIN LÍNEA
-   * ==================================================
-   */
-
   const unassignedOrders =
     useMemo(
-      () => {
-
-        return orders.filter(
+      () =>
+        orders.filter(
           order =>
             order.productionLine <
               1 ||
             order.productionLine >
               8
-        );
-
-      },
+        ),
       [
         orders
       ]
     );
 
-
-  /*
-   * ==================================================
-   * CONTADOR LÍNEA
-   * ==================================================
-   */
 
   function getLineOrderCount(
     line: number
@@ -934,11 +827,22 @@ export default function Production() {
   }
 
 
-  /*
-   * ==================================================
-   * FILA DE ORDEN
-   * ==================================================
-   */
+  const commonCellSx = {
+    px: 0.7,
+    py: 1.2,
+    overflow: "hidden",
+    verticalAlign: "middle"
+  };
+
+
+  const headCellSx = {
+    ...commonCellSx,
+    fontWeight: 800,
+    fontSize: 12,
+    lineHeight: 1.15,
+    whiteSpace: "normal"
+  };
+
 
   function renderOrderRow(
     order: ProductionOrder,
@@ -946,20 +850,12 @@ export default function Production() {
   ) {
 
     const pending =
-      Math.max(
-        0,
-        Number(
-          order.rolls ??
-          0
-        ) -
-        Number(
-          order.printed ??
-          0
-        )
+      getPendingQuantity(
+        order
       );
 
 
-    const quantityUnit:
+    const unit:
       "M" |
       "UN" =
 
@@ -978,8 +874,8 @@ export default function Production() {
       );
 
 
-    const totalQuantity =
-      getOrderTotalQuantity(
+    const pendingAmount =
+      getOrderPendingAmount(
         order
       );
 
@@ -991,26 +887,11 @@ export default function Production() {
           order.id
         }
         hover
-        sx={{
-          "&:last-child td": {
-            borderBottom:
-              "none"
-          },
-
-          backgroundColor:
-            order.status ===
-              "FINALIZADA"
-
-              ? "#FAFAFA"
-
-              : "#FFFFFF"
-        }}
       >
-
-        {/* POSICIÓN */}
 
         <TableCell
           align="center"
+          sx={commonCellSx}
         >
 
           <Chip
@@ -1025,29 +906,26 @@ export default function Production() {
             size="small"
             variant="outlined"
             sx={{
-              fontWeight:
-                700,
-
-              minWidth:
-                44
+              fontWeight: 700,
+              minWidth: 36
             }}
           />
 
         </TableCell>
 
 
-        {/* OF */}
-
-        <TableCell>
+        <TableCell
+          sx={commonCellSx}
+        >
 
           <Typography
             fontWeight={800}
+            fontSize={13}
+            title={
+              order.order
+            }
             sx={{
-              whiteSpace:
-                "nowrap",
-
-              fontVariantNumeric:
-                "tabular-nums"
+              whiteSpace: "nowrap"
             }}
           >
             {order.order}
@@ -1056,13 +934,22 @@ export default function Production() {
         </TableCell>
 
 
-        {/* MARCAJE */}
-
-        <TableCell>
+        <TableCell
+          sx={commonCellSx}
+        >
 
           <Typography
             variant="body2"
             fontWeight={700}
+            title={
+              order.marking ||
+              "-"
+            }
+            sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
           >
             {
               order.marking ||
@@ -1073,24 +960,22 @@ export default function Production() {
         </TableCell>
 
 
-        {/* CANTIDAD POR BOBINA */}
-
         <TableCell
           align="center"
+          sx={commonCellSx}
         >
 
           <Typography
-            fontWeight={700}
             variant="body2"
+            fontWeight={700}
             sx={{
-              whiteSpace:
-                "nowrap"
+              whiteSpace: "nowrap"
             }}
           >
             {
               formatQuantity(
                 quantityPerRoll,
-                quantityUnit
+                unit
               )
             }
           </Typography>
@@ -1098,27 +983,27 @@ export default function Production() {
         </TableCell>
 
 
-        {/* TOTAL METROS / UNIDADES */}
+        {/*
+         * METROS / UNIDADES PENDIENTES
+         */}
 
         <TableCell
           align="center"
+          sx={commonCellSx}
         >
 
           <Typography
-            fontWeight={900}
             variant="body2"
+            fontWeight={900}
             sx={{
-              color:
-                "#0B7A3B",
-
-              whiteSpace:
-                "nowrap"
+              color: "#0B7A3B",
+              whiteSpace: "nowrap"
             }}
           >
             {
               formatQuantity(
-                totalQuantity,
-                quantityUnit
+                pendingAmount,
+                unit
               )
             }
           </Typography>
@@ -1126,14 +1011,14 @@ export default function Production() {
         </TableCell>
 
 
-        {/* R/B TOTAL */}
-
         <TableCell
           align="center"
+          sx={commonCellSx}
         >
 
           <Typography
             fontWeight={800}
+            fontSize={13}
           >
             {order.rolls}
           </Typography>
@@ -1141,14 +1026,14 @@ export default function Production() {
         </TableCell>
 
 
-        {/* R/B PENDIENTE */}
-
         <TableCell
           align="center"
+          sx={commonCellSx}
         >
 
           <Typography
-            fontWeight={800}
+            fontWeight={900}
+            fontSize={13}
             color={
               pending >
                 0
@@ -1164,17 +1049,23 @@ export default function Production() {
         </TableCell>
 
 
-        {/* DESCRIPCIÓN */}
-
         <TableCell
-          sx={{
-            minWidth:
-              250
-          }}
+          sx={commonCellSx}
         >
 
           <Typography
             variant="body2"
+            title={
+              order.product
+            }
+            sx={{
+              lineHeight: 1.25,
+              overflow: "hidden",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              wordBreak: "break-word"
+            }}
           >
             {order.product}
           </Typography>
@@ -1182,27 +1073,43 @@ export default function Production() {
         </TableCell>
 
 
-        {/* CLIENTE */}
+        <TableCell
+          sx={commonCellSx}
+        >
 
-        <TableCell>
-
-          {
-            order.customer ||
-            "-"
-          }
+          <Typography
+            variant="body2"
+            title={
+              order.customer ||
+              "-"
+            }
+            sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {
+              order.customer ||
+              "-"
+            }
+          </Typography>
 
         </TableCell>
 
 
-        {/* SKU */}
-
-        <TableCell>
+        <TableCell
+          sx={commonCellSx}
+        >
 
           <Typography
             variant="body2"
+            title={
+              order.sku
+            }
             sx={{
-              whiteSpace:
-                "nowrap"
+              whiteSpace: "nowrap",
+              fontSize: 12.5
             }}
           >
             {order.sku}
@@ -1211,16 +1118,20 @@ export default function Production() {
         </TableCell>
 
 
-        {/* PEDIDO VENTA */}
-
-        <TableCell>
+        <TableCell
+          sx={commonCellSx}
+        >
 
           <Typography
             variant="body2"
             fontWeight={700}
+            title={
+              order.salesOrder ||
+              "-"
+            }
             sx={{
-              whiteSpace:
-                "nowrap"
+              whiteSpace: "nowrap",
+              fontSize: 12.5
             }}
           >
             {
@@ -1232,34 +1143,44 @@ export default function Production() {
         </TableCell>
 
 
-        {/* PLANTILLA */}
-
-        <TableCell>
-
-          {
-            getTemplateName(
-              order.templateId
-            )
-          }
-
-        </TableCell>
-
-
-        {/* IMPRESAS */}
-
         <TableCell
-          align="center"
+          sx={commonCellSx}
         >
 
-          {order.printed}
+          <Typography
+            variant="body2"
+            title={
+              getTemplateName(
+                order.templateId
+              )
+            }
+            sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {
+              getTemplateName(
+                order.templateId
+              )
+            }
+          </Typography>
 
         </TableCell>
 
 
-        {/* ESTADO */}
+        <TableCell
+          align="center"
+          sx={commonCellSx}
+        >
+          {order.printed}
+        </TableCell>
+
 
         <TableCell
           align="center"
+          sx={commonCellSx}
         >
 
           <Chip
@@ -1275,21 +1196,23 @@ export default function Production() {
               order.status
             }
             size="small"
+            sx={{
+              fontSize: 11
+            }}
           />
 
         </TableCell>
 
 
-        {/* ACCIONES */}
-
         <TableCell
           align="center"
+          sx={commonCellSx}
         >
 
           <Stack
             direction="row"
             justifyContent="center"
-            spacing={0.5}
+            spacing={0}
           >
 
             <Tooltip
@@ -1297,6 +1220,7 @@ export default function Production() {
             >
 
               <IconButton
+                size="small"
                 color="primary"
                 onClick={
                   () =>
@@ -1305,7 +1229,9 @@ export default function Production() {
                     )
                 }
               >
-                <EditIcon />
+                <EditIcon
+                  fontSize="small"
+                />
               </IconButton>
 
             </Tooltip>
@@ -1316,6 +1242,7 @@ export default function Production() {
             >
 
               <IconButton
+                size="small"
                 color="error"
                 onClick={
                   () =>
@@ -1324,7 +1251,9 @@ export default function Production() {
                     )
                 }
               >
-                <DeleteIcon />
+                <DeleteIcon
+                  fontSize="small"
+                />
               </IconButton>
 
             </Tooltip>
@@ -1340,12 +1269,6 @@ export default function Production() {
   }
 
 
-  /*
-   * ==================================================
-   * CABECERA TABLA
-   * ==================================================
-   */
-
   function renderTableHead() {
 
     return (
@@ -1354,179 +1277,104 @@ export default function Production() {
 
         <TableRow
           sx={{
-            backgroundColor:
-              "#F8FAF9"
+            backgroundColor: "#F8FAF9"
           }}
         >
 
           <TableCell
             align="center"
-            sx={{
-              fontWeight:
-                700
-            }}
+            sx={headCellSx}
           >
             #
           </TableCell>
 
-
           <TableCell
-            sx={{
-              fontWeight:
-                700
-            }}
+            sx={headCellSx}
           >
             OF
           </TableCell>
 
-
           <TableCell
-            sx={{
-              fontWeight:
-                700
-            }}
+            sx={headCellSx}
           >
             Marcaje
           </TableCell>
 
-
           <TableCell
             align="center"
-            sx={{
-              fontWeight:
-                700,
-
-              whiteSpace:
-                "nowrap"
-            }}
+            sx={headCellSx}
           >
             Cant. / R-B
           </TableCell>
 
-
           <TableCell
             align="center"
-            sx={{
-              fontWeight:
-                700,
-
-              whiteSpace:
-                "nowrap"
-            }}
+            sx={headCellSx}
           >
-            Total M / UN
+            Metros / Unid.
           </TableCell>
 
-
           <TableCell
             align="center"
-            sx={{
-              fontWeight:
-                700,
-
-              whiteSpace:
-                "nowrap"
-            }}
+            sx={headCellSx}
           >
             Nº R/B Tot
           </TableCell>
 
-
           <TableCell
             align="center"
-            sx={{
-              fontWeight:
-                700,
-
-              whiteSpace:
-                "nowrap"
-            }}
+            sx={headCellSx}
           >
             Nº R/B Pen
           </TableCell>
 
-
           <TableCell
-            sx={{
-              fontWeight:
-                700
-            }}
+            sx={headCellSx}
           >
             Descripción
           </TableCell>
 
-
           <TableCell
-            sx={{
-              fontWeight:
-                700
-            }}
+            sx={headCellSx}
           >
             Cliente
           </TableCell>
 
-
           <TableCell
-            sx={{
-              fontWeight:
-                700
-            }}
+            sx={headCellSx}
           >
             SKU
           </TableCell>
 
-
           <TableCell
-            sx={{
-              fontWeight:
-                700,
-
-              whiteSpace:
-                "nowrap"
-            }}
+            sx={headCellSx}
           >
             Pedido venta
           </TableCell>
 
-
           <TableCell
-            sx={{
-              fontWeight:
-                700
-            }}
+            sx={headCellSx}
           >
             Plantilla
           </TableCell>
 
-
           <TableCell
             align="center"
-            sx={{
-              fontWeight:
-                700
-            }}
+            sx={headCellSx}
           >
             Impresas
           </TableCell>
 
-
           <TableCell
             align="center"
-            sx={{
-              fontWeight:
-                700
-            }}
+            sx={headCellSx}
           >
             Estado
           </TableCell>
 
-
           <TableCell
             align="center"
-            sx={{
-              fontWeight:
-                700
-            }}
+            sx={headCellSx}
           >
             Acciones
           </TableCell>
@@ -1540,65 +1388,117 @@ export default function Production() {
   }
 
 
-  /*
-   * ==================================================
-   * RENDER
-   * ==================================================
-   */
+  function renderProductionTable(
+    tableOrders: ProductionOrder[]
+  ) {
+
+    return (
+
+      <Box
+        sx={{
+          width: "100%",
+          overflow: "hidden"
+        }}
+      >
+
+        <Table
+          size="small"
+          sx={{
+            width: "100%",
+            tableLayout: "fixed"
+          }}
+        >
+
+          <colgroup>
+
+            <col style={{ width: "2.5%" }} />
+            <col style={{ width: "8.5%" }} />
+            <col style={{ width: "6.5%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "7.5%" }} />
+            <col style={{ width: "4.5%" }} />
+            <col style={{ width: "4.5%" }} />
+            <col style={{ width: "17.5%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "6.5%" }} />
+            <col style={{ width: "7.5%" }} />
+            <col style={{ width: "5.5%" }} />
+            <col style={{ width: "4.5%" }} />
+            <col style={{ width: "6.5%" }} />
+            <col style={{ width: "6%" }} />
+
+          </colgroup>
+
+
+          {
+            renderTableHead()
+          }
+
+
+          <TableBody>
+
+            {
+              tableOrders.map(
+                (
+                  order,
+                  index
+                ) =>
+                  renderOrderRow(
+                    order,
+                    index +
+                      1
+                  )
+              )
+            }
+
+          </TableBody>
+
+        </Table>
+
+      </Box>
+
+    );
+
+  }
+
 
   return (
 
-    <Box>
+    <Box
+      sx={{
+        width: "100%",
+        minWidth: 0
+      }}
+    >
 
       <BackButton
         showBack={false}
       />
 
 
-      {/* CABECERA */}
-
       <Box
         sx={{
-          mb:
-            3,
-
-          display:
-            "flex",
-
-          alignItems:
-            "center",
-
-          justifyContent:
-            "space-between",
-
-          gap:
-            2,
-
-          flexWrap:
-            "wrap"
+          mb: 3,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 2,
+          flexWrap: "wrap"
         }}
       >
 
         <Box
           sx={{
-            display:
-              "flex",
-
-            alignItems:
-              "center",
-
-            gap:
-              2
+            display: "flex",
+            alignItems: "center",
+            gap: 2
           }}
         >
 
           <PrecisionManufacturingIcon
             sx={{
-              fontSize:
-                46,
-
-              color:
-                "#0B7A3B"
+              fontSize: 46,
+              color: "#0B7A3B"
             }}
           />
 
@@ -1615,10 +1515,6 @@ export default function Production() {
 
             <Typography
               color="text.secondary"
-              sx={{
-                mt:
-                  0.5
-              }}
             >
               Gestión de órdenes de producción
             </Typography>
@@ -1635,17 +1531,14 @@ export default function Production() {
             newOrder
           }
           sx={{
-            fontWeight:
-              700
+            fontWeight: 700
           }}
         >
-          + Nueva Orden
+          + NUEVA ORDEN
         </Button>
 
       </Box>
 
-
-      {/* SIN ÓRDENES */}
 
       {
         orders.length ===
@@ -1658,24 +1551,16 @@ export default function Production() {
 
               <Box
                 sx={{
-                  py:
-                    6,
-
-                  textAlign:
-                    "center"
+                  py: 6,
+                  textAlign: "center"
                 }}
               >
 
                 <PrecisionManufacturingIcon
                   sx={{
-                    fontSize:
-                      52,
-
-                    color:
-                      "text.disabled",
-
-                    mb:
-                      1
+                    fontSize: 52,
+                    color: "text.disabled",
+                    mb: 1
                   }}
                 />
 
@@ -1704,8 +1589,6 @@ export default function Production() {
       }
 
 
-      {/* LÍNEAS */}
-
       {
         orders.length >
           0 &&
@@ -1716,17 +1599,10 @@ export default function Production() {
             <Paper
               elevation={0}
               sx={{
-                mb:
-                  2.5,
-
-                border:
-                  "1px solid #E0E0E0",
-
-                borderRadius:
-                  2,
-
-                overflow:
-                  "hidden"
+                mb: 2.5,
+                border: "1px solid #E0E0E0",
+                borderRadius: 2,
+                overflow: "hidden"
               }}
             >
 
@@ -1747,31 +1623,21 @@ export default function Production() {
                 }
                 variant="fullWidth"
                 sx={{
-                  backgroundColor:
-                    "#F8FAF8",
+                  backgroundColor: "#F8FAF8",
 
                   "& .MuiTabs-indicator": {
-                    backgroundColor:
-                      "#0B7A3B",
-
-                    height:
-                      4
+                    backgroundColor: "#0B7A3B",
+                    height: 4
                   },
 
                   "& .MuiTab-root": {
-                    fontWeight:
-                      700,
-
-                    minHeight:
-                      64,
-
-                    minWidth:
-                      0
+                    fontWeight: 700,
+                    minHeight: 64,
+                    minWidth: 0
                   },
 
                   "& .Mui-selected": {
-                    color:
-                      "#0B7A3B !important"
+                    color: "#0B7A3B !important"
                   }
                 }}
               >
@@ -1810,29 +1676,14 @@ export default function Production() {
 
                               <Box
                                 sx={{
-                                  minWidth:
-                                    27,
-
-                                  height:
-                                    27,
-
-                                  px:
-                                    0.5,
-
-                                  borderRadius:
-                                    "14px",
-
-                                  display:
-                                    "flex",
-
-                                  alignItems:
-                                    "center",
-
-                                  justifyContent:
-                                    "center",
-
-                                  fontWeight:
-                                    900,
+                                  minWidth: 27,
+                                  height: 27,
+                                  px: 0.5,
+                                  borderRadius: "14px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontWeight: 900,
 
                                   backgroundColor:
                                     selectedLine ===
@@ -1880,56 +1731,32 @@ export default function Production() {
             </Paper>
 
 
-            {/* TABLA DE LÍNEA */}
-
             <Card
               sx={{
-                overflow:
-                  "hidden",
-
-                border:
-                  "1px solid",
-
-                borderColor:
-                  "divider"
+                width: "100%",
+                overflow: "hidden",
+                border: "1px solid",
+                borderColor: "divider"
               }}
             >
 
               <Box
                 sx={{
-                  px:
-                    2.5,
-
-                  py:
-                    1.7,
-
-                  display:
-                    "flex",
-
-                  alignItems:
-                    "center",
-
-                  gap:
-                    1.5,
-
-                  flexWrap:
-                    "wrap",
-
-                  backgroundColor:
-                    "#E8F3EB",
-
-                  borderBottom:
-                    "1px solid",
-
-                  borderColor:
-                    "divider"
+                  px: 2,
+                  py: 1.5,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.5,
+                  flexWrap: "wrap",
+                  backgroundColor: "#E8F3EB",
+                  borderBottom: "1px solid",
+                  borderColor: "divider"
                 }}
               >
 
                 <FactoryIcon
                   sx={{
-                    color:
-                      "#0B7A3B"
+                    color: "#0B7A3B"
                   }}
                 />
 
@@ -1937,13 +1764,7 @@ export default function Production() {
                 <Typography
                   variant="h6"
                   fontWeight={800}
-                  sx={{
-                    color:
-                      "#0B7A3B",
-
-                    whiteSpace:
-                      "nowrap"
-                  }}
+                  color="#0B7A3B"
                 >
                   LÍNEA {selectedLine}
                 </Typography>
@@ -1959,21 +1780,14 @@ export default function Production() {
                         spacing={0.7}
                         alignItems="center"
                         sx={{
-                          flex:
-                            1,
-
-                          minWidth:
-                            180
+                          flex: 1
                         }}
                       >
 
                         <CommentIcon
                           sx={{
-                            fontSize:
-                              18,
-
-                            color:
-                              "#D84315"
+                            fontSize: 18,
+                            color: "#D84315"
                           }}
                         />
 
@@ -1981,10 +1795,7 @@ export default function Production() {
                         <Typography
                           variant="body2"
                           fontWeight={800}
-                          sx={{
-                            color:
-                              "#D84315"
-                          }}
+                          color="#D84315"
                         >
                           {lineComments}
                         </Typography>
@@ -1999,8 +1810,7 @@ export default function Production() {
                         variant="body2"
                         color="text.secondary"
                         sx={{
-                          flex:
-                            1
+                          flex: 1
                         }}
                       >
                         Sin comentarios para esta línea
@@ -2020,14 +1830,9 @@ export default function Production() {
                     openCommentsDialog
                   }
                   sx={{
-                    fontWeight:
-                      700,
-
-                    whiteSpace:
-                      "nowrap",
-
-                    backgroundColor:
-                      "#FFFFFF"
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                    backgroundColor: "#FFFFFF"
                   }}
                 >
                   EDITAR COMENTARIO
@@ -2045,11 +1850,8 @@ export default function Production() {
                   }
                   size="small"
                   sx={{
-                    fontWeight:
-                      700,
-
-                    backgroundColor:
-                      "#FFFFFF"
+                    fontWeight: 700,
+                    backgroundColor: "#FFFFFF"
                   }}
                 />
 
@@ -2064,27 +1866,10 @@ export default function Production() {
 
                     <Box
                       sx={{
-                        py:
-                          5,
-
-                        textAlign:
-                          "center"
+                        py: 5,
+                        textAlign: "center"
                       }}
                     >
-
-                      <FactoryIcon
-                        sx={{
-                          fontSize:
-                            46,
-
-                          color:
-                            "text.disabled",
-
-                          mb:
-                            1
-                        }}
-                      />
-
 
                       <Typography
                         color="text.secondary"
@@ -2096,50 +1881,9 @@ export default function Production() {
 
                   )
 
-                  : (
-
-                    <Box
-                      sx={{
-                        overflowX:
-                          "auto"
-                      }}
-                    >
-
-                      <Table
-                        sx={{
-                          minWidth:
-                            1920
-                        }}
-                      >
-
-                        {
-                          renderTableHead()
-                        }
-
-
-                        <TableBody>
-
-                          {
-                            lineOrders.map(
-                              (
-                                order,
-                                index
-                              ) =>
-                                renderOrderRow(
-                                  order,
-                                  index +
-                                    1
-                                )
-                            )
-                          }
-
-                        </TableBody>
-
-                      </Table>
-
-                    </Box>
-
-                  )
+                  : renderProductionTable(
+                      lineOrders
+                    )
               }
 
             </Card>
@@ -2150,8 +1894,6 @@ export default function Production() {
       }
 
 
-      {/* SIN LÍNEA */}
-
       {
         unassignedOrders.length >
           0 &&
@@ -2159,39 +1901,22 @@ export default function Production() {
 
           <Card
             sx={{
-              mt:
-                3,
-
-              overflow:
-                "hidden",
-
-              border:
-                "1px solid",
-
-              borderColor:
-                "warning.main"
+              mt: 3,
+              width: "100%",
+              overflow: "hidden",
+              border: "1px solid",
+              borderColor: "warning.main"
             }}
           >
 
             <Box
               sx={{
-                px:
-                  2.5,
-
-                py:
-                  1.7,
-
-                display:
-                  "flex",
-
-                alignItems:
-                  "center",
-
-                justifyContent:
-                  "space-between",
-
-                backgroundColor:
-                  "#FFF8E1"
+                px: 2,
+                py: 1.5,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                backgroundColor: "#FFF8E1"
               }}
             >
 
@@ -2215,76 +1940,20 @@ export default function Production() {
 
               </Stack>
 
-
-              <Chip
-                label={
-                  unassignedOrders.length ===
-                    1
-
-                    ? "1 orden"
-
-                    : `${unassignedOrders.length} órdenes`
-                }
-                size="small"
-                color="warning"
-                variant="outlined"
-                sx={{
-                  backgroundColor:
-                    "#FFFFFF"
-                }}
-              />
-
             </Box>
 
 
-            <Box
-              sx={{
-                overflowX:
-                  "auto"
-              }}
-            >
-
-              <Table
-                sx={{
-                  minWidth:
-                    1920
-                }}
-              >
-
-                {
-                  renderTableHead()
-                }
-
-
-                <TableBody>
-
-                  {
-                    unassignedOrders.map(
-                      (
-                        order,
-                        index
-                      ) =>
-                        renderOrderRow(
-                          order,
-                          index +
-                            1
-                        )
-                    )
-                  }
-
-                </TableBody>
-
-              </Table>
-
-            </Box>
+            {
+              renderProductionTable(
+                unassignedOrders
+              )
+            }
 
           </Card>
 
         )
       }
 
-
-      {/* NUEVA ORDEN */}
 
       <ProductionDialog
         open={
@@ -2313,8 +1982,6 @@ export default function Production() {
       />
 
 
-      {/* EDITAR / GESTIONAR */}
-
       <ProductionManageDialog
         open={
           Boolean(
@@ -2337,8 +2004,6 @@ export default function Production() {
       />
 
 
-      {/* COMENTARIO DE LÍNEA */}
-
       <Dialog
         open={
           commentsDialogOpen
@@ -2357,21 +2022,6 @@ export default function Production() {
 
         <DialogContent>
 
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              mt:
-                0.5,
-
-              mb:
-                2
-            }}
-          >
-            Este comentario pertenece a toda la Línea {selectedLine} y se sincronizará con Supabase.
-          </Typography>
-
-
           {
             commentsError &&
             (
@@ -2379,8 +2029,7 @@ export default function Production() {
               <Alert
                 severity="error"
                 sx={{
-                  mb:
-                    2
+                  mb: 2
                 }}
               >
                 {commentsError}
@@ -2400,7 +2049,6 @@ export default function Production() {
               savingComments
             }
             label={`Comentario Línea ${selectedLine}`}
-            placeholder="Ej.: Palets nuevos 20 bobinas"
             value={
               commentsDraft
             }
@@ -2421,9 +2069,6 @@ export default function Production() {
             onClick={
               closeCommentsDialog
             }
-            disabled={
-              savingComments
-            }
           >
             CANCELAR
           </Button>
@@ -2440,21 +2085,13 @@ export default function Production() {
               savingComments
             }
           >
-
-            {
-              savingComments
-                ? "GUARDANDO..."
-                : "GUARDAR"
-            }
-
+            GUARDAR
           </Button>
 
         </DialogActions>
 
       </Dialog>
 
-
-      {/* ELIMINAR */}
 
       <Dialog
         open={
@@ -2470,74 +2107,29 @@ export default function Production() {
       >
 
         <DialogTitle>
-
-          <Box
-            sx={{
-              display:
-                "flex",
-
-              alignItems:
-                "center",
-
-              gap:
-                1.5
-            }}
-          >
-
-            <WarningAmberIcon
-              color="error"
-            />
-
-
-            <Typography
-              variant="h6"
-              fontWeight={700}
-            >
-              Eliminar orden
-            </Typography>
-
-          </Box>
-
+          Eliminar orden
         </DialogTitle>
 
 
         <DialogContent>
 
           <DialogContentText>
-
-            ¿Seguro que deseas eliminar la orden de producción{" "}
-
+            ¿Seguro que deseas eliminar la orden{" "}
             <strong>
               {orderToDelete?.order}
             </strong>
-
             ?
-
-            <br />
-            <br />
-
-            Esta acción no se puede deshacer.
-
           </DialogContentText>
 
         </DialogContent>
 
 
-        <DialogActions
-          sx={{
-            px:
-              3,
-
-            pb:
-              3
-          }}
-        >
+        <DialogActions>
 
           <Button
             onClick={
               cancelRemoveOrder
             }
-            color="inherit"
           >
             CANCELAR
           </Button>
@@ -2546,9 +2138,6 @@ export default function Production() {
           <Button
             variant="contained"
             color="error"
-            startIcon={
-              <DeleteIcon />
-            }
             onClick={
               confirmRemoveOrder
             }
