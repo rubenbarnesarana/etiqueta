@@ -46,7 +46,6 @@ function configureQzSecurity():
   ) {
 
     return;
-
   }
 
 
@@ -78,12 +77,10 @@ function configureQzSecurity():
           message ||
           "No se ha podido obtener el certificado de QZ Tray."
         );
-
       }
 
 
       return await response.text();
-
     }
   );
 
@@ -143,7 +140,6 @@ function configureQzSecurity():
               message ||
               "No se ha podido firmar la petición de QZ Tray."
             );
-
           }
 
 
@@ -163,18 +159,14 @@ function configureQzSecurity():
           reject(
             error
           );
-
         }
-
       };
-
     }
   );
 
 
   qzSecurityConfigured =
     true;
-
 }
 
 
@@ -188,7 +180,6 @@ export function isQzConnected():
   boolean {
 
   return qz.websocket.isActive();
-
 }
 
 
@@ -209,7 +200,6 @@ export async function connectQz():
   ) {
 
     return;
-
   }
 
 
@@ -218,7 +208,6 @@ export async function connectQz():
   ) {
 
     return connectionPromise;
-
   }
 
 
@@ -229,7 +218,6 @@ export async function connectQz():
         () => {
 
           return;
-
         }
       )
       .finally(
@@ -237,13 +225,11 @@ export async function connectQz():
 
           connectionPromise =
             null;
-
         }
       );
 
 
   return connectionPromise;
-
 }
 
 
@@ -269,9 +255,7 @@ export async function disconnectQz():
 
       connectionPromise =
         null;
-
     }
-
   }
 
 
@@ -280,12 +264,10 @@ export async function disconnectQz():
   ) {
 
     return;
-
   }
 
 
   await qz.websocket.disconnect();
-
 }
 
 
@@ -312,7 +294,6 @@ export async function getInstalledPrinters():
   ) {
 
     return printers;
-
   }
 
 
@@ -323,18 +304,16 @@ export async function getInstalledPrinters():
     return [
       printers
     ];
-
   }
 
 
   return [];
-
 }
 
 
 /*
  * ==================================================
- * OBTENER IMPRESORA PREDETERMINADA
+ * IMPRESORA PREDETERMINADA WINDOWS
  * ==================================================
  */
 
@@ -356,15 +335,13 @@ export async function getDefaultPrinter():
   catch {
 
     return null;
-
   }
-
 }
 
 
 /*
  * ==================================================
- * BUSCAR IMPRESORA POR NOMBRE
+ * BUSCAR IMPRESORA
  * ==================================================
  */
 
@@ -391,7 +368,6 @@ export async function findPrinter(
     ) {
 
       return printer[0] || null;
-
     }
 
 
@@ -401,15 +377,13 @@ export async function findPrinter(
   catch {
 
     return null;
-
   }
-
 }
 
 
 /*
  * ==================================================
- * OBTENER IMPRESORA CONFIGURADA EN ESTE PC
+ * IMPRESORA ETIQUETAS CONFIGURADA
  * ==================================================
  */
 
@@ -427,18 +401,16 @@ export function getConfiguredLabelPrinter():
   ) {
 
     return null;
-
   }
 
 
   return printer;
-
 }
 
 
 /*
  * ==================================================
- * PREPARAR IMAGEN BASE64
+ * DATA URL -> BASE64
  * ==================================================
  */
 
@@ -467,45 +439,94 @@ function getBase64ImageData(
     return value.substring(
       commaIndex + 1
     );
-
   }
 
 
   return value;
+}
 
+
+/*
+ * ==================================================
+ * BLOB -> BASE64
+ * ==================================================
+ */
+
+function blobToBase64(
+  blob: Blob
+):
+  Promise<string> {
+
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+
+      const reader =
+        new FileReader();
+
+
+      reader.onload =
+        () => {
+
+          const result =
+            String(
+              reader.result ??
+              ""
+            );
+
+
+          const commaIndex =
+            result.indexOf(
+              ","
+            );
+
+
+          if (
+            commaIndex < 0
+          ) {
+
+            reject(
+              new Error(
+                "No se ha podido convertir el documento para imprimir."
+              )
+            );
+
+            return;
+          }
+
+
+          resolve(
+            result.substring(
+              commaIndex + 1
+            )
+          );
+        };
+
+
+      reader.onerror =
+        () => {
+
+          reject(
+            new Error(
+              "No se ha podido leer el documento para imprimir."
+            )
+          );
+        };
+
+
+      reader.readAsDataURL(
+        blob
+      );
+    }
+  );
 }
 
 
 /*
  * ==================================================
  * IMPRIMIR ETIQUETA PNG
- * ==================================================
- *
- * FORMATO 1
- * ----------
- * Margen izquierdo:
- * 0 mm
- *
- *
- * FORMATO 2
- * ----------
- * Diseño:
- * 235 x 110 mm
- *
- * Margen izquierdo:
- * 8 mm
- *
- *
- * ETIQUETA DE PALET
- * -----------------
- * Diseño:
- * 235 x 110 mm
- *
- * Se identifica mediante el nombre del trabajo
- * de impresión.
- *
- * Margen izquierdo:
- * 12 mm
  * ==================================================
  */
 
@@ -524,7 +545,6 @@ export async function printLabelImage(
     throw new Error(
       "No se ha generado la imagen de la etiqueta."
     );
-
   }
 
 
@@ -542,7 +562,6 @@ export async function printLabelImage(
     throw new Error(
       "Las dimensiones de la etiqueta no son válidas."
     );
-
   }
 
 
@@ -557,7 +576,6 @@ export async function printLabelImage(
     throw new Error(
       "No hay ninguna impresora de etiquetas configurada en este ordenador."
     );
-
   }
 
 
@@ -577,59 +595,18 @@ export async function printLabelImage(
     throw new Error(
       `No se ha encontrado la impresora configurada: ${configuredPrinter}`
     );
-
   }
 
 
   /*
-   * ==================================================
-   * ORIENTACIÓN
-   * ==================================================
+   * Mantener exactamente la lógica actual
+   * de las etiquetas.
    */
 
   const isLandscape =
     labelWidthMm >
     labelHeightMm;
 
-
-  /*
-   * ==================================================
-   * DETECTAR ETIQUETA DE PALET
-   * ==================================================
-   *
-   * Formato 2 y Palet tienen el mismo tamaño:
-   * 235 x 110 mm.
-   *
-   * Por eso diferenciamos el palet por el nombre
-   * del trabajo de impresión.
-   * ==================================================
-   */
-
-  const isPalletLabel =
-    jobName
-      .toLowerCase()
-      .includes(
-        "etiqueta de palet"
-      );
-
-
-  /*
-   * ==================================================
-   * DETECTAR FORMATO 2
-   * ==================================================
-   */
-
-  const isFormat2 =
-    labelWidthMm === 235 &&
-    labelHeightMm === 110 &&
-    !isPalletLabel;
-
-
-  /*
-   * ==================================================
-   * TAMAÑO DE PAPEL PARA EL DRIVER
-   * ==================================================
-   */
 
   const pageWidthMm =
     isLandscape
@@ -651,46 +628,25 @@ export async function printLabelImage(
       : "portrait";
 
 
-  /*
-   * ==================================================
-   * MARGEN IZQUIERDO
-   * ==================================================
-   *
-   * Formato 1:
-   * 0 mm
-   *
-   * Formato 2:
-   * 8 mm
-   *
-   * Etiqueta de palet:
-   * 12 mm
-   * ==================================================
-   */
-
   const leftMarginMm =
-    isPalletLabel
-      ? 12
-      : isFormat2
-        ? 8
-        : 0;
+    isLandscape
+      ? 5
+      : 0;
 
 
   const config =
     qz.configs.create(
       printer,
       {
-
         units:
           "mm",
 
         size: {
-
           width:
             pageWidthMm,
 
           height:
             pageHeightMm
-
         },
 
         orientation,
@@ -699,7 +655,6 @@ export async function printLabelImage(
           true,
 
         margins: {
-
           top:
             0,
 
@@ -711,7 +666,6 @@ export async function printLabelImage(
 
           left:
             leftMarginMm
-
         },
 
         copies:
@@ -721,26 +675,8 @@ export async function printLabelImage(
           "nearest-neighbor",
 
         jobName
-
       }
     );
-
-
-  console.log(
-    "[QZ PRINT]",
-    {
-      jobName,
-      labelWidthMm,
-      labelHeightMm,
-      pageWidthMm,
-      pageHeightMm,
-      orientation,
-      isFormat2,
-      isPalletLabel,
-      leftMarginMm,
-      printer
-    }
-  );
 
 
   const base64Image =
@@ -770,7 +706,182 @@ export async function printLabelImage(
     config,
     data
   );
+}
 
+
+/*
+ * ==================================================
+ * IMPRIMIR PLANIFICACIÓN PDF
+ * ==================================================
+ *
+ * IMPORTANTE:
+ *
+ * El PDF ya se genera como:
+ *
+ * A4 horizontal = 297 x 210 mm.
+ *
+ * Por tanto NO volvemos a forzar:
+ *
+ * - 210 x 297
+ * - orientación landscape
+ * - rotación
+ *
+ * QZ leerá el tamaño y orientación directamente
+ * del PDF.
+ *
+ * Esto evita que el driver vuelva a rotar/escalar
+ * el documento y termine imprimiéndolo pequeño
+ * y desplazado.
+ * ==================================================
+ */
+
+export async function printPlanningPdf(
+  pdfBlob: Blob,
+  jobName = "Planificación Rivulis"
+):
+  Promise<string> {
+
+  if (
+    !pdfBlob ||
+    pdfBlob.size <= 0
+  ) {
+
+    throw new Error(
+      "No se ha generado correctamente la planificación."
+    );
+  }
+
+
+  await connectQz();
+
+
+  const defaultPrinter =
+    await getDefaultPrinter();
+
+
+  if (
+    !defaultPrinter
+  ) {
+
+    throw new Error(
+      "No hay ninguna impresora predeterminada configurada en Windows."
+    );
+  }
+
+
+  const printer =
+    await findPrinter(
+      defaultPrinter
+    );
+
+
+  if (
+    !printer
+  ) {
+
+    throw new Error(
+      `No se ha encontrado la impresora predeterminada: ${defaultPrinter}`
+    );
+  }
+
+
+  const base64Pdf =
+    await blobToBase64(
+      pdfBlob
+    );
+
+
+  /*
+   * --------------------------------------------------
+   * CONFIGURACIÓN PDF
+   * --------------------------------------------------
+   *
+   * NO indicamos size.
+   * NO indicamos orientation.
+   *
+   * Según QZ, si orientation es null,
+   * intenta determinarla automáticamente usando
+   * el documento y el tamaño de papel.
+   *
+   * scaleContent mantiene la proporción.
+   * --------------------------------------------------
+   */
+
+  const config =
+    qz.configs.create(
+      printer,
+      {
+        orientation:
+          null,
+
+        scaleContent:
+          true,
+
+        margins: {
+          top:
+            0,
+
+          right:
+            0,
+
+          bottom:
+            0,
+
+          left:
+            0
+        },
+
+        copies:
+          1,
+
+        colorType:
+          "color",
+
+        jobName
+      }
+    );
+
+
+  const data = [
+    {
+      type:
+        "pixel",
+
+      format:
+        "pdf",
+
+      flavor:
+        "base64",
+
+      data:
+        base64Pdf
+    }
+  ];
+
+
+  console.log(
+    "[QZ PLANIFICACIÓN]",
+    {
+      printer,
+      orientation:
+        "AUTO",
+
+      size:
+        "PDF A4 LANDSCAPE",
+
+      scaleContent:
+        true
+    }
+  );
+
+
+  await qz.print(
+    config,
+    data
+  );
+
+
+  return defaultPrinter;
 }
 
 
@@ -794,7 +905,6 @@ export async function printTestPage():
     throw new Error(
       "No hay ninguna impresora de etiquetas configurada en este ordenador."
     );
-
   }
 
 
@@ -814,7 +924,6 @@ export async function printTestPage():
     throw new Error(
       `No se ha encontrado la impresora configurada: ${configuredPrinter}`
     );
-
   }
 
 
@@ -935,5 +1044,4 @@ export async function printTestPage():
     config,
     data
   );
-
 }

@@ -5,6 +5,10 @@ export interface Product {
 
   description: string;
 
+  upperText: string;
+
+  marking: string;
+
   diameter: string;
 
   thickness: string;

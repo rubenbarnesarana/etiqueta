@@ -23,7 +23,12 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Tooltip
+  Tooltip,
+  Tabs,
+  Tab,
+  Paper,
+  TextField,
+  Alert
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -31,6 +36,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import FactoryIcon from "@mui/icons-material/Factory";
+import CommentIcon from "@mui/icons-material/Comment";
 
 import ProductionDialog from "../../components/production/ProductionDialog";
 import ProductionManageDialog from "../../components/production/ProductionManageDialog";
@@ -49,8 +55,22 @@ import {
 } from "../../services/OrderStorage";
 
 import {
-  getTemplates
+  findTemplate
 } from "../../services/TemplateStorage";
+
+import {
+  findProduct
+} from "../../services/ProductStorage";
+
+import {
+  getAssignedTemplate
+} from "../../services/ProductTemplateStorage";
+
+import {
+  getProductionLineSetting,
+  loadProductionLineSettingsFromSupabase,
+  updateProductionLineComments
+} from "../../services/ProductionLineStorage";
 
 
 const PRODUCTION_LINES = [
@@ -65,28 +85,93 @@ const PRODUCTION_LINES = [
 ];
 
 
+function formatQuantity(
+  quantity: number,
+  unit: "M" | "UN"
+): string {
+
+  const value =
+    Number(
+      quantity ?? 0
+    );
+
+
+  if (
+    !Number.isFinite(
+      value
+    ) ||
+    value <= 0
+  ) {
+
+    return "-";
+  }
+
+
+  const formatted =
+    new Intl.NumberFormat(
+      "es-ES",
+      {
+        maximumFractionDigits:
+          2
+      }
+    ).format(
+      value
+    );
+
+
+  return unit ===
+    "UN"
+    ? `${formatted} un`
+    : `${formatted} m`;
+}
+
+
+function normalizeText(
+  value: string
+): string {
+
+  return value
+    .toUpperCase()
+    .normalize(
+      "NFD"
+    )
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .replace(
+      /[^A-Z0-9]/g,
+      ""
+    );
+}
+
+
 export default function Production() {
 
   const [
     orders,
     setOrders
-  ] = useState<ProductionOrder[]>([]);
+  ] = useState<
+    ProductionOrder[]
+  >([]);
 
 
-  /*
-   * Diálogo para crear una orden nueva.
-   */
+  const [
+    selectedLine,
+    setSelectedLine
+  ] = useState<number>(
+    1
+  );
+
+
   const [
     openDialog,
     setOpenDialog
-  ] = useState(false);
+  ] = useState(
+    false
+  );
 
 
-  /*
-   * ProductionDialog sigue utilizando editing,
-   * pero desde esta pantalla solamente lo usamos
-   * para crear órdenes nuevas.
-   */
   const [
     editing,
     setEditing
@@ -96,9 +181,6 @@ export default function Production() {
   >();
 
 
-  /*
-   * Orden que estamos gestionando / editando.
-   */
   const [
     managing,
     setManaging
@@ -108,9 +190,6 @@ export default function Production() {
   >();
 
 
-  /*
-   * Orden pendiente de confirmación de borrado.
-   */
   const [
     orderToDelete,
     setOrderToDelete
@@ -120,11 +199,70 @@ export default function Production() {
   >();
 
 
-  /*
-   * ==================================================
-   * CARGAR ÓRDENES
-   * ==================================================
-   */
+  const [
+    lineComments,
+    setLineComments
+  ] = useState(
+    ""
+  );
+
+
+  const [
+    commentsDialogOpen,
+    setCommentsDialogOpen
+  ] = useState(
+    false
+  );
+
+
+  const [
+    commentsDraft,
+    setCommentsDraft
+  ] = useState(
+    ""
+  );
+
+
+  const [
+    savingComments,
+    setSavingComments
+  ] = useState(
+    false
+  );
+
+
+  const [
+    commentsError,
+    setCommentsError
+  ] = useState(
+    ""
+  );
+
+
+  function loadOrders() {
+
+    setOrders(
+      getOrders()
+    );
+  }
+
+
+  function loadLineComments(
+    line: number
+  ) {
+
+    const setting =
+      getProductionLineSetting(
+        line
+      );
+
+
+    setLineComments(
+      setting.comments ??
+      ""
+    );
+  }
+
 
   useEffect(
     () => {
@@ -132,16 +270,56 @@ export default function Production() {
       loadOrders();
 
 
+      async function loadSupabaseLineSettings() {
+
+        try {
+
+          await loadProductionLineSettingsFromSupabase();
+
+
+          loadLineComments(
+            selectedLine
+          );
+
+        }
+        catch (
+          error
+        ) {
+
+          console.error(
+            "No se pudieron cargar los comentarios de línea:",
+            error
+          );
+        }
+      }
+
+
+      void loadSupabaseLineSettings();
+
+
       function handleOrdersUpdated() {
 
         loadOrders();
+      }
 
+
+      function handleLineSettingsUpdated() {
+
+        loadLineComments(
+          selectedLine
+        );
       }
 
 
       window.addEventListener(
         "productionOrdersUpdated",
         handleOrdersUpdated
+      );
+
+
+      window.addEventListener(
+        "productionLineSettingsUpdated",
+        handleLineSettingsUpdated
       );
 
 
@@ -152,27 +330,33 @@ export default function Production() {
           handleOrdersUpdated
         );
 
+
+        window.removeEventListener(
+          "productionLineSettingsUpdated",
+          handleLineSettingsUpdated
+        );
       };
 
     },
-    []
+    [
+      selectedLine
+    ]
   );
 
 
-  function loadOrders() {
+  useEffect(
+    () => {
 
-    setOrders(
-      getOrders()
-    );
+      loadLineComments(
+        selectedLine
+      );
 
-  }
+    },
+    [
+      selectedLine
+    ]
+  );
 
-
-  /*
-   * ==================================================
-   * GUARDAR ORDEN
-   * ==================================================
-   */
 
   function saveOrder(
     order: ProductionOrder
@@ -204,7 +388,6 @@ export default function Production() {
       addOrder(
         order
       );
-
     }
 
 
@@ -225,14 +408,20 @@ export default function Production() {
       undefined
     );
 
+
+    if (
+      order.productionLine >=
+        1 &&
+      order.productionLine <=
+        8
+    ) {
+
+      setSelectedLine(
+        order.productionLine
+      );
+    }
   }
 
-
-  /*
-   * ==================================================
-   * NUEVA ORDEN
-   * ==================================================
-   */
 
   function newOrder() {
 
@@ -244,26 +433,8 @@ export default function Production() {
     setOpenDialog(
       true
     );
-
   }
 
-
-  /*
-   * ==================================================
-   * EDITAR / GESTIONAR ORDEN
-   * ==================================================
-   *
-   * Este es ahora el ÚNICO botón de edición.
-   *
-   * Abre ProductionManageDialog, que permite:
-   *
-   * - consultar la orden
-   * - cambiar impresos
-   * - reiniciar
-   * - guardar
-   *
-   * ==================================================
-   */
 
   function manageOrder(
     order: ProductionOrder
@@ -272,15 +443,8 @@ export default function Production() {
     setManaging(
       order
     );
-
   }
 
-
-  /*
-   * ==================================================
-   * SOLICITAR ELIMINAR
-   * ==================================================
-   */
 
   function askRemoveOrder(
     order: ProductionOrder
@@ -289,30 +453,16 @@ export default function Production() {
     setOrderToDelete(
       order
     );
-
   }
 
-
-  /*
-   * ==================================================
-   * CANCELAR ELIMINACIÓN
-   * ==================================================
-   */
 
   function cancelRemoveOrder() {
 
     setOrderToDelete(
       undefined
     );
-
   }
 
-
-  /*
-   * ==================================================
-   * CONFIRMAR ELIMINACIÓN
-   * ==================================================
-   */
 
   function confirmRemoveOrder() {
 
@@ -321,7 +471,6 @@ export default function Production() {
     ) {
 
       return;
-
     }
 
 
@@ -336,222 +485,368 @@ export default function Production() {
 
 
     loadOrders();
-
   }
 
 
-  /*
-   * ==================================================
-   * NOMBRE DE PLANTILLA
-   * ==================================================
-   */
+  function openCommentsDialog() {
 
-  function getTemplateName(
-    templateId: number
-  ): string {
-
-    const templates =
-      getTemplates();
-
-
-    const template =
-      templates.find(
-        item =>
-          Number(
-            item.id
-          ) ===
-          Number(
-            templateId
-          )
-      );
-
-
-    return (
-      template?.name ??
-      "-"
+    setCommentsDraft(
+      lineComments
     );
 
+
+    setCommentsError(
+      ""
+    );
+
+
+    setCommentsDialogOpen(
+      true
+    );
   }
 
 
-  /*
-   * ==================================================
-   * ÓRDENES DE UNA LÍNEA
-   * ==================================================
-   */
+  function closeCommentsDialog() {
 
-  function getLineOrders(
-    productionLine: number
-  ) {
+    if (
+      savingComments
+    ) {
 
-    return orders
-      .map(
-        (
-          order,
-          storageIndex
-        ) => ({
-          order,
-          storageIndex
-        })
-      )
-      .filter(
-        item =>
-          item.order.productionLine ===
-          productionLine
-      )
-      .sort(
-        (
-          a,
-          b
-        ) => {
-
-          const positionA =
-            a.order.planningPosition >
-            0
-              ? a.order.planningPosition
-              : Number.MAX_SAFE_INTEGER;
+      return;
+    }
 
 
-          const positionB =
-            b.order.planningPosition >
-            0
-              ? b.order.planningPosition
-              : Number.MAX_SAFE_INTEGER;
+    setCommentsDialogOpen(
+      false
+    );
 
 
-          if (
-            positionA !==
-            positionB
-          ) {
-
-            return (
-              positionA -
-              positionB
-            );
-
-          }
+    setCommentsDraft(
+      ""
+    );
 
 
-          return (
-            a.storageIndex -
-            b.storageIndex
-          );
+    setCommentsError(
+      ""
+    );
+  }
 
-        }
-      )
-      .map(
-        item =>
-          item.order
+
+  async function saveLineComments() {
+
+    if (
+      savingComments
+    ) {
+
+      return;
+    }
+
+
+    setSavingComments(
+      true
+    );
+
+
+    setCommentsError(
+      ""
+    );
+
+
+    try {
+
+      await updateProductionLineComments(
+        selectedLine,
+        commentsDraft
       );
 
+
+      await loadProductionLineSettingsFromSupabase();
+
+
+      loadLineComments(
+        selectedLine
+      );
+
+
+      setCommentsDialogOpen(
+        false
+      );
+
+
+      setCommentsDraft(
+        ""
+      );
+
+    }
+    catch (
+      error
+    ) {
+
+      console.error(
+        `Error guardando comentario de Línea ${selectedLine}:`,
+        error
+      );
+
+
+      setCommentsError(
+        "No se ha podido guardar el comentario en Supabase. Revisa la conexión e inténtalo de nuevo."
+      );
+
+    }
+    finally {
+
+      setSavingComments(
+        false
+      );
+    }
   }
 
 
   /*
    * ==================================================
-   * LÍNEAS QUE TIENEN ÓRDENES
+   * PLANTILLA REAL DEL SKU
    * ==================================================
    */
 
-  const linesWithOrders =
+  function getOrderTemplate(
+    order: ProductionOrder
+  ) {
+
+    const assignedTemplate =
+      getAssignedTemplate(
+        order.sku
+      );
+
+
+    if (
+      assignedTemplate
+    ) {
+
+      const template =
+        findTemplate(
+          assignedTemplate.id
+        );
+
+
+      if (
+        template
+      ) {
+
+        return template;
+      }
+    }
+
+
+    const product =
+      findProduct(
+        order.sku
+      );
+
+
+    if (
+      product
+    ) {
+
+      const template =
+        findTemplate(
+          product.templateId
+        );
+
+
+      if (
+        template
+      ) {
+
+        return template;
+      }
+    }
+
+
+    return findTemplate(
+      order.templateId
+    );
+  }
+
+
+  function getOrderTemplateName(
+    order: ProductionOrder
+  ): string {
+
+    return (
+      getOrderTemplate(
+        order
+      )?.name ??
+      "-"
+    );
+  }
+
+
+  /*
+   * ==================================================
+   * DESCRIPCIÓN
+   * ==================================================
+   *
+   * IMPORTANTE:
+   *
+   * Solo añadimos automáticamente el nombre
+   * NAAN PC MAX.
+   *
+   * El resto de familias utilizan exactamente
+   * la descripción original de la orden.
+   * ==================================================
+   */
+
+  function getProductionDescription(
+    order: ProductionOrder
+  ): string {
+
+    const description =
+      String(
+        order.product ??
+        ""
+      ).trim();
+
+
+    if (
+      !description
+    ) {
+
+      return "-";
+    }
+
+
+    const templateName =
+      getOrderTemplateName(
+        order
+      );
+
+
+    const normalizedTemplate =
+      normalizeText(
+        templateName
+      );
+
+
+    /*
+     * Solo NAAN PC MAX.
+     */
+
+    if (
+      !normalizedTemplate.includes(
+        "NAANPCMAX"
+      )
+    ) {
+
+      return description;
+    }
+
+
+    const normalizedDescription =
+      normalizeText(
+        description
+      );
+
+
+    /*
+     * Si ya aparece NAAN PC MAX,
+     * no lo repetimos.
+     */
+
+    if (
+      normalizedDescription.startsWith(
+        "NAANPCMAX"
+      )
+    ) {
+
+      return description;
+    }
+
+
+    return `NAAN PC MAX ${description}`;
+  }
+
+
+  const lineOrders =
     useMemo(
       () => {
 
-        return PRODUCTION_LINES
+        return orders
           .map(
-            line => {
-
-              const lineOrders =
-                orders
-                  .map(
-                    (
-                      order,
-                      storageIndex
-                    ) => ({
-                      order,
-                      storageIndex
-                    })
-                  )
-                  .filter(
-                    item =>
-                      item.order.productionLine ===
-                      line
-                  )
-                  .sort(
-                    (
-                      a,
-                      b
-                    ) => {
-
-                      const positionA =
-                        a.order.planningPosition >
-                        0
-                          ? a.order.planningPosition
-                          : Number.MAX_SAFE_INTEGER;
-
-
-                      const positionB =
-                        b.order.planningPosition >
-                        0
-                          ? b.order.planningPosition
-                          : Number.MAX_SAFE_INTEGER;
-
-
-                      if (
-                        positionA !==
-                        positionB
-                      ) {
-
-                        return (
-                          positionA -
-                          positionB
-                        );
-
-                      }
-
-
-                      return (
-                        a.storageIndex -
-                        b.storageIndex
-                      );
-
-                    }
-                  )
-                  .map(
-                    item =>
-                      item.order
-                  );
-
-
-              return {
-
-                line,
-
-                orders:
-                  lineOrders
-
-              };
-
-            }
+            (
+              order,
+              storageIndex
+            ) => ({
+              order,
+              storageIndex
+            })
           )
           .filter(
-            group =>
-              group.orders.length >
-              0
+            item =>
+              item.order.productionLine ===
+              selectedLine
+          )
+          .sort(
+            (
+              a,
+              b
+            ) => {
+
+              if (
+                a.order.status !==
+                b.order.status
+              ) {
+
+                return a.order.status ===
+                  "ABIERTA"
+                  ? -1
+                  : 1;
+              }
+
+
+              const positionA =
+                a.order.planningPosition >
+                  0
+                  ? a.order.planningPosition
+                  : Number.MAX_SAFE_INTEGER;
+
+
+              const positionB =
+                b.order.planningPosition >
+                  0
+                  ? b.order.planningPosition
+                  : Number.MAX_SAFE_INTEGER;
+
+
+              if (
+                positionA !==
+                positionB
+              ) {
+
+                return (
+                  positionA -
+                  positionB
+                );
+              }
+
+
+              return (
+                a.storageIndex -
+                b.storageIndex
+              );
+            }
+          )
+          .map(
+            item =>
+              item.order
           );
 
       },
       [
-        orders
+        orders,
+        selectedLine
       ]
     );
 
-
-  /*
-   * ==================================================
-   * ÓRDENES SIN LÍNEA
-   * ==================================================
-   */
 
   const unassignedOrders =
     useMemo(
@@ -572,11 +867,17 @@ export default function Production() {
     );
 
 
-  /*
-   * ==================================================
-   * FILA DE ORDEN
-   * ==================================================
-   */
+  function getLineOrderCount(
+    line: number
+  ): number {
+
+    return orders.filter(
+      order =>
+        order.productionLine ===
+        line
+    ).length;
+  }
+
 
   function renderOrderRow(
     order: ProductionOrder,
@@ -599,26 +900,29 @@ export default function Production() {
         }
         hover
         sx={{
-          "&:last-child td":
-            {
-              borderBottom:
-                "none"
-            }
+          "&:last-child td": {
+            borderBottom:
+              "none"
+          },
+
+          backgroundColor:
+            order.status ===
+              "FINALIZADA"
+              ? "#FAFAFA"
+              : "#FFFFFF"
         }}
       >
 
-        {/* POSICIÓN */}
-
         <TableCell
           align="center"
-          sx={{
-            width: 65
-          }}
         >
 
           <Chip
             label={
-              `#${position}`
+              order.planningPosition >
+                0
+                ? `#${position}`
+                : "-"
             }
             size="small"
             variant="outlined"
@@ -634,114 +938,139 @@ export default function Production() {
         </TableCell>
 
 
-        {/* ORDEN SAP */}
+        <TableCell>
+
+          <Typography
+            fontWeight={700}
+          >
+            {order.order}
+          </Typography>
+
+        </TableCell>
+
 
         <TableCell>
+
+          <Typography
+            variant="body2"
+            fontWeight={700}
+          >
+            {
+              order.marking ||
+              "-"
+            }
+          </Typography>
+
+        </TableCell>
+
+
+        <TableCell
+          align="center"
+        >
 
           <Typography
             fontWeight={600}
+            variant="body2"
           >
-
-            {order.order}
-
+            {
+              formatQuantity(
+                Number(
+                  order.quantity ??
+                  0
+                ),
+                order.quantityUnit ===
+                  "UN"
+                  ? "UN"
+                  : "M"
+              )
+            }
           </Typography>
 
         </TableCell>
 
 
-        {/* SKU */}
-
-        <TableCell>
-
-          {order.sku}
-
-        </TableCell>
-
-
-        {/* PRODUCTO */}
-
-        <TableCell
-          sx={{
-            minWidth:
-              220
-          }}
-        >
-
-          {order.product}
-
-        </TableCell>
-
-
-        {/* CLIENTE */}
-
-        <TableCell
-          sx={{
-            minWidth:
-              140
-          }}
-        >
-
-          {order.customer || "-"}
-
-        </TableCell>
-
-
-        {/* PLANTILLA */}
-
-        <TableCell>
-
-          {getTemplateName(
-            order.templateId
-          )}
-
-        </TableCell>
-
-
-        {/* ROLLOS */}
-
         <TableCell
           align="center"
         >
-
           {order.rolls}
-
         </TableCell>
 
-
-        {/* IMPRESOS */}
-
-        <TableCell
-          align="center"
-        >
-
-          {order.printed}
-
-        </TableCell>
-
-
-        {/* PENDIENTES */}
 
         <TableCell
           align="center"
         >
 
           <Typography
-            fontWeight={
+            fontWeight={700}
+            color={
               pending >
-              0
-                ? 700
-                : 400
+                0
+                ? "error.main"
+                : "success.main"
             }
           >
-
             {pending}
-
           </Typography>
 
         </TableCell>
 
 
-        {/* ESTADO */}
+        <TableCell
+          sx={{
+            minWidth:
+              260
+          }}
+        >
+
+          <Typography
+            variant="body2"
+          >
+            {
+              getProductionDescription(
+                order
+              )
+            }
+          </Typography>
+
+        </TableCell>
+
+
+        <TableCell>
+          {
+            order.customer ||
+            "-"
+          }
+        </TableCell>
+
+
+        <TableCell>
+          {order.sku}
+        </TableCell>
+
+
+        <TableCell>
+          {
+            order.salesOrder ||
+            "-"
+          }
+        </TableCell>
+
+
+        <TableCell>
+          {
+            getOrderTemplateName(
+              order
+            )
+          }
+        </TableCell>
+
+
+        <TableCell
+          align="center"
+        >
+          {order.printed}
+        </TableCell>
+
 
         <TableCell
           align="center"
@@ -750,19 +1079,18 @@ export default function Production() {
           <Chip
             color={
               order.status ===
-              "ABIERTA"
+                "ABIERTA"
                 ? "success"
                 : "default"
             }
             label={
               order.status
             }
+            size="small"
           />
 
         </TableCell>
 
-
-        {/* ACCIONES */}
 
         <TableCell
           align="center"
@@ -787,9 +1115,7 @@ export default function Production() {
                     )
                 }
               >
-
                 <EditIcon />
-
               </IconButton>
 
             </Tooltip>
@@ -808,9 +1134,7 @@ export default function Production() {
                     )
                 }
               >
-
                 <DeleteIcon />
-
               </IconButton>
 
             </Tooltip>
@@ -822,15 +1146,8 @@ export default function Production() {
       </TableRow>
 
     );
-
   }
 
-
-  /*
-   * ==================================================
-   * CABECERA DE TABLA
-   * ==================================================
-   */
 
   function renderTableHead() {
 
@@ -862,7 +1179,70 @@ export default function Production() {
                 700
             }}
           >
-            Orden SAP
+            OF
+          </TableCell>
+
+
+          <TableCell
+            sx={{
+              fontWeight:
+                700
+            }}
+          >
+            Marcaje
+          </TableCell>
+
+
+          <TableCell
+            align="center"
+            sx={{
+              fontWeight:
+                700
+            }}
+          >
+            Metros / Unid.
+          </TableCell>
+
+
+          <TableCell
+            align="center"
+            sx={{
+              fontWeight:
+                700
+            }}
+          >
+            Nº R/B Tot
+          </TableCell>
+
+
+          <TableCell
+            align="center"
+            sx={{
+              fontWeight:
+                700
+            }}
+          >
+            Nº R/B Pen
+          </TableCell>
+
+
+          <TableCell
+            sx={{
+              fontWeight:
+                700
+            }}
+          >
+            Descripción
+          </TableCell>
+
+
+          <TableCell
+            sx={{
+              fontWeight:
+                700
+            }}
+          >
+            Cliente
           </TableCell>
 
 
@@ -882,17 +1262,7 @@ export default function Production() {
                 700
             }}
           >
-            Producto
-          </TableCell>
-
-
-          <TableCell
-            sx={{
-              fontWeight:
-                700
-            }}
-          >
-            Cliente
+            Pedido venta
           </TableCell>
 
 
@@ -913,29 +1283,7 @@ export default function Production() {
                 700
             }}
           >
-            Rollos
-          </TableCell>
-
-
-          <TableCell
-            align="center"
-            sx={{
-              fontWeight:
-                700
-            }}
-          >
-            Impresos
-          </TableCell>
-
-
-          <TableCell
-            align="center"
-            sx={{
-              fontWeight:
-                700
-            }}
-          >
-            Pendientes
+            Impresas
           </TableCell>
 
 
@@ -965,15 +1313,8 @@ export default function Production() {
       </TableHead>
 
     );
-
   }
 
-
-  /*
-   * ==================================================
-   * PANTALLA
-   * ==================================================
-   */
 
   return (
 
@@ -983,8 +1324,6 @@ export default function Production() {
         showBack={false}
       />
 
-
-      {/* CABECERA */}
 
       <Box
         sx={{
@@ -1074,92 +1413,265 @@ export default function Production() {
       </Box>
 
 
-      {/* SIN ÓRDENES */}
+      {
+        orders.length ===
+          0 &&
+        (
 
-      {orders.length ===
-        0 && (
+          <Card>
 
-        <Card>
+            <CardContent>
 
-          <CardContent>
+              <Box
+                sx={{
+                  py:
+                    6,
 
-            <Box
+                  textAlign:
+                    "center"
+                }}
+              >
+
+                <PrecisionManufacturingIcon
+                  sx={{
+                    fontSize:
+                      52,
+
+                    color:
+                      "text.disabled",
+
+                    mb:
+                      1
+                  }}
+                />
+
+
+                <Typography
+                  variant="h6"
+                  fontWeight={700}
+                >
+                  No existen órdenes
+                </Typography>
+
+
+                <Typography
+                  color="text.secondary"
+                >
+                  Crea una nueva orden de producción para comenzar.
+                </Typography>
+
+              </Box>
+
+            </CardContent>
+
+          </Card>
+
+        )
+      }
+
+
+      {
+        orders.length >
+          0 &&
+        (
+
+          <>
+
+            <Paper
+              elevation={0}
               sx={{
-                py:
-                  6,
+                mb:
+                  2.5,
 
-                textAlign:
-                  "center"
+                border:
+                  "1px solid #E0E0E0",
+
+                borderRadius:
+                  2,
+
+                overflow:
+                  "hidden"
               }}
             >
 
-              <PrecisionManufacturingIcon
-                sx={{
-                  fontSize:
-                    52,
-
-                  color:
-                    "text.disabled",
-
-                  mb:
-                    1
-                }}
-              />
-
-
-              <Typography
-                variant="h6"
-                fontWeight={700}
-              >
-                No existen órdenes
-              </Typography>
-
-
-              <Typography
-                color="text.secondary"
-                sx={{
-                  mt:
-                    0.5
-                }}
-              >
-                Crea una nueva orden de producción para comenzar.
-              </Typography>
-
-            </Box>
-
-          </CardContent>
-
-        </Card>
-
-      )}
-
-
-      {/* ÓRDENES AGRUPADAS POR LÍNEA */}
-
-      <Stack
-        spacing={3}
-      >
-
-        {linesWithOrders.map(
-          group => {
-
-            const lineOrders =
-              getLineOrders(
-                group.line
-              );
-
-
-            return (
-
-              <Card
-                key={
-                  group.line
+              <Tabs
+                value={
+                  selectedLine
                 }
+                onChange={
+                  (
+                    _event,
+                    value
+                  ) =>
+                    setSelectedLine(
+                      Number(
+                        value
+                      )
+                    )
+                }
+                variant="fullWidth"
                 sx={{
-                  overflow:
-                    "hidden",
+                  backgroundColor:
+                    "#F8FAF8",
 
-                  border:
+                  "& .MuiTabs-indicator": {
+                    backgroundColor:
+                      "#0B7A3B",
+
+                    height:
+                      4
+                  },
+
+                  "& .MuiTab-root": {
+                    fontWeight:
+                      700,
+
+                    minHeight:
+                      64,
+
+                    minWidth:
+                      0
+                  },
+
+                  "& .Mui-selected": {
+                    color:
+                      "#0B7A3B !important"
+                  }
+                }}
+              >
+
+                {
+                  PRODUCTION_LINES.map(
+                    line => {
+
+                      const count =
+                        getLineOrderCount(
+                          line
+                        );
+
+
+                      return (
+
+                        <Tab
+                          key={
+                            line
+                          }
+                          value={
+                            line
+                          }
+                          label={
+
+                            <Stack
+                              direction="row"
+                              spacing={0.7}
+                              alignItems="center"
+                            >
+
+                              <span>
+                                LÍNEA {line}
+                              </span>
+
+
+                              <Box
+                                sx={{
+                                  minWidth:
+                                    27,
+
+                                  height:
+                                    27,
+
+                                  px:
+                                    0.5,
+
+                                  borderRadius:
+                                    "14px",
+
+                                  display:
+                                    "flex",
+
+                                  alignItems:
+                                    "center",
+
+                                  justifyContent:
+                                    "center",
+
+                                  fontWeight:
+                                    900,
+
+                                  backgroundColor:
+                                    selectedLine ===
+                                      line
+                                      ? "#0B7A3B"
+                                      : count >
+                                          0
+                                        ? "#DCEFE1"
+                                        : "#EEEEEE",
+
+                                  color:
+                                    selectedLine ===
+                                      line
+                                      ? "#FFFFFF"
+                                      : count >
+                                          0
+                                        ? "#0B7A3B"
+                                        : "#757575"
+                                }}
+                              >
+                                {count}
+                              </Box>
+
+                            </Stack>
+
+                          }
+                        />
+
+                      );
+                    }
+                  )
+                }
+
+              </Tabs>
+
+            </Paper>
+
+
+            <Card
+              sx={{
+                overflow:
+                  "hidden",
+
+                border:
+                  "1px solid",
+
+                borderColor:
+                  "divider"
+              }}
+            >
+
+              <Box
+                sx={{
+                  px:
+                    2.5,
+
+                  py:
+                    1.7,
+
+                  display:
+                    "flex",
+
+                  alignItems:
+                    "center",
+
+                  gap:
+                    1.5,
+
+                  flexWrap:
+                    "wrap",
+
+                  backgroundColor:
+                    "#E8F3EB",
+
+                  borderBottom:
                     "1px solid",
 
                   borderColor:
@@ -1167,139 +1679,234 @@ export default function Production() {
                 }}
               >
 
-                {/* CABECERA DE LÍNEA */}
-
-                <Box
+                <FactoryIcon
                   sx={{
-                    px:
-                      2.5,
+                    color:
+                      "#0B7A3B"
+                  }}
+                />
 
-                    py:
-                      1.7,
 
-                    display:
-                      "flex",
+                <Typography
+                  variant="h6"
+                  fontWeight={800}
+                  sx={{
+                    color:
+                      "#0B7A3B",
 
-                    alignItems:
-                      "center",
+                    whiteSpace:
+                      "nowrap"
+                  }}
+                >
+                  LÍNEA {selectedLine}
+                </Typography>
 
-                    justifyContent:
-                      "space-between",
 
-                    gap:
-                      2,
+                {
+                  lineComments
+                    ? (
 
-                    flexWrap:
-                      "wrap",
+                      <Stack
+                        direction="row"
+                        spacing={0.7}
+                        alignItems="center"
+                        sx={{
+                          flex:
+                            1,
+
+                          minWidth:
+                            180
+                        }}
+                      >
+
+                        <CommentIcon
+                          sx={{
+                            fontSize:
+                              18,
+
+                            color:
+                              "#D84315"
+                          }}
+                        />
+
+
+                        <Typography
+                          variant="body2"
+                          fontWeight={800}
+                          sx={{
+                            color:
+                              "#D84315"
+                          }}
+                        >
+                          {lineComments}
+                        </Typography>
+
+                      </Stack>
+
+                    )
+                    : (
+
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          flex:
+                            1
+                        }}
+                      >
+                        Sin comentarios para esta línea
+                      </Typography>
+
+                    )
+                }
+
+
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={
+                    <EditIcon />
+                  }
+                  onClick={
+                    openCommentsDialog
+                  }
+                  sx={{
+                    fontWeight:
+                      700,
+
+                    whiteSpace:
+                      "nowrap",
 
                     backgroundColor:
-                      "#E8F3EB",
-
-                    borderBottom:
-                      "1px solid",
-
-                    borderColor:
-                      "divider"
+                      "#FFFFFF"
                   }}
                 >
+                  EDITAR COMENTARIO
+                </Button>
 
-                  <Stack
-                    direction="row"
-                    spacing={1.5}
-                    alignItems="center"
-                  >
 
-                    <FactoryIcon
+                <Chip
+                  label={
+                    lineOrders.length ===
+                      1
+                      ? "1 orden"
+                      : `${lineOrders.length} órdenes`
+                  }
+                  size="small"
+                  sx={{
+                    fontWeight:
+                      700,
+
+                    backgroundColor:
+                      "#FFFFFF"
+                  }}
+                />
+
+              </Box>
+
+
+              {
+                lineOrders.length ===
+                  0
+                  ? (
+
+                    <Box
                       sx={{
-                        color:
-                          "#0B7A3B"
-                      }}
-                    />
+                        py:
+                          5,
 
-
-                    <Typography
-                      variant="h6"
-                      fontWeight={800}
-                      sx={{
-                        color:
-                          "#0B7A3B"
+                        textAlign:
+                          "center"
                       }}
                     >
-                      LÍNEA {group.line}
-                    </Typography>
 
-                  </Stack>
+                      <FactoryIcon
+                        sx={{
+                          fontSize:
+                            46,
 
+                          color:
+                            "text.disabled",
 
-                  <Chip
-                    label={
-                      lineOrders.length ===
-                      1
-                        ? "1 orden"
-                        : `${lineOrders.length} órdenes`
-                    }
-                    size="small"
-                    sx={{
-                      fontWeight:
-                        700,
-
-                      backgroundColor:
-                        "white"
-                    }}
-                  />
-
-                </Box>
-
-
-                {/* TABLA */}
-
-                <Box
-                  sx={{
-                    overflowX:
-                      "auto"
-                  }}
-                >
-
-                  <Table>
-
-                    {renderTableHead()}
-
-
-                    <TableBody>
-
-                      {lineOrders.map(
-                        (
-                          order,
-                          index
-                        ) =>
-                          renderOrderRow(
-                            order,
-                            index +
+                          mb:
                             1
-                          )
-                      )}
-
-                    </TableBody>
-
-                  </Table>
-
-                </Box>
-
-              </Card>
-
-            );
-
-          }
-        )}
+                        }}
+                      />
 
 
-        {/* SIN LÍNEA ASIGNADA */}
+                      <Typography
+                        color="text.secondary"
+                      >
+                        No hay órdenes en la Línea {selectedLine}.
+                      </Typography>
 
-        {unassignedOrders.length >
-          0 && (
+                    </Box>
+
+                  )
+                  : (
+
+                    <Box
+                      sx={{
+                        overflowX:
+                          "auto"
+                      }}
+                    >
+
+                      <Table
+                        sx={{
+                          minWidth:
+                            1750
+                        }}
+                      >
+
+                        {
+                          renderTableHead()
+                        }
+
+
+                        <TableBody>
+
+                          {
+                            lineOrders.map(
+                              (
+                                order,
+                                index
+                              ) =>
+                                renderOrderRow(
+                                  order,
+                                  index +
+                                    1
+                                )
+                            )
+                          }
+
+                        </TableBody>
+
+                      </Table>
+
+                    </Box>
+
+                  )
+              }
+
+            </Card>
+
+          </>
+
+        )
+      }
+
+
+      {
+        unassignedOrders.length >
+          0 &&
+        (
 
           <Card
             sx={{
+              mt:
+                3,
+
               overflow:
                 "hidden",
 
@@ -1328,20 +1935,8 @@ export default function Production() {
                 justifyContent:
                   "space-between",
 
-                gap:
-                  2,
-
-                flexWrap:
-                  "wrap",
-
                 backgroundColor:
-                  "#FFF8E1",
-
-                borderBottom:
-                  "1px solid",
-
-                borderColor:
-                  "divider"
+                  "#FFF8E1"
               }}
             >
 
@@ -1369,7 +1964,7 @@ export default function Production() {
               <Chip
                 label={
                   unassignedOrders.length ===
-                  1
+                    1
                     ? "1 orden"
                     : `${unassignedOrders.length} órdenes`
                 }
@@ -1377,11 +1972,8 @@ export default function Production() {
                 color="warning"
                 variant="outlined"
                 sx={{
-                  fontWeight:
-                    700,
-
                   backgroundColor:
-                    "white"
+                    "#FFFFFF"
                 }}
               />
 
@@ -1395,24 +1987,33 @@ export default function Production() {
               }}
             >
 
-              <Table>
+              <Table
+                sx={{
+                  minWidth:
+                    1750
+                }}
+              >
 
-                {renderTableHead()}
+                {
+                  renderTableHead()
+                }
 
 
                 <TableBody>
 
-                  {unassignedOrders.map(
-                    (
-                      order,
-                      index
-                    ) =>
-                      renderOrderRow(
+                  {
+                    unassignedOrders.map(
+                      (
                         order,
-                        index +
-                        1
-                      )
-                  )}
+                        index
+                      ) =>
+                        renderOrderRow(
+                          order,
+                          index +
+                            1
+                        )
+                    )
+                  }
 
                 </TableBody>
 
@@ -1422,12 +2023,9 @@ export default function Production() {
 
           </Card>
 
-        )}
+        )
+      }
 
-      </Stack>
-
-
-      {/* NUEVA ORDEN */}
 
       <ProductionDialog
         open={
@@ -1447,7 +2045,6 @@ export default function Production() {
             setEditing(
               undefined
             );
-
           }
         }
         onSave={
@@ -1455,8 +2052,6 @@ export default function Production() {
         }
       />
 
-
-      {/* EDITAR / GESTIONAR ORDEN */}
 
       <ProductionManageDialog
         open={
@@ -1480,7 +2075,118 @@ export default function Production() {
       />
 
 
-      {/* CONFIRMAR ELIMINACIÓN */}
+      <Dialog
+        open={
+          commentsDialogOpen
+        }
+        onClose={
+          closeCommentsDialog
+        }
+        fullWidth
+        maxWidth="sm"
+      >
+
+        <DialogTitle>
+          Comentario Línea {selectedLine}
+        </DialogTitle>
+
+
+        <DialogContent>
+
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mt:
+                0.5,
+
+              mb:
+                2
+            }}
+          >
+            Este comentario pertenece a toda la Línea {selectedLine} y se sincronizará con Supabase.
+          </Typography>
+
+
+          {
+            commentsError &&
+            (
+
+              <Alert
+                severity="error"
+                sx={{
+                  mb:
+                    2
+                }}
+              >
+                {commentsError}
+              </Alert>
+
+            )
+          }
+
+
+          <TextField
+            autoFocus
+            fullWidth
+            multiline
+            minRows={3}
+            maxRows={6}
+            disabled={
+              savingComments
+            }
+            label={`Comentario Línea ${selectedLine}`}
+            placeholder="Ej.: Palets nuevos 20 bobinas"
+            value={
+              commentsDraft
+            }
+            onChange={
+              event =>
+                setCommentsDraft(
+                  event.target.value
+                )
+            }
+          />
+
+        </DialogContent>
+
+
+        <DialogActions>
+
+          <Button
+            onClick={
+              closeCommentsDialog
+            }
+            disabled={
+              savingComments
+            }
+          >
+            CANCELAR
+          </Button>
+
+
+          <Button
+            variant="contained"
+            color="success"
+            onClick={
+              () =>
+                void saveLineComments()
+            }
+            disabled={
+              savingComments
+            }
+          >
+            {
+              savingComments
+                ? "GUARDANDO..."
+                : "GUARDAR"
+            }
+          </Button>
+
+        </DialogActions>
+
+      </Dialog>
+
 
       <Dialog
         open={
@@ -1589,5 +2295,4 @@ export default function Production() {
     </Box>
 
   );
-
 }

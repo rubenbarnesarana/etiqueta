@@ -37,7 +37,6 @@ import {
 
 
 interface Props {
-
   open: boolean;
 
   onClose: () => void;
@@ -47,7 +46,6 @@ interface Props {
   ) => void;
 
   editing?: ProductionOrder;
-
 }
 
 
@@ -75,8 +73,7 @@ const PRODUCTION_LINES = [
  * ==================================================
  */
 
-function getTodayLot():
-string {
+function getTodayLot(): string {
 
   const today =
     new Date();
@@ -114,7 +111,6 @@ string {
     month +
     day
   );
-
 }
 
 
@@ -125,17 +121,11 @@ string {
  */
 
 export default function ProductionDialog({
-
   open,
-
   onClose,
-
   onSave,
-
   editing
-
 }: Props) {
-
 
   /*
    * ==================================================
@@ -172,100 +162,126 @@ export default function ProductionDialog({
   const [
     order,
     setOrder
-  ] =
-    useState(
-      ""
-    );
+  ] = useState(
+    ""
+  );
 
 
   const [
     lot,
     setLot
-  ] =
-    useState(
-      getTodayLot()
-    );
+  ] = useState(
+    getTodayLot()
+  );
 
 
   const [
     customer,
     setCustomer
-  ] =
-    useState(
-      ""
-    );
+  ] = useState(
+    ""
+  );
+
+
+  /*
+   * ==================================================
+   * CAMPOS DE PLANIFICACIÓN
+   * ==================================================
+   */
+
+  const [
+    salesOrder,
+    setSalesOrder
+  ] = useState(
+    ""
+  );
 
 
   const [
-    comments,
-    setComments
-  ] =
-    useState(
-      ""
-    );
+    quantity,
+    setQuantity
+  ] = useState<number>(
+    0
+  );
 
+
+  const [
+    quantityUnit,
+    setQuantityUnit
+  ] = useState<
+    "M" |
+    "UN"
+  >(
+    "M"
+  );
+
+
+  /*
+   * ==================================================
+   * PRODUCTO
+   * ==================================================
+   */
 
   const [
     sku,
     setSku
-  ] =
-    useState(
-      ""
-    );
+  ] = useState(
+    ""
+  );
 
 
   const [
     productName,
     setProductName
-  ] =
-    useState(
-      ""
-    );
+  ] = useState(
+    ""
+  );
 
 
   const [
     templateId,
     setTemplateId
-  ] =
-    useState<number>(
-      0
-    );
+  ] = useState<number>(
+    0
+  );
 
+
+  /*
+   * ==================================================
+   * PRODUCCIÓN
+   * ==================================================
+   */
 
   const [
     rolls,
     setRolls
-  ] =
-    useState<number>(
-      1
-    );
+  ] = useState<number>(
+    1
+  );
 
 
   const [
     firstCoil,
     setFirstCoil
-  ] =
-    useState<number>(
-      1
-    );
+  ] = useState<number>(
+    1
+  );
 
 
   const [
     printer,
     setPrinter
-  ] =
-    useState(
-      "Toshiba BA420"
-    );
+  ] = useState(
+    "Toshiba BA420"
+  );
 
 
   const [
     productionLine,
     setProductionLine
-  ] =
-    useState<number>(
-      0
-    );
+  ] = useState<number>(
+    0
+  );
 
 
   /*
@@ -305,6 +321,17 @@ export default function ProductionDialog({
 
   /*
    * ==================================================
+   * MARCAJE AUTOMÁTICO
+   * ==================================================
+   */
+
+  const productMarking =
+    selectedProduct?.marking ??
+    "";
+
+
+  /*
+   * ==================================================
    * CARGAR ORDEN
    * ==================================================
    */
@@ -317,12 +344,13 @@ export default function ProductionDialog({
       ) {
 
         return;
-
       }
 
 
       /*
+       * ==================================================
        * EDITAR ORDEN EXISTENTE
+       * ==================================================
        */
 
       if (
@@ -347,9 +375,25 @@ export default function ProductionDialog({
         );
 
 
-        setComments(
-          editing.comments ??
+        setSalesOrder(
+          editing.salesOrder ??
           ""
+        );
+
+
+        setQuantity(
+          Number(
+            editing.quantity ??
+            0
+          )
+        );
+
+
+        setQuantityUnit(
+          editing.quantityUnit ===
+            "UN"
+            ? "UN"
+            : "M"
         );
 
 
@@ -404,67 +448,46 @@ export default function ProductionDialog({
 
 
         return;
-
       }
 
 
       /*
+       * ==================================================
        * NUEVA ORDEN
+       * ==================================================
        */
 
-      setOrder(
-        ""
-      );
-
+      setOrder("");
 
       setLot(
         getTodayLot()
       );
 
+      setCustomer("");
 
-      setCustomer(
-        ""
+      setSalesOrder("");
+
+      setQuantity(0);
+
+      setQuantityUnit(
+        "M"
       );
 
+      setSku("");
 
-      setComments(
-        ""
-      );
+      setProductName("");
 
+      setTemplateId(0);
 
-      setSku(
-        ""
-      );
+      setRolls(1);
 
-
-      setProductName(
-        ""
-      );
-
-
-      setTemplateId(
-        0
-      );
-
-
-      setRolls(
-        1
-      );
-
-
-      setFirstCoil(
-        1
-      );
-
+      setFirstCoil(1);
 
       setPrinter(
         "Toshiba BA420"
       );
 
-
-      setProductionLine(
-        0
-      );
+      setProductionLine(0);
 
     },
     [
@@ -490,23 +513,13 @@ export default function ProductionDialog({
       !product
     ) {
 
-      setSku(
-        ""
-      );
+      setSku("");
 
+      setProductName("");
 
-      setProductName(
-        ""
-      );
-
-
-      setTemplateId(
-        0
-      );
-
+      setTemplateId(0);
 
       return;
-
     }
 
 
@@ -525,7 +538,6 @@ export default function ProductionDialog({
         product.templateId
       )
     );
-
   }
 
 
@@ -545,20 +557,14 @@ export default function ProductionDialog({
       lot.trim();
 
 
-    const cleanCustomer =
-      customer.trim();
-
-
-    const cleanComments =
-      comments.trim();
-
-
     const cleanSku =
       sku.trim();
 
 
     /*
+     * ==================================================
      * VALIDACIONES
+     * ==================================================
      */
 
     if (
@@ -569,9 +575,7 @@ export default function ProductionDialog({
         "Debes indicar la Orden SAP."
       );
 
-
       return;
-
     }
 
 
@@ -583,9 +587,7 @@ export default function ProductionDialog({
         "No se ha podido generar el lote."
       );
 
-
       return;
-
     }
 
 
@@ -597,9 +599,7 @@ export default function ProductionDialog({
         "Debes seleccionar un SKU."
       );
 
-
       return;
-
     }
 
 
@@ -611,9 +611,7 @@ export default function ProductionDialog({
         "El SKU seleccionado no existe en Productos."
       );
 
-
       return;
-
     }
 
 
@@ -625,9 +623,7 @@ export default function ProductionDialog({
         "El producto no tiene una plantilla asignada."
       );
 
-
       return;
-
     }
 
 
@@ -642,9 +638,23 @@ export default function ProductionDialog({
         "Debes seleccionar una línea de producción."
       );
 
+      return;
+    }
+
+
+    if (
+      !Number.isFinite(
+        quantity
+      ) ||
+      quantity <
+        0
+    ) {
+
+      alert(
+        "La cantidad no es válida."
+      );
 
       return;
-
     }
 
 
@@ -657,12 +667,27 @@ export default function ProductionDialog({
     ) {
 
       alert(
-        "El número de rollos debe ser mayor que 0."
+        "El número de rollos / bobinas debe ser mayor que 0."
       );
 
+      return;
+    }
+
+
+    if (
+      editing &&
+      rolls <
+      Number(
+        editing.printed ??
+        0
+      )
+    ) {
+
+      alert(
+        `El total no puede ser menor que las ${editing.printed} etiquetas ya impresas.`
+      );
 
       return;
-
     }
 
 
@@ -680,9 +705,7 @@ export default function ProductionDialog({
         "La primera bobina debe estar entre 1 y 9999."
       );
 
-
       return;
-
     }
 
 
@@ -697,9 +720,7 @@ export default function ProductionDialog({
         "La numeración de bobinas supera el máximo 9999."
       );
 
-
       return;
-
     }
 
 
@@ -710,7 +731,6 @@ export default function ProductionDialog({
      */
 
     onSave({
-
       id:
         editing?.id ??
         Date.now(),
@@ -722,10 +742,40 @@ export default function ProductionDialog({
         cleanLot,
 
       customer:
-        cleanCustomer,
+        customer.trim(),
+
+      /*
+       * Los comentarios dejarán de ser de orden.
+       *
+       * Mientras terminamos la migración a comentarios
+       * por línea, conservamos el valor anterior para
+       * no perder información existente.
+       */
 
       comments:
-        cleanComments,
+        editing?.comments ??
+        "",
+
+      /*
+       * Marcaje obtenido automáticamente del producto.
+       */
+
+      marking:
+        selectedProduct.marking?.trim() ??
+        "",
+
+      salesOrder:
+        salesOrder.trim(),
+
+      quantity:
+        Math.max(
+          0,
+          Number(
+            quantity
+          )
+        ),
+
+      quantityUnit,
 
       sku:
         cleanSku,
@@ -735,7 +785,7 @@ export default function ProductionDialog({
 
       templateId:
         Number(
-          templateId
+          selectedProduct.templateId
         ),
 
       rolls:
@@ -756,8 +806,7 @@ export default function ProductionDialog({
         printer.trim() ||
         "Toshiba BA420",
 
-      productionLine:
-        productionLine,
+      productionLine,
 
       planningPosition:
         editing?.planningPosition ??
@@ -770,9 +819,7 @@ export default function ProductionDialog({
       printed:
         editing?.printed ??
         0
-
     });
-
   }
 
 
@@ -792,7 +839,7 @@ export default function ProductionDialog({
         onClose
       }
       fullWidth
-      maxWidth="md"
+      maxWidth="lg"
     >
 
       <DialogTitle>
@@ -810,30 +857,26 @@ export default function ProductionDialog({
 
         <Grid
           container
-          spacing={
-            2
-          }
+          spacing={2}
           sx={{
             mt:
               0.5
           }}
         >
 
-
-          {/* ORDEN SAP */}
+          {/* ==================================================
+              ORDEN SAP
+              ================================================== */}
 
           <Grid
             size={{
-              xs:
-                12,
-
-              md:
-                6
+              xs: 12,
+              md: 6
             }}
           >
 
             <TextField
-              label="Orden SAP"
+              label="Orden de fabricación"
               value={
                 order
               }
@@ -843,7 +886,7 @@ export default function ProductionDialog({
                     event.target.value
                   )
               }
-              placeholder="Ejemplo: 8900005103"
+              placeholder="Ej.: 89000050937"
               fullWidth
               autoFocus
             />
@@ -851,15 +894,43 @@ export default function ProductionDialog({
           </Grid>
 
 
-          {/* LOTE */}
+          {/* ==================================================
+              PEDIDO DE VENTA
+              ================================================== */}
 
           <Grid
             size={{
-              xs:
-                12,
+              xs: 12,
+              md: 6
+            }}
+          >
 
-              md:
-                6
+            <TextField
+              label="Pedido de venta"
+              value={
+                salesOrder
+              }
+              onChange={
+                event =>
+                  setSalesOrder(
+                    event.target.value
+                  )
+              }
+              placeholder="Ej.: 405053377"
+              fullWidth
+            />
+
+          </Grid>
+
+
+          {/* ==================================================
+              LOTE
+              ================================================== */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
             }}
           >
 
@@ -869,7 +940,7 @@ export default function ProductionDialog({
                 lot
               }
               fullWidth
-              helperText="Generado automáticamente con la fecha de hoy."
+              helperText="Generado automáticamente con la fecha actual."
               slotProps={{
                 input: {
                   readOnly:
@@ -881,15 +952,14 @@ export default function ProductionDialog({
           </Grid>
 
 
-          {/* CLIENTE */}
+          {/* ==================================================
+              CLIENTE
+              ================================================== */}
 
           <Grid
             size={{
-              xs:
-                12,
-
-              md:
-                6
+              xs: 12,
+              md: 6
             }}
           >
 
@@ -911,15 +981,14 @@ export default function ProductionDialog({
           </Grid>
 
 
-          {/* LÍNEA */}
+          {/* ==================================================
+              LÍNEA
+              ================================================== */}
 
           <Grid
             size={{
-              xs:
-                12,
-
-              md:
-                6
+              xs: 12,
+              md: 6
             }}
           >
 
@@ -943,9 +1012,7 @@ export default function ProductionDialog({
             >
 
               <MenuItem
-                value={
-                  0
-                }
+                value={0}
               >
                 Seleccionar línea
               </MenuItem>
@@ -975,15 +1042,14 @@ export default function ProductionDialog({
           </Grid>
 
 
-          {/* SKU */}
+          {/* ==================================================
+              SKU
+              ================================================== */}
 
           <Grid
             size={{
-              xs:
-                12,
-
-              md:
-                6
+              xs: 12,
+              md: 6
             }}
           >
 
@@ -1033,7 +1099,6 @@ export default function ProductionDialog({
                   ) {
 
                     return [];
-
                   }
 
 
@@ -1048,9 +1113,13 @@ export default function ProductionDialog({
                         .toLowerCase()
                         .includes(
                           search
+                        ) ||
+                      product.marking
+                        .toLowerCase()
+                        .includes(
+                          search
                         )
                   );
-
                 }
               }
               noOptionsText="No se ha encontrado ningún SKU"
@@ -1071,9 +1140,7 @@ export default function ProductionDialog({
                     <Box>
 
                       <Typography
-                        fontWeight={
-                          700
-                        }
+                        fontWeight={700}
                       >
                         {product.sapCode}
                       </Typography>
@@ -1085,6 +1152,27 @@ export default function ProductionDialog({
                       >
                         {product.description}
                       </Typography>
+
+
+                      {
+                        product.marking &&
+                        (
+
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color:
+                                "#0B7A3B",
+
+                              fontWeight:
+                                700
+                            }}
+                          >
+                            Marcaje: {product.marking}
+                          </Typography>
+
+                        )
+                      }
 
                     </Box>
 
@@ -1098,8 +1186,8 @@ export default function ProductionDialog({
                   <TextField
                     {...params}
                     label="SKU"
-                    placeholder="Escribe el SKU..."
-                    helperText="Escribe parte del SKU para buscar el producto."
+                    placeholder="Escribe SKU, descripción o marcaje..."
+                    helperText="Producto, marcaje y plantilla se obtienen automáticamente."
                     fullWidth
                   />
 
@@ -1110,15 +1198,14 @@ export default function ProductionDialog({
           </Grid>
 
 
-          {/* PRODUCTO */}
+          {/* ==================================================
+              PRODUCTO
+              ================================================== */}
 
           <Grid
             size={{
-              xs:
-                12,
-
-              md:
-                6
+              xs: 12,
+              md: 6
             }}
           >
 
@@ -1139,23 +1226,21 @@ export default function ProductionDialog({
           </Grid>
 
 
-          {/* PLANTILLA */}
+          {/* ==================================================
+              MARCAJE AUTOMÁTICO
+              ================================================== */}
 
           <Grid
             size={{
-              xs:
-                12,
-
-              md:
-                6
+              xs: 12,
+              md: 6
             }}
           >
 
             <TextField
-              label="Plantilla"
+              label="Marcaje"
               value={
-                selectedTemplate?.name ??
-                ""
+                productMarking
               }
               fullWidth
               slotProps={{
@@ -1164,26 +1249,109 @@ export default function ProductionDialog({
                     true
                 }
               }}
-              helperText="Se obtiene automáticamente del producto."
+              helperText="Se obtiene automáticamente del SKU seleccionado."
             />
 
           </Grid>
 
 
-          {/* ROLLOS */}
+          {/* ==================================================
+              CANTIDAD
+              ================================================== */}
 
           <Grid
             size={{
-              xs:
-                12,
-
-              md:
-                6
+              xs: 12,
+              md: 4
             }}
           >
 
             <TextField
-              label="Número de rollos / bobinas"
+              label="Cantidad"
+              type="number"
+              value={
+                quantity
+              }
+              onChange={
+                event =>
+                  setQuantity(
+                    Number(
+                      event.target.value
+                    )
+                  )
+              }
+              slotProps={{
+                htmlInput: {
+                  min:
+                    0
+                }
+              }}
+              helperText="Metros o unidades del pedido."
+              fullWidth
+            />
+
+          </Grid>
+
+
+          {/* ==================================================
+              UNIDAD
+              ================================================== */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 2
+            }}
+          >
+
+            <TextField
+              select
+              label="Unidad"
+              value={
+                quantityUnit
+              }
+              onChange={
+                event =>
+                  setQuantityUnit(
+                    event.target.value ===
+                      "UN"
+                      ? "UN"
+                      : "M"
+                  )
+              }
+              fullWidth
+            >
+
+              <MenuItem
+                value="M"
+              >
+                Metros
+              </MenuItem>
+
+              <MenuItem
+                value="UN"
+              >
+                Unidades
+              </MenuItem>
+
+            </TextField>
+
+          </Grid>
+
+
+          {/* ==================================================
+              TOTAL ROLLOS / BOBINAS
+              ================================================== */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 3
+            }}
+          >
+
+            <TextField
+              label="Nº rollos / bobinas"
               type="number"
               value={
                 rolls
@@ -1200,7 +1368,6 @@ export default function ProductionDialog({
                 htmlInput: {
                   min:
                     1,
-
                   max:
                     9999
                 }
@@ -1211,15 +1378,14 @@ export default function ProductionDialog({
           </Grid>
 
 
-          {/* PRIMERA BOBINA */}
+          {/* ==================================================
+              PRIMER COIL
+              ================================================== */}
 
           <Grid
             size={{
-              xs:
-                12,
-
-              md:
-                6
+              xs: 12,
+              md: 3
             }}
           >
 
@@ -1241,27 +1407,55 @@ export default function ProductionDialog({
                 htmlInput: {
                   min:
                     1,
-
                   max:
                     9999
                 }
               }}
-              helperText="La numeración continuará automáticamente."
+              helperText="Coil Number inicial."
               fullWidth
             />
 
           </Grid>
 
 
-          {/* IMPRESORA */}
+          {/* ==================================================
+              PLANTILLA
+              ================================================== */}
 
           <Grid
             size={{
-              xs:
-                12,
+              xs: 12,
+              md: 6
+            }}
+          >
 
-              md:
-                6
+            <TextField
+              label="Plantilla"
+              value={
+                selectedTemplate?.name ??
+                ""
+              }
+              fullWidth
+              slotProps={{
+                input: {
+                  readOnly:
+                    true
+                }
+              }}
+              helperText="Se obtiene automáticamente del SKU seleccionado."
+            />
+
+          </Grid>
+
+
+          {/* ==================================================
+              IMPRESORA
+              ================================================== */}
+
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
             }}
           >
 
@@ -1282,42 +1476,9 @@ export default function ProductionDialog({
           </Grid>
 
 
-          {/* COMENTARIOS */}
-
-          <Grid
-            size={{
-              xs:
-                12
-            }}
-          >
-
-            <TextField
-              label="Comentarios de planificación"
-              value={
-                comments
-              }
-              onChange={
-                event =>
-                  setComments(
-                    event.target.value
-                  )
-              }
-              placeholder="Ej.: Palets nuevos 20 bobinas"
-              multiline
-              minRows={
-                2
-              }
-              maxRows={
-                4
-              }
-              helperText="Este comentario aparecerá en la pantalla de Planificación."
-              fullWidth
-            />
-
-          </Grid>
-
-
-          {/* POSICIÓN ACTUAL */}
+          {/* ==================================================
+              POSICIÓN ACTUAL
+              ================================================== */}
 
           {
             editing &&
@@ -1327,11 +1488,8 @@ export default function ProductionDialog({
 
               <Grid
                 size={{
-                  xs:
-                    12,
-
-                  md:
-                    6
+                  xs: 12,
+                  md: 6
                 }}
               >
 
@@ -1359,7 +1517,9 @@ export default function ProductionDialog({
           }
 
 
-          {/* INFORMACIÓN DEL PRODUCTO */}
+          {/* ==================================================
+              INFORMACIÓN PRODUCTO
+              ================================================== */}
 
           {
             selectedProduct &&
@@ -1367,8 +1527,7 @@ export default function ProductionDialog({
 
               <Grid
                 size={{
-                  xs:
-                    12
+                  xs: 12
                 }}
               >
 
@@ -1383,31 +1542,39 @@ export default function ProductionDialog({
                   <Box>
 
                     <Typography
-                      fontWeight={
-                        700
-                      }
+                      fontWeight={700}
                     >
-
                       {selectedProduct.sapCode}
 
                       {" — "}
 
                       {selectedProduct.description}
-
                     </Typography>
 
 
                     <Typography
                       variant="body2"
                     >
+                      Marcaje:{" "}
 
+                      <strong>
+                        {
+                          productMarking ||
+                          "Sin marcaje"
+                        }
+                      </strong>
+                    </Typography>
+
+
+                    <Typography
+                      variant="body2"
+                    >
                       Plantilla:{" "}
 
                       {
                         selectedTemplate?.name ??
                         "Sin plantilla"
                       }
-
                     </Typography>
 
 
@@ -1426,10 +1593,8 @@ export default function ProductionDialog({
                               700
                           }}
                         >
-
                           Línea de producción:{" "}
                           {productionLine}
-
                         </Typography>
 
                       )
@@ -1467,13 +1632,11 @@ export default function ProductionDialog({
             save
           }
         >
-
           {
             editing
               ? "GUARDAR CAMBIOS"
               : "CREAR ORDEN"
           }
-
         </Button>
 
       </DialogActions>
@@ -1481,5 +1644,4 @@ export default function ProductionDialog({
     </Dialog>
 
   );
-
 }

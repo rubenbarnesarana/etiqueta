@@ -25,7 +25,6 @@ import {
 
 
 interface Props {
-
   open: boolean;
 
   onClose: () => void;
@@ -35,22 +34,15 @@ interface Props {
   ) => void;
 
   product?: Product;
-
 }
 
 
 export default function ProductDialog({
-
   open,
-
   onClose,
-
   onSave,
-
   product
-
 }: Props) {
-
 
   const templates =
     getTemplates();
@@ -69,13 +61,22 @@ export default function ProductDialog({
 
 
   /*
-   * Texto que aparecerá en la mitad
-   * superior de la etiqueta a 180°.
+   * Texto superior de la etiqueta
    */
 
   const [
     upperText,
     setUpperText
+  ] = useState("");
+
+
+  /*
+   * Marcaje de fabricación
+   */
+
+  const [
+    marking,
+    setMarking
   ] = useState("");
 
 
@@ -112,7 +113,9 @@ export default function ProductDialog({
   const [
     templateId,
     setTemplateId
-  ] = useState<number>(0);
+  ] = useState<number>(
+    0
+  );
 
 
   /*
@@ -121,109 +124,116 @@ export default function ProductDialog({
    * ==================================================
    */
 
-  useEffect(() => {
+  useEffect(
+    () => {
 
-    if (
-      !open
-    ) {
-
-      return;
-
-    }
-
-
-    if (
-      product
-    ) {
-
-      setSapCode(
-        product.sapCode ??
-        ""
-      );
+      if (
+        !open
+      ) {
+        return;
+      }
 
 
-      setDescription(
-        product.description ??
-        ""
-      );
+      if (
+        product
+      ) {
+
+        setSapCode(
+          product.sapCode ??
+          ""
+        );
 
 
-      setUpperText(
-        product.upperText ??
-        ""
-      );
+        setDescription(
+          product.description ??
+          ""
+        );
 
 
-      setDiameter(
-        product.diameter ??
-        ""
-      );
+        setUpperText(
+          product.upperText ??
+          ""
+        );
 
 
-      setThickness(
-        product.thickness ??
-        ""
-      );
+        setMarking(
+          product.marking ??
+          ""
+        );
 
 
-      setFlow(
-        product.flow ??
-        ""
-      );
+        setDiameter(
+          product.diameter ??
+          ""
+        );
 
 
-      setSpacing(
-        product.spacing ??
-        ""
-      );
+        setThickness(
+          product.thickness ??
+          ""
+        );
 
 
-      setDripper(
-        product.dripper ??
-        ""
-      );
+        setFlow(
+          product.flow ??
+          ""
+        );
 
 
-      setTemplateId(
-        Number(
-          product.templateId ??
-          0
-        )
-      );
+        setSpacing(
+          product.spacing ??
+          ""
+        );
 
 
-      return;
-
-    }
-
-
-    /*
-     * NUEVO PRODUCTO
-     */
-
-    setSapCode("");
-
-    setDescription("");
-
-    setUpperText("");
-
-    setDiameter("");
-
-    setThickness("");
-
-    setFlow("");
-
-    setSpacing("");
-
-    setDripper("");
-
-    setTemplateId(0);
+        setDripper(
+          product.dripper ??
+          ""
+        );
 
 
-  }, [
-    product,
-    open
-  ]);
+        setTemplateId(
+          Number(
+            product.templateId ??
+            0
+          )
+        );
+
+
+        return;
+      }
+
+
+      /*
+       * NUEVO PRODUCTO
+       */
+
+      setSapCode("");
+
+      setDescription("");
+
+      setUpperText("");
+
+      setMarking("");
+
+      setDiameter("");
+
+      setThickness("");
+
+      setFlow("");
+
+      setSpacing("");
+
+      setDripper("");
+
+      setTemplateId(0);
+
+    },
+    [
+      product,
+      open
+    ]
+  );
 
 
   /*
@@ -242,6 +252,10 @@ export default function ProductDialog({
       description.trim();
 
 
+    const cleanMarking =
+      marking.trim();
+
+
     if (
       !cleanSapCode
     ) {
@@ -251,7 +265,6 @@ export default function ProductDialog({
       );
 
       return;
-
     }
 
 
@@ -264,17 +277,10 @@ export default function ProductDialog({
       );
 
       return;
-
     }
 
 
     onSave({
-
-      /*
-       * Si estamos editando mantenemos
-       * exactamente el mismo ID.
-       */
-
       id:
         product?.id ??
         Date.now(),
@@ -282,19 +288,14 @@ export default function ProductDialog({
       sapCode:
         cleanSapCode,
 
-      /*
-       * DESCRIPCIÓN INFERIOR
-       */
-
       description:
         cleanDescription,
 
-      /*
-       * TEXTO SUPERIOR 180°
-       */
-
       upperText:
         upperText.trim(),
+
+      marking:
+        cleanMarking,
 
       diameter,
 
@@ -307,24 +308,8 @@ export default function ProductDialog({
       dripper,
 
       templateId
-
     });
-
   }
-
-
-  /*
-   * ==================================================
-   * COMPROBACIÓN TEMPORAL
-   * ==================================================
-   *
-   * Nos sirve para confirmar que Vite está cargando
-   * exactamente este ProductDialog.tsx.
-   */
-
-  console.log(
-    "PRODUCT DIALOG ACTUALIZADO - CAUDALES 1.5 Y 2.1"
-  );
 
 
   /*
@@ -363,13 +348,12 @@ export default function ProductDialog({
           container
           spacing={2}
           sx={{
-            mt: 1
+            mt:
+              1
           }}
         >
 
-          {/* ============================================
-              CÓDIGO SAP
-             ============================================ */}
+          {/* CÓDIGO SAP */}
 
           <Grid
             size={{
@@ -395,14 +379,39 @@ export default function ProductDialog({
           </Grid>
 
 
-          {/* ============================================
-              DESCRIPCIÓN INFERIOR
-             ============================================ */}
+          {/* MARCAJE */}
 
           <Grid
             size={{
               xs: 12,
               md: 6
+            }}
+          >
+
+            <TextField
+              fullWidth
+              label="Marcaje"
+              value={
+                marking
+              }
+              onChange={
+                event =>
+                  setMarking(
+                    event.target.value
+                  )
+              }
+              placeholder="Ej.: GEN2"
+              helperText="Se asignará automáticamente a la orden cuando selecciones este SKU."
+            />
+
+          </Grid>
+
+
+          {/* DESCRIPCIÓN */}
+
+          <Grid
+            size={{
+              xs: 12
             }}
           >
 
@@ -418,15 +427,13 @@ export default function ProductDialog({
                     event.target.value
                   )
               }
-              helperText="Descripción que aparecerá en la parte inferior de la etiqueta."
+              helperText="Descripción del producto."
             />
 
           </Grid>
 
 
-          {/* ============================================
-              TEXTO SUPERIOR 180°
-             ============================================ */}
+          {/* TEXTO SUPERIOR */}
 
           <Grid
             size={{
@@ -438,12 +445,11 @@ export default function ProductDialog({
               variant="subtitle2"
               fontWeight="bold"
               sx={{
-                mb: 1
+                mb:
+                  1
               }}
             >
-
               Texto superior de la etiqueta
-
             </Typography>
 
 
@@ -462,22 +468,22 @@ export default function ProductDialog({
                     event.target.value
                   )
               }
-              placeholder={
-`AMNON PC AS 20/3.8
+              placeholder={`AMNON PC AS 20/3.8
+
 50 CM R-300M 1,2MM
+
 Emitting Pipe
+
 Max Pressure 3,5 BAR
-ISO 9261`
-              }
-              helperText="Este texto aparecerá en la mitad superior de la etiqueta con orientación 180°. Respeta los saltos de línea."
+
+ISO 9261`}
+              helperText="Este texto aparecerá en la mitad superior de la etiqueta con orientación 180°."
             />
 
           </Grid>
 
 
-          {/* ============================================
-              DIÁMETRO
-             ============================================ */}
+          {/* DIÁMETRO */}
 
           <Grid
             size={{
@@ -501,44 +507,27 @@ ISO 9261`
               }
             >
 
-              <MenuItem
-                value="16"
-              >
+              <MenuItem value="16">
                 16 mm
               </MenuItem>
 
-
-              <MenuItem
-                value="17"
-              >
+              <MenuItem value="17">
                 17 mm
               </MenuItem>
 
-
-              <MenuItem
-                value="20"
-              >
+              <MenuItem value="20">
                 20 mm
               </MenuItem>
 
-
-              <MenuItem
-                value="22"
-              >
+              <MenuItem value="22">
                 22 mm
               </MenuItem>
 
-
-              <MenuItem
-                value="23"
-              >
+              <MenuItem value="23">
                 23 mm
               </MenuItem>
 
-
-              <MenuItem
-                value="25"
-              >
+              <MenuItem value="25">
                 25 mm
               </MenuItem>
 
@@ -547,9 +536,7 @@ ISO 9261`
           </Grid>
 
 
-          {/* ============================================
-              ESPESOR
-             ============================================ */}
+          {/* ESPESOR */}
 
           <Grid
             size={{
@@ -573,49 +560,47 @@ ISO 9261`
               }
             >
 
-              {[
-                "6",
-                "8",
-                "10",
-                "12",
-                "13",
-                "15",
-                "18",
-                "20",
-                "25",
-                "30",
-                "35",
-                "40",
-                "43",
-                "45",
-                "47"
-              ].map(
-                mil => (
+              {
+                [
+                  "6",
+                  "8",
+                  "10",
+                  "12",
+                  "13",
+                  "15",
+                  "18",
+                  "20",
+                  "25",
+                  "30",
+                  "35",
+                  "40",
+                  "43",
+                  "45",
+                  "47"
+                ].map(
+                  mil => (
 
-                  <MenuItem
-                    key={
-                      mil
-                    }
-                    value={
-                      mil
-                    }
-                  >
+                    <MenuItem
+                      key={
+                        mil
+                      }
+                      value={
+                        mil
+                      }
+                    >
+                      {mil} mil
+                    </MenuItem>
 
-                    {mil} mil
-
-                  </MenuItem>
-
+                  )
                 )
-              )}
+              }
 
             </TextField>
 
           </Grid>
 
 
-          {/* ============================================
-              CAUDAL
-             ============================================ */}
+          {/* CAUDAL */}
 
           <Grid
             size={{
@@ -639,48 +624,46 @@ ISO 9261`
               }
             >
 
-              {[
-                "0.6",
-                "0.8",
-                "0.95",
-                "1.0",
-                "1.1",
-                "1.4",
-                "1.5",
-                "1.6",
-                "2.0",
-                "2.1",
-                "2.2",
-                "3.5",
-                "3.8",
-                "4.0"
-              ].map(
-                flowValue => (
+              {
+                [
+                  "0.6",
+                  "0.8",
+                  "0.95",
+                  "1.0",
+                  "1.1",
+                  "1.4",
+                  "1.5",
+                  "1.6",
+                  "2.0",
+                  "2.1",
+                  "2.2",
+                  "3.5",
+                  "3.8",
+                  "4.0"
+                ].map(
+                  flowValue => (
 
-                  <MenuItem
-                    key={
-                      flowValue
-                    }
-                    value={
-                      flowValue
-                    }
-                  >
+                    <MenuItem
+                      key={
+                        flowValue
+                      }
+                      value={
+                        flowValue
+                      }
+                    >
+                      {flowValue} l/h
+                    </MenuItem>
 
-                    {flowValue} l/h
-
-                  </MenuItem>
-
+                  )
                 )
-              )}
+              }
 
             </TextField>
 
           </Grid>
 
 
-          {/* ============================================
-              ESPACIADO
-             ============================================ */}
+          {/* ESPACIADO */}
 
           <Grid
             size={{
@@ -706,9 +689,7 @@ ISO 9261`
           </Grid>
 
 
-          {/* ============================================
-              TIPO DE GOTERO
-             ============================================ */}
+          {/* TIPO DE GOTERO */}
 
           <Grid
             size={{
@@ -734,9 +715,7 @@ ISO 9261`
           </Grid>
 
 
-          {/* ============================================
-              PLANTILLA
-             ============================================ */}
+          {/* PLANTILLA */}
 
           <Grid
             size={{
@@ -765,30 +744,28 @@ ISO 9261`
               <MenuItem
                 value={0}
               >
-
                 Sin plantilla
-
               </MenuItem>
 
 
-              {templates.map(
-                template => (
+              {
+                templates.map(
+                  template => (
 
-                  <MenuItem
-                    key={
-                      template.id
-                    }
-                    value={
-                      template.id
-                    }
-                  >
+                    <MenuItem
+                      key={
+                        template.id
+                      }
+                      value={
+                        template.id
+                      }
+                    >
+                      {template.name}
+                    </MenuItem>
 
-                    {template.name}
-
-                  </MenuItem>
-
+                  )
                 )
-              )}
+              }
 
             </TextField>
 
@@ -806,9 +783,7 @@ ISO 9261`
             onClose
           }
         >
-
           Cancelar
-
         </Button>
 
 
@@ -819,9 +794,7 @@ ISO 9261`
             save
           }
         >
-
           Guardar
-
         </Button>
 
       </DialogActions>
@@ -829,5 +802,4 @@ ISO 9261`
     </Dialog>
 
   );
-
 }

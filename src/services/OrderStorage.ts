@@ -28,6 +28,48 @@ export interface ProductionOrder {
   comments: string;
 
   /*
+   * Marcaje de fabricación
+   *
+   * Ejemplos:
+   * EXCEL_22_8
+   * AMNON_16_1
+   * MICRO25
+   */
+  marking: string;
+
+  /*
+   * Pedido de venta
+   *
+   * Ejemplo:
+   * 405053377
+   */
+  salesOrder: string;
+
+  /*
+   * Cantidad de producto
+   *
+   * No confundir con rolls.
+   *
+   * quantity:
+   * metros o unidades de producto.
+   *
+   * rolls:
+   * número de bobinas / rollos / cajas
+   * que deben etiquetarse.
+   */
+  quantity: number;
+
+  /*
+   * Unidad de la cantidad
+   *
+   * M  = metros
+   * UN = unidades
+   */
+  quantityUnit:
+    | "M"
+    | "UN";
+
+  /*
    * Producto
    */
   sku: string;
@@ -95,13 +137,12 @@ const STORAGE_KEY =
 
 let supabaseQueue:
   Promise<void> =
-    Promise.resolve();
+  Promise.resolve();
 
 
 function queueSupabaseOperation(
   operation: () => Promise<void>
 ) {
-
   supabaseQueue =
     supabaseQueue
       .then(
@@ -109,15 +150,12 @@ function queueSupabaseOperation(
       )
       .catch(
         error => {
-
           console.error(
             "Error sincronizando órdenes con Supabase:",
             error
           );
-
         }
       );
-
 }
 
 
@@ -128,10 +166,9 @@ function queueSupabaseOperation(
  */
 
 export async function waitForOrderSupabaseSync():
-Promise<void> {
+  Promise<void> {
 
   await supabaseQueue;
-
 }
 
 
@@ -182,6 +219,28 @@ function normalizeOrder(
     );
 
 
+  const quantity =
+    Math.max(
+      0,
+      Number(
+        order.quantity ??
+        0
+      )
+    );
+
+
+  const quantityUnit:
+    "M" |
+    "UN" =
+    String(
+      order.quantityUnit ??
+      "M"
+    ).toUpperCase() ===
+    "UN"
+      ? "UN"
+      : "M";
+
+
   const status:
     "ABIERTA" |
     "FINALIZADA" =
@@ -196,7 +255,6 @@ function normalizeOrder(
 
 
   return {
-
     id:
       Number(
         order.id
@@ -225,6 +283,22 @@ function normalizeOrder(
         order.comments ??
         ""
       ),
+
+    marking:
+      String(
+        order.marking ??
+        ""
+      ),
+
+    salesOrder:
+      String(
+        order.salesOrder ??
+        ""
+      ),
+
+    quantity,
+
+    quantityUnit,
 
     sku:
       String(
@@ -275,9 +349,7 @@ function normalizeOrder(
     status,
 
     printed
-
   };
-
 }
 
 
@@ -298,7 +370,6 @@ function isActiveOrder(
       order.printed >
       0
   );
-
 }
 
 
@@ -317,9 +388,7 @@ function normalizeLinePositions(
     productionLine < 1 ||
     productionLine > 8
   ) {
-
     return sourceOrders;
-
   }
 
 
@@ -347,7 +416,6 @@ function normalizeLinePositions(
           a,
           b
         ) => {
-
           const positionA =
             a.order.planningPosition >
             0
@@ -366,12 +434,10 @@ function normalizeLinePositions(
             positionA !==
             positionB
           ) {
-
             return (
               positionA -
               positionB
             );
-
           }
 
 
@@ -379,7 +445,6 @@ function normalizeLinePositions(
             a.storageIndex -
             b.storageIndex
           );
-
         }
       )
       .map(
@@ -400,28 +465,23 @@ function normalizeLinePositions(
       order,
       index
     ) => {
-
       positions.set(
         Number(
           order.id
         ),
         index + 1
       );
-
     }
   );
 
 
   return sourceOrders.map(
     order => {
-
       if (
         order.productionLine !==
         productionLine
       ) {
-
         return order;
-
       }
 
 
@@ -430,21 +490,16 @@ function normalizeLinePositions(
           order
         )
       ) {
-
         return {
-
           ...order,
 
           planningPosition:
             0
-
         };
-
       }
 
 
       return {
-
         ...order,
 
         planningPosition:
@@ -454,12 +509,9 @@ function normalizeLinePositions(
             )
           ) ??
           0
-
       };
-
     }
   );
-
 }
 
 
@@ -470,7 +522,7 @@ function normalizeLinePositions(
  */
 
 export function getOrders():
-ProductionOrder[] {
+  ProductionOrder[] {
 
   const data =
     localStorage.getItem(
@@ -481,14 +533,11 @@ ProductionOrder[] {
   if (
     !data
   ) {
-
     return [];
-
   }
 
 
   try {
-
     const orders =
       JSON.parse(
         data
@@ -500,23 +549,17 @@ ProductionOrder[] {
         orders
       )
     ) {
-
       return [];
-
     }
 
 
     return orders.map(
       normalizeOrder
     );
-
   }
   catch {
-
     return [];
-
   }
-
 }
 
 
@@ -548,13 +591,11 @@ export function saveOrders(
     typeof window !==
     "undefined"
   ) {
-
     window.dispatchEvent(
       new Event(
         "productionOrdersUpdated"
       )
     );
-
   }
 
 
@@ -572,7 +613,6 @@ export function saveOrders(
         snapshot
       )
   );
-
 }
 
 
@@ -601,10 +641,8 @@ export function addOrder(
       normalized
     )
   ) {
-
     normalized.planningPosition =
       0;
-
   }
   else if (
     normalized.productionLine >= 1 &&
@@ -644,9 +682,7 @@ export function addOrder(
       normalized.planningPosition =
         maxPosition +
         1;
-
     }
-
   }
 
 
@@ -658,20 +694,17 @@ export function addOrder(
   if (
     normalized.productionLine >= 1
   ) {
-
     orders =
       normalizeLinePositions(
         orders,
         normalized.productionLine
       );
-
   }
 
 
   saveOrders(
     orders
   );
-
 }
 
 
@@ -690,7 +723,6 @@ export function findOrder(
       order.order ===
       orderNumber
   );
-
 }
 
 
@@ -728,25 +760,21 @@ export function updateOrder(
 
   if (
     normalized.rolls >
-      0 &&
+    0 &&
     normalized.printed <
       normalized.rolls
   ) {
-
     normalized.status =
       "ABIERTA";
-
   }
   else if (
     normalized.rolls >
-      0 &&
+    0 &&
     normalized.printed >=
       normalized.rolls
   ) {
-
     normalized.status =
       "FINALIZADA";
-
   }
 
 
@@ -771,20 +799,16 @@ export function updateOrder(
   if (
     reopened
   ) {
-
     normalized.planningPosition =
       0;
-
   }
 
 
   if (
     changedLine
   ) {
-
     normalized.planningPosition =
       0;
-
   }
 
 
@@ -833,7 +857,6 @@ export function updateOrder(
     normalized.planningPosition =
       maxPosition +
       1;
-
   }
 
 
@@ -841,10 +864,8 @@ export function updateOrder(
     normalized.productionLine ===
     0
   ) {
-
     normalized.planningPosition =
       0;
-
   }
 
 
@@ -852,10 +873,8 @@ export function updateOrder(
     normalized.status ===
     "FINALIZADA"
   ) {
-
     normalized.planningPosition =
       0;
-
   }
 
 
@@ -865,9 +884,9 @@ export function updateOrder(
         Number(
           item.id
         ) ===
-          Number(
-            normalized.id
-          )
+        Number(
+          normalized.id
+        )
           ? normalized
           : item
     );
@@ -881,13 +900,11 @@ export function updateOrder(
     previousOrder.productionLine <=
       8
   ) {
-
     updatedOrders =
       normalizeLinePositions(
         updatedOrders,
         previousOrder.productionLine
       );
-
   }
 
 
@@ -897,20 +914,17 @@ export function updateOrder(
     normalized.productionLine <=
       8
   ) {
-
     updatedOrders =
       normalizeLinePositions(
         updatedOrders,
         normalized.productionLine
       );
-
   }
 
 
   saveOrders(
     updatedOrders
   );
-
 }
 
 
@@ -959,13 +973,11 @@ export function deleteOrder(
     orderToDelete.productionLine <=
       8
   ) {
-
     filtered =
       normalizeLinePositions(
         filtered,
         orderToDelete.productionLine
       );
-
   }
 
 
@@ -980,7 +992,6 @@ export function deleteOrder(
         id
       )
   );
-
 }
 
 
@@ -993,7 +1004,7 @@ export function deleteOrder(
 export function getOrdersByLine(
   productionLine: number
 ):
-ProductionOrder[] {
+  ProductionOrder[] {
 
   return getOrders()
     .filter(
@@ -1006,11 +1017,11 @@ ProductionOrder[] {
         a,
         b
       ) => {
-
         const activeA =
           isActiveOrder(
             a
           );
+
 
         const activeB =
           isActiveOrder(
@@ -1022,9 +1033,7 @@ ProductionOrder[] {
           activeA &&
           !activeB
         ) {
-
           return -1;
-
         }
 
 
@@ -1032,9 +1041,7 @@ ProductionOrder[] {
           !activeA &&
           activeB
         ) {
-
           return 1;
-
         }
 
 
@@ -1056,20 +1063,16 @@ ProductionOrder[] {
           positionA !==
           positionB
         ) {
-
           return (
             positionA -
             positionB
           );
-
         }
 
 
         return 0;
-
       }
     );
-
 }
 
 
@@ -1080,7 +1083,7 @@ ProductionOrder[] {
  */
 
 export function getUnassignedOrders():
-ProductionOrder[] {
+  ProductionOrder[] {
 
   return getOrders()
     .filter(
@@ -1088,7 +1091,6 @@ ProductionOrder[] {
         order.productionLine ===
         0
     );
-
 }
 
 
@@ -1107,7 +1109,6 @@ export function getPendingQuantity(
     order.rolls -
       order.printed
   );
-
 }
 
 
@@ -1125,9 +1126,7 @@ export function normalizePlanningPositions(
     productionLine < 1 ||
     productionLine > 8
   ) {
-
     return;
-
   }
 
 
@@ -1145,7 +1144,6 @@ export function normalizePlanningPositions(
   saveOrders(
     updated
   );
-
 }
 
 
@@ -1164,9 +1162,7 @@ export function reorderProductionLine(
     productionLine < 1 ||
     productionLine > 8
   ) {
-
     return;
-
   }
 
 
@@ -1186,14 +1182,12 @@ export function reorderProductionLine(
       id,
       index
     ) => {
-
       positions.set(
         Number(
           id
         ),
         index + 1
       );
-
     }
   );
 
@@ -1201,14 +1195,11 @@ export function reorderProductionLine(
   let updated =
     orders.map(
       order => {
-
         if (
           order.productionLine !==
           productionLine
         ) {
-
           return order;
-
         }
 
 
@@ -1217,16 +1208,12 @@ export function reorderProductionLine(
             order
           )
         ) {
-
           return {
-
             ...order,
 
             planningPosition:
               0
-
           };
-
         }
 
 
@@ -1242,21 +1229,16 @@ export function reorderProductionLine(
           newPosition ===
           undefined
         ) {
-
           return order;
-
         }
 
 
         return {
-
           ...order,
 
           planningPosition:
             newPosition
-
         };
-
       }
     );
 
@@ -1271,7 +1253,6 @@ export function reorderProductionLine(
   saveOrders(
     updated
   );
-
 }
 
 
@@ -1314,9 +1295,7 @@ export function moveOrderInPlanning(
       target
     )
   ) {
-
     return;
-
   }
 
 
@@ -1344,7 +1323,6 @@ export function moveOrderInPlanning(
           a,
           b
         ) => {
-
           const positionA =
             a.order.planningPosition >
             0
@@ -1363,12 +1341,10 @@ export function moveOrderInPlanning(
             positionA !==
             positionB
           ) {
-
             return (
               positionA -
               positionB
             );
-
           }
 
 
@@ -1376,7 +1352,6 @@ export function moveOrderInPlanning(
             a.storageIndex -
             b.storageIndex
           );
-
         }
       )
       .map(
@@ -1401,9 +1376,7 @@ export function moveOrderInPlanning(
     currentIndex ===
     -1
   ) {
-
     return;
-
   }
 
 
@@ -1422,9 +1395,7 @@ export function moveOrderInPlanning(
     newIndex >=
       lineOrders.length
   ) {
-
     return;
-
   }
 
 
@@ -1461,14 +1432,12 @@ export function moveOrderInPlanning(
       order,
       index
     ) => {
-
       positions.set(
         Number(
           order.id
         ),
         index + 1
       );
-
     }
   );
 
@@ -1476,14 +1445,11 @@ export function moveOrderInPlanning(
   let updated =
     orders.map(
       order => {
-
         if (
           order.productionLine !==
           target.productionLine
         ) {
-
           return order;
-
         }
 
 
@@ -1492,16 +1458,12 @@ export function moveOrderInPlanning(
             order
           )
         ) {
-
           return {
-
             ...order,
 
             planningPosition:
               0
-
           };
-
         }
 
 
@@ -1517,21 +1479,16 @@ export function moveOrderInPlanning(
           newPosition ===
           undefined
         ) {
-
           return order;
-
         }
 
 
         return {
-
           ...order,
 
           planningPosition:
             newPosition
-
         };
-
       }
     );
 
@@ -1546,5 +1503,4 @@ export function moveOrderInPlanning(
   saveOrders(
     updated
   );
-
 }

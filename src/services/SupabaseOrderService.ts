@@ -13,6 +13,14 @@ interface ProductionOrderRow {
   lot: string;
   customer: string;
   comments: string;
+
+  marking: string;
+  sales_order: string;
+  quantity: number;
+  quantity_unit:
+    | "M"
+    | "UN";
+
   sku: string;
   product: string;
   template_id: number;
@@ -130,6 +138,10 @@ const ORDER_SELECT_FIELDS = `
   lot,
   customer,
   comments,
+  marking,
+  sales_order,
+  quantity,
+  quantity_unit,
   sku,
   product,
   template_id,
@@ -154,7 +166,6 @@ function mapRowToOrder(
 ): ProductionOrder {
 
   return {
-
     id:
       Number(
         row.id
@@ -175,6 +186,26 @@ function mapRowToOrder(
     comments:
       row.comments ??
       "",
+
+    marking:
+      row.marking ??
+      "",
+
+    salesOrder:
+      row.sales_order ??
+      "",
+
+    quantity:
+      Number(
+        row.quantity ??
+        0
+      ),
+
+    quantityUnit:
+      row.quantity_unit ===
+        "UN"
+        ? "UN"
+        : "M",
 
     sku:
       row.sku ??
@@ -229,9 +260,7 @@ function mapRowToOrder(
         row.printed ??
         0
       )
-
   };
-
 }
 
 
@@ -246,7 +275,6 @@ function mapOrderToRow(
 ): ProductionOrderRow {
 
   return {
-
     id:
       order.id,
 
@@ -264,6 +292,24 @@ function mapOrderToRow(
     comments:
       order.comments ??
       "",
+
+    marking:
+      order.marking ??
+      "",
+
+    sales_order:
+      order.salesOrder ??
+      "",
+
+    quantity:
+      order.quantity ??
+      0,
+
+    quantity_unit:
+      order.quantityUnit ===
+        "UN"
+        ? "UN"
+        : "M",
 
     sku:
       order.sku ??
@@ -306,9 +352,7 @@ function mapOrderToRow(
     printed:
       order.printed ??
       0
-
   };
-
 }
 
 
@@ -328,7 +372,6 @@ function normalizeStatus(
     "FINALIZADA"
     ? "FINALIZADA"
     : "ABIERTA";
-
 }
 
 
@@ -385,9 +428,7 @@ function verifySavedOrder(
         " "
       )
     );
-
   }
-
 }
 
 
@@ -400,7 +441,7 @@ function verifySavedOrder(
 async function getSupabaseOrder(
   orderNumber: string
 ):
-Promise<ProductionOrderRow | null> {
+  Promise<ProductionOrderRow | null> {
 
   const {
     data,
@@ -431,7 +472,6 @@ Promise<ProductionOrderRow | null> {
 
 
     throw error;
-
   }
 
 
@@ -440,7 +480,6 @@ Promise<ProductionOrderRow | null> {
       ProductionOrderRow |
       null
   );
-
 }
 
 
@@ -451,7 +490,7 @@ Promise<ProductionOrderRow | null> {
  */
 
 export async function getSupabaseOrders():
-Promise<ProductionOrder[]> {
+  Promise<ProductionOrder[]> {
 
   const allRows:
     ProductionOrderRow[] = [];
@@ -506,7 +545,6 @@ Promise<ProductionOrder[]> {
 
 
       throw error;
-
     }
 
 
@@ -528,13 +566,11 @@ Promise<ProductionOrder[]> {
     ) {
 
       break;
-
     }
 
 
     from +=
       READ_BATCH_SIZE;
-
   }
 
 
@@ -544,7 +580,6 @@ Promise<ProductionOrder[]> {
         row
       )
   );
-
 }
 
 
@@ -571,13 +606,11 @@ async function reopenSupabaseOrder(
     await supabase.rpc(
       "reopen_production_order",
       {
-
         p_order_number:
           orderNumber,
 
         p_printed:
           printed
-
       }
     );
 
@@ -593,7 +626,6 @@ async function reopenSupabaseOrder(
 
 
     throw error;
-
   }
 
 
@@ -615,7 +647,6 @@ async function reopenSupabaseOrder(
     throw new Error(
       `Supabase no devolvió ningún resultado al reabrir la orden ${orderNumber}.`
     );
-
   }
 
 
@@ -629,17 +660,15 @@ async function reopenSupabaseOrder(
     Number(
       row.printed
     ) !==
-      Number(
-        printed
-      )
+    Number(
+      printed
+    )
   ) {
 
     throw new Error(
       `No se pudo modificar el contador de la orden ${orderNumber}. Esperado=${printed}, Guardado=${row.printed}.`
     );
-
   }
-
 }
 
 
@@ -708,7 +737,6 @@ export async function saveSupabaseOrder(
 
 
       throw error;
-
     }
 
 
@@ -730,7 +758,6 @@ export async function saveSupabaseOrder(
       throw new Error(
         `Supabase no devolvió la nueva orden ${expectedRow.order_number}.`
       );
-
     }
 
 
@@ -741,7 +768,6 @@ export async function saveSupabaseOrder(
 
 
     return;
-
   }
 
 
@@ -798,7 +824,6 @@ export async function saveSupabaseOrder(
       throw new Error(
         `No se pudo recuperar la orden ${expectedRow.order_number} después de reabrirla.`
       );
-
     }
 
 
@@ -815,6 +840,7 @@ export async function saveSupabaseOrder(
     const {
       data:
         updatedMetadata,
+
       error:
         metadataError
     } =
@@ -823,7 +849,6 @@ export async function saveSupabaseOrder(
           "production_orders"
         )
         .update({
-
           lot:
             expectedRow.lot,
 
@@ -832,6 +857,18 @@ export async function saveSupabaseOrder(
 
           comments:
             expectedRow.comments,
+
+          marking:
+            expectedRow.marking,
+
+          sales_order:
+            expectedRow.sales_order,
+
+          quantity:
+            expectedRow.quantity,
+
+          quantity_unit:
+            expectedRow.quantity_unit,
 
           sku:
             expectedRow.sku,
@@ -853,7 +890,6 @@ export async function saveSupabaseOrder(
 
           production_line:
             expectedRow.production_line
-
         })
         .eq(
           "order_number",
@@ -875,7 +911,6 @@ export async function saveSupabaseOrder(
 
 
       throw metadataError;
-
     }
 
 
@@ -897,7 +932,6 @@ export async function saveSupabaseOrder(
       throw new Error(
         `Supabase no devolvió la orden ${expectedRow.order_number} después de actualizar sus datos.`
       );
-
     }
 
 
@@ -905,13 +939,12 @@ export async function saveSupabaseOrder(
       Number(
         finalSavedOrder.printed
       ) !==
-        newPrinted
+      newPrinted
     ) {
 
       throw new Error(
         `La reapertura de la orden ${expectedRow.order_number} no conservó el contador correcto.`
       );
-
     }
 
 
@@ -937,7 +970,6 @@ export async function saveSupabaseOrder(
       throw new Error(
         `La reapertura de la orden ${expectedRow.order_number} no conservó el estado correcto.`
       );
-
     }
 
 
@@ -948,7 +980,6 @@ export async function saveSupabaseOrder(
 
 
     return;
-
   }
 
 
@@ -959,7 +990,6 @@ export async function saveSupabaseOrder(
    */
 
   const updateData = {
-
     lot:
       expectedRow.lot,
 
@@ -968,6 +998,18 @@ export async function saveSupabaseOrder(
 
     comments:
       expectedRow.comments,
+
+    marking:
+      expectedRow.marking,
+
+    sales_order:
+      expectedRow.sales_order,
+
+    quantity:
+      expectedRow.quantity,
+
+    quantity_unit:
+      expectedRow.quantity_unit,
 
     sku:
       expectedRow.sku,
@@ -998,7 +1040,6 @@ export async function saveSupabaseOrder(
 
     printed:
       expectedRow.printed
-
   };
 
 
@@ -1033,7 +1074,6 @@ export async function saveSupabaseOrder(
 
 
     throw error;
-
   }
 
 
@@ -1055,7 +1095,6 @@ export async function saveSupabaseOrder(
     throw new Error(
       `Supabase no actualizó la orden ${expectedRow.order_number}.`
     );
-
   }
 
 
@@ -1063,7 +1102,6 @@ export async function saveSupabaseOrder(
     expectedRow,
     saved
   );
-
 }
 
 
@@ -1083,7 +1121,6 @@ export async function saveSupabaseOrders(
   ) {
 
     return;
-
   }
 
 
@@ -1095,9 +1132,7 @@ export async function saveSupabaseOrders(
     await saveSupabaseOrder(
       order
     );
-
   }
-
 }
 
 
@@ -1136,9 +1171,7 @@ export async function deleteSupabaseOrder(
 
 
     throw error;
-
   }
-
 }
 
 
@@ -1155,6 +1188,7 @@ async function reorderPlanningAfterFinishedOrder(
   const {
     data:
       finishedOrder,
+
     error:
       finishedOrderError
   } =
@@ -1189,7 +1223,6 @@ async function reorderPlanningAfterFinishedOrder(
 
 
     return;
-
   }
 
 
@@ -1198,7 +1231,6 @@ async function reorderPlanningAfterFinishedOrder(
   ) {
 
     return;
-
   }
 
 
@@ -1208,7 +1240,6 @@ async function reorderPlanningAfterFinishedOrder(
   ) {
 
     return;
-
   }
 
 
@@ -1234,7 +1265,6 @@ async function reorderPlanningAfterFinishedOrder(
   ) {
 
     return;
-
   }
 
 
@@ -1267,13 +1297,13 @@ async function reorderPlanningAfterFinishedOrder(
 
 
     return;
-
   }
 
 
   const {
     data:
       followingOrders,
+
     error:
       followingOrdersError
   } =
@@ -1320,7 +1350,6 @@ async function reorderPlanningAfterFinishedOrder(
 
 
     return;
-
   }
 
 
@@ -1347,7 +1376,6 @@ async function reorderPlanningAfterFinishedOrder(
     ) {
 
       continue;
-
     }
 
 
@@ -1381,11 +1409,8 @@ async function reorderPlanningAfterFinishedOrder(
 
 
       return;
-
     }
-
   }
-
 }
 
 
@@ -1407,13 +1432,11 @@ export async function acquireSupabaseOrderPrintLock(
     await supabase.rpc(
       "acquire_order_print_lock",
       {
-
         p_order_number:
           orderNumber,
 
         p_lock_token:
           lockToken
-
       }
     );
 
@@ -1429,7 +1452,6 @@ export async function acquireSupabaseOrderPrintLock(
 
 
     throw error;
-
   }
 
 
@@ -1451,12 +1473,10 @@ export async function acquireSupabaseOrderPrintLock(
     throw new Error(
       "Supabase no ha devuelto el resultado de la reserva de impresión."
     );
-
   }
 
 
   return {
-
     success:
       Boolean(
         row.success
@@ -1490,9 +1510,7 @@ export async function acquireSupabaseOrderPrintLock(
       normalizeStatus(
         row.status
       )
-
   };
-
 }
 
 
@@ -1515,7 +1533,6 @@ export async function commitSupabaseOrderPrint(
     await supabase.rpc(
       "commit_order_print",
       {
-
         p_order_number:
           orderNumber,
 
@@ -1524,7 +1541,6 @@ export async function commitSupabaseOrderPrint(
 
         p_coil_number:
           coilNumber
-
       }
     );
 
@@ -1540,7 +1556,6 @@ export async function commitSupabaseOrderPrint(
 
 
     throw error;
-
   }
 
 
@@ -1562,7 +1577,6 @@ export async function commitSupabaseOrderPrint(
     throw new Error(
       "Supabase no ha devuelto el resultado de la confirmación de impresión."
     );
-
   }
 
 
@@ -1607,7 +1621,6 @@ export async function commitSupabaseOrderPrint(
       Boolean(
         row.finished
       )
-
   };
 
 
@@ -1631,14 +1644,11 @@ export async function commitSupabaseOrderPrint(
         "La orden terminó correctamente, pero hubo un problema al reordenar la planificación:",
         reorderError
       );
-
     }
-
   }
 
 
   return result;
-
 }
 
 
@@ -1660,13 +1670,11 @@ export async function releaseSupabaseOrderPrintLock(
     await supabase.rpc(
       "release_order_print_lock",
       {
-
         p_order_number:
           orderNumber,
 
         p_lock_token:
           lockToken
-
       }
     );
 
@@ -1682,12 +1690,10 @@ export async function releaseSupabaseOrderPrintLock(
 
 
     throw error;
-
   }
 
 
   return Boolean(
     data
   );
-
 }
