@@ -89,12 +89,6 @@ const PRODUCTION_LINES = [
 ];
 
 
-/*
- * ==================================================
- * COLUMNAS
- * ==================================================
- */
-
 const PLANNING_COLUMNS =
   "38px 175px 105px 125px 76px 76px minmax(225px, 1.55fr) minmax(120px, 1fr) 100px 118px 90px 68px";
 
@@ -221,25 +215,32 @@ function formatQuantity(
 
 /*
  * ==================================================
- * TOTAL METROS / UNIDADES DE LA OF
+ * CANTIDAD PENDIENTE DE LA OF
  * ==================================================
  *
- * quantity = cantidad POR rollo / bobina
+ * quantity = cantidad por rollo / bobina
  *
- * total = rolls × quantity
+ * pending = rollos pendientes
+ *
+ * cantidad pendiente =
+ * rollos pendientes × cantidad por rollo
+ *
+ * Ejemplo:
+ * 649 × 500 m = 324.500 m
  * ==================================================
  */
 
-function getOrderTotalQuantity(
+function getOrderPendingQuantity(
   order: ProductionOrder
 ): number {
 
-  const rolls =
+  const pendingRolls =
     Math.max(
       0,
       Number(
-        order.rolls ??
-        0
+        getPendingQuantity(
+          order
+        )
       )
     );
 
@@ -255,7 +256,7 @@ function getOrderTotalQuantity(
 
 
   return (
-    rolls *
+    pendingRolls *
     quantityPerRoll
   );
 
@@ -1214,10 +1215,6 @@ export default function Planning() {
       );
 
 
-    /*
-     * FECHA
-     */
-
     doc.setTextColor(
       ...RIVULIS_GREEN
     );
@@ -1461,11 +1458,11 @@ export default function Planning() {
             "-",
 
           /*
-           * AQUÍ MOSTRAMOS EL TOTAL:
-           * rollos × cantidad por rollo.
+           * METROS / UNIDADES PENDIENTES
            */
+
           formatQuantity(
-            getOrderTotalQuantity(
+            getOrderPendingQuantity(
               order
             ),
             order.quantityUnit ===
@@ -1947,8 +1944,6 @@ export default function Planning() {
         />
 
 
-        {/* CABECERA */}
-
         <Box
           sx={{
             mb:
@@ -1999,8 +1994,6 @@ export default function Planning() {
 
         </Box>
 
-
-        {/* PESTAÑAS */}
 
         <Paper
           elevation={0}
@@ -2169,8 +2162,6 @@ export default function Planning() {
         </Paper>
 
 
-        {/* CONTENIDO */}
-
         <Paper
           variant="outlined"
           sx={{
@@ -2181,8 +2172,6 @@ export default function Planning() {
               "hidden"
           }}
         >
-
-          {/* CABECERA LÍNEA */}
 
           <Box
             sx={{
@@ -2333,8 +2322,6 @@ export default function Planning() {
           </Box>
 
 
-          {/* COMENTARIO */}
-
           {
             lineComments &&
             (
@@ -2388,8 +2375,6 @@ export default function Planning() {
           }
 
 
-          {/* SIN ÓRDENES */}
-
           {
             lineOrders.length ===
               0
@@ -2442,8 +2427,6 @@ export default function Planning() {
                         1510
                     }}
                   >
-
-                    {/* HEAD */}
 
                     <Box
                       sx={{
@@ -2518,8 +2501,6 @@ export default function Planning() {
                     </Box>
 
 
-                    {/* FILAS */}
-
                     {
                       lineOrders.map(
                         (
@@ -2549,8 +2530,8 @@ export default function Planning() {
                               : 0;
 
 
-                          const totalQuantity =
-                            getOrderTotalQuantity(
+                          const pendingQuantity =
+                            getOrderPendingQuantity(
                               order
                             );
 
@@ -2623,8 +2604,6 @@ export default function Planning() {
                               </CellBox>
 
 
-                              {/* OF COMPLETA */}
-
                               <CellBox>
 
                                 <Typography
@@ -2668,7 +2647,9 @@ export default function Planning() {
                               </CellBox>
 
 
-                              {/* TOTAL METROS / UNIDADES */}
+                              {/*
+                               * METROS / UNIDADES PENDIENTES
+                               */}
 
                               <CellBox>
 
@@ -2686,7 +2667,7 @@ export default function Planning() {
                                 >
                                   {
                                     formatQuantity(
-                                      totalQuantity,
+                                      pendingQuantity,
                                       unit
                                     )
                                   }
@@ -2926,10 +2907,6 @@ export default function Planning() {
 
       </Box>
 
-
-      {/* ==================================================
-          PDF
-          ================================================== */}
 
       <Dialog
         open={

@@ -163,25 +163,31 @@ function formatQuantity(
 
 /*
  * ==================================================
- * TOTAL REAL DE LA ORDEN
+ * CANTIDAD PENDIENTE
  * ==================================================
  *
  * quantity = cantidad por rollo / bobina
  *
- * TOTAL = rolls × quantity
+ * cantidad pendiente =
+ * rollos pendientes × cantidad por rollo
+ *
+ * Ejemplo:
+ *
+ * 649 × 500 m = 324.500 m
  * ==================================================
  */
 
-function getOrderTotalQuantity(
+function getOrderPendingQuantity(
   order: ProductionOrder
 ): number {
 
-  const rolls =
+  const pendingRolls =
     Math.max(
       0,
       Number(
-        order.rolls ??
-        0
+        getPendingQuantity(
+          order
+        )
       )
     );
 
@@ -197,7 +203,7 @@ function getOrderTotalQuantity(
 
 
   return (
-    rolls *
+    pendingRolls *
     quantityPerRoll
   );
 
@@ -1207,7 +1213,7 @@ export default function OperatorPlanning() {
                             }}
                           >
 
-                            {/* CABECERA TABLA */}
+                            {/* CABECERA */}
 
                             <Box
                               sx={{
@@ -1321,8 +1327,8 @@ export default function OperatorPlanning() {
                                       : "M";
 
 
-                                  const totalQuantity =
-                                    getOrderTotalQuantity(
+                                  const pendingQuantity =
+                                    getOrderPendingQuantity(
                                       order
                                     );
 
@@ -1461,7 +1467,10 @@ export default function OperatorPlanning() {
                                       </CellBox>
 
 
-                                      {/* TOTAL METROS / UNIDADES */}
+                                      {/*
+                                       * METROS / UNIDADES
+                                       * PENDIENTES
+                                       */}
 
                                       <CellBox>
 
@@ -1479,7 +1488,7 @@ export default function OperatorPlanning() {
                                         >
                                           {
                                             formatQuantity(
-                                              totalQuantity,
+                                              pendingQuantity,
                                               unit
                                             )
                                           }
@@ -1502,7 +1511,7 @@ export default function OperatorPlanning() {
                                       </CellBox>
 
 
-                                      {/* PENDIENTES */}
+                                      {/* R/B PENDIENTES */}
 
                                       <CellBox>
 
