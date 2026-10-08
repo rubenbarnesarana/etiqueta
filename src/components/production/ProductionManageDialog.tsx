@@ -10,7 +10,8 @@ import {
   Divider,
   Paper,
   Box,
-  Alert
+  Alert,
+  MenuItem
 } from "@mui/material";
 
 import {
@@ -57,6 +58,65 @@ interface Props {
   onSave: (
     order: ProductionOrder
   ) => void;
+
+}
+
+
+/*
+ * ==================================================
+ * FORMATEAR NÚMERO
+ * ==================================================
+ */
+
+function formatNumber(
+  value: number
+): string {
+
+  if (
+    !Number.isFinite(
+      value
+    )
+  ) {
+
+    return "0";
+
+  }
+
+
+  return new Intl.NumberFormat(
+    "es-ES",
+    {
+      maximumFractionDigits:
+        2
+    }
+  ).format(
+    value
+  );
+
+}
+
+
+/*
+ * ==================================================
+ * FORMATEAR CANTIDAD
+ * ==================================================
+ */
+
+function formatQuantity(
+  value: number,
+  unit: "M" | "UN"
+): string {
+
+  return unit ===
+    "UN"
+
+    ? `${formatNumber(
+        value
+      )} un`
+
+    : `${formatNumber(
+        value
+      )} m`;
 
 }
 
@@ -128,6 +188,45 @@ export default function ProductionManageDialog({
 
   /*
    * ==================================================
+   * PEDIDO DE VENTA
+   * ==================================================
+   */
+
+  const [
+    salesOrder,
+    setSalesOrder
+  ] = useState(
+    ""
+  );
+
+
+  /*
+   * ==================================================
+   * CANTIDAD POR ROLLO / BOBINA
+   * ==================================================
+   */
+
+  const [
+    quantity,
+    setQuantity
+  ] = useState<number>(
+    0
+  );
+
+
+  const [
+    quantityUnit,
+    setQuantityUnit
+  ] = useState<
+    "M" |
+    "UN"
+  >(
+    "M"
+  );
+
+
+  /*
+   * ==================================================
    * COMENTARIOS
    * ==================================================
    */
@@ -193,6 +292,26 @@ export default function ProductionManageDialog({
     );
 
 
+  const safeQuantity =
+    Math.max(
+      0,
+      Number(
+        quantity
+      ) || 0
+    );
+
+
+  /*
+   * TOTAL DE LA ORDEN:
+   *
+   * rollos × cantidad por rollo
+   */
+
+  const totalQuantity =
+    totalRolls *
+    safeQuantity;
+
+
   const firstCoil =
     Number(
       order?.firstCoil ??
@@ -227,7 +346,7 @@ export default function ProductionManageDialog({
 
   /*
    * ==================================================
-   * VALIDACIÓN TOTAL
+   * VALIDACIÓN
    * ==================================================
    */
 
@@ -265,11 +384,8 @@ export default function ProductionManageDialog({
 
 
       /*
-       * Prioridad:
-       *
-       * 1. Marcaje ya guardado en la orden.
-       * 2. Marcaje actual del producto.
-       * 3. Vacío.
+       * Si la OF antigua todavía no tiene Marcaje,
+       * usamos el configurado actualmente en Productos.
        */
 
       const initialMarking =
@@ -286,6 +402,32 @@ export default function ProductionManageDialog({
 
       setMarking(
         initialMarking
+      );
+
+
+      setSalesOrder(
+        String(
+          order.salesOrder ??
+          ""
+        )
+      );
+
+
+      setQuantity(
+        Number(
+          order.quantity ??
+          0
+        )
+      );
+
+
+      setQuantityUnit(
+        order.quantityUnit ===
+          "UN"
+
+          ? "UN"
+
+          : "M"
       );
 
 
@@ -580,7 +722,7 @@ export default function ProductionManageDialog({
 
 
     /*
-     * CARGAR DISEÑO
+     * DISEÑO
      */
 
     setElements(
@@ -695,9 +837,17 @@ export default function ProductionManageDialog({
     const finalRolls =
       Math.max(
         1,
-        Number(
-          rolls
-        ) || 1
+        Math.floor(
+          Number(
+            rolls
+          ) || 1
+        )
+      );
+
+
+    const finalQuantity =
+      Number(
+        quantity
       );
 
 
@@ -710,10 +860,37 @@ export default function ProductionManageDialog({
       );
 
 
+    /*
+     * No permitimos reducir los rollos por debajo
+     * de las etiquetas ya impresas.
+     */
+
     if (
       finalRolls <
       currentPrinted
     ) {
+
+      return;
+
+    }
+
+
+    /*
+     * La cantidad por rollo / bobina debe ser válida.
+     */
+
+    if (
+      !Number.isFinite(
+        finalQuantity
+      ) ||
+      finalQuantity <=
+        0
+    ) {
+
+      alert(
+        "Debes indicar los metros o unidades que contiene cada rollo / bobina."
+      );
+
 
       return;
 
@@ -743,12 +920,20 @@ export default function ProductionManageDialog({
 
       ...order,
 
-      /*
-       * Marcaje guardado en la orden.
-       */
-
       marking:
         marking.trim(),
+
+      salesOrder:
+        salesOrder.trim(),
+
+      /*
+       * quantity = cantidad POR rollo / bobina.
+       */
+
+      quantity:
+        finalQuantity,
+
+      quantityUnit,
 
       rolls:
         finalRolls,
@@ -954,7 +1139,7 @@ export default function ProductionManageDialog({
         >
 
           {/* ==========================================
-              DATOS DE LA ETIQUETA
+              DATOS DE LA ORDEN
               ========================================== */}
 
           <Paper
@@ -965,61 +1150,26 @@ export default function ProductionManageDialog({
           >
 
             <Stack
-              spacing={1.5}
+              spacing={1.2}
             >
 
               <Typography
                 variant="subtitle2"
                 color="text.secondary"
               >
-                Datos de la etiqueta
+                Datos de la orden
               </Typography>
 
 
               <Typography>
 
                 <strong>
-                  Production Order:
+                  Orden de fabricación:
                 </strong>{" "}
 
                 {order.order}
 
               </Typography>
-
-
-              <Typography>
-
-                <strong>
-                  Lot Number:
-                </strong>{" "}
-
-                {
-                  order.lot ||
-                  "-"
-                }
-
-              </Typography>
-
-
-              <Typography>
-
-                <strong>
-                  Coil Number:
-                </strong>{" "}
-
-                {
-                  pending >
-                    0
-
-                    ? nextCoil
-
-                    : "-"
-                }
-
-              </Typography>
-
-
-              <Divider />
 
 
               <Typography
@@ -1069,6 +1219,27 @@ export default function ProductionManageDialog({
 
 
           {/* ==========================================
+              PEDIDO DE VENTA
+              ========================================== */}
+
+          <TextField
+            label="Pedido de venta"
+            value={
+              salesOrder
+            }
+            onChange={
+              event =>
+                setSalesOrder(
+                  event.target.value
+                )
+            }
+            placeholder="Ej.: 405053377"
+            helperText="Pedido de venta asociado a esta orden de fabricación."
+            fullWidth
+          />
+
+
+          {/* ==========================================
               MARCAJE
               ========================================== */}
 
@@ -1084,58 +1255,108 @@ export default function ProductionManageDialog({
                 )
             }
             placeholder="Ej.: PC_16_115"
-            helperText={
-              marking.trim()
-
-                ? "Marcaje que quedará guardado en esta orden."
-
-                : "Si el producto tiene Marcaje configurado, se carga automáticamente al abrir la orden."
-            }
+            helperText="Si la orden antigua no tenía Marcaje, se carga automáticamente desde Productos."
             fullWidth
-          />
-
-
-          {/* ==========================================
-              COMENTARIOS LEGACY DE ORDEN
-              ========================================== */}
-
-          <TextField
-            label="Comentarios de planificación"
-            value={
-              comments
-            }
-            onChange={
-              event => {
-
-                setComments(
-                  event.target.value
-                );
-
-              }
-            }
-            placeholder="Ej.: Palets nuevos 20 bobinas"
-            multiline
-            minRows={2}
-            maxRows={4}
-            fullWidth
-            helperText="Este comentario pertenece a la orden. Los comentarios generales de la línea se gestionan desde Producción."
           />
 
 
           <Divider />
 
 
-          {/* ==========================================
-              PRODUCCIÓN
-              ========================================== */}
-
           <Typography
             variant="subtitle2"
-            fontWeight="bold"
+            fontWeight={800}
           >
-            Producción
+            Cantidad de fabricación
           </Typography>
 
+
+          {/* ==========================================
+              CANTIDAD POR ROLLO
+              ========================================== */}
+
+          <TextField
+            label={
+              quantityUnit ===
+                "UN"
+
+                ? "Unidades por rollo / bobina"
+
+                : "Metros por rollo / bobina"
+            }
+            type="number"
+            value={
+              quantity
+            }
+            onChange={
+              event =>
+                setQuantity(
+                  Number(
+                    event.target.value
+                  )
+                )
+            }
+            slotProps={{
+              htmlInput: {
+                min: 0,
+                step: 1
+              }
+            }}
+            helperText={
+              quantityUnit ===
+                "UN"
+
+                ? "Ej.: 2.500 unidades en MicroTube CUT."
+
+                : "Ej.: 2.500 m, 3.000 m, 500 m o 400 m."
+            }
+            fullWidth
+          />
+
+
+          {/* ==========================================
+              UNIDAD
+              ========================================== */}
+
+          <TextField
+            select
+            label="Unidad"
+            value={
+              quantityUnit
+            }
+            onChange={
+              event =>
+                setQuantityUnit(
+                  event.target.value ===
+                    "UN"
+
+                    ? "UN"
+
+                    : "M"
+                )
+            }
+            fullWidth
+          >
+
+            <MenuItem
+              value="M"
+            >
+              Metros
+            </MenuItem>
+
+
+            <MenuItem
+              value="UN"
+            >
+              Unidades
+            </MenuItem>
+
+          </TextField>
+
+
+          {/* ==========================================
+              ROLLOS / BOBINAS
+              ========================================== */}
 
           <TextField
             label="Total de rollos / bobinas"
@@ -1161,9 +1382,11 @@ export default function ProductionManageDialog({
 
               }
             }
-            inputProps={{
-              min: 1,
-              step: 1
+            slotProps={{
+              htmlInput: {
+                min: 1,
+                step: 1
+              }
             }}
             error={
               rollsError
@@ -1173,10 +1396,91 @@ export default function ProductionManageDialog({
 
                 ? `El total no puede ser menor que las ${printed} etiquetas ya impresas.`
 
-                : "Puedes modificar la cantidad total que se debe fabricar."
+                : "Número total de rollos / bobinas de la orden."
             }
             fullWidth
           />
+
+
+          {/* ==========================================
+              TOTAL CALCULADO
+              ========================================== */}
+
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2.2,
+
+              backgroundColor:
+                "#F1F8F3",
+
+              borderColor:
+                "#A5D6A7"
+            }}
+          >
+
+            <Typography
+              variant="subtitle2"
+              color="text.secondary"
+              fontWeight={700}
+            >
+              TOTAL DE LA ORDEN
+            </Typography>
+
+
+            <Typography
+              variant="h5"
+              fontWeight={900}
+              sx={{
+                mt: 0.5,
+                color: "#0B7A3B"
+              }}
+            >
+              {
+                formatQuantity(
+                  totalQuantity,
+                  quantityUnit
+                )
+              }
+            </Typography>
+
+
+            <Typography
+              variant="body2"
+              fontWeight={700}
+              sx={{
+                mt: 1
+              }}
+            >
+              {
+                `${formatNumber(
+                  totalRolls
+                )} rollos / bobinas × ${formatQuantity(
+                  safeQuantity,
+                  quantityUnit
+                )} = ${formatQuantity(
+                  totalQuantity,
+                  quantityUnit
+                )}`
+              }
+            </Typography>
+
+          </Paper>
+
+
+          {/* ==========================================
+              PRODUCCIÓN
+              ========================================== */}
+
+          <Divider />
+
+
+          <Typography
+            variant="subtitle2"
+            fontWeight={800}
+          >
+            Producción
+          </Typography>
 
 
           <TextField
@@ -1206,10 +1510,11 @@ export default function ProductionManageDialog({
 
               }
             }
-            inputProps={{
-              min: 0,
-              max: totalRolls,
-              step: 1
+            slotProps={{
+              htmlInput: {
+                min: 0,
+                max: totalRolls
+              }
             }}
             fullWidth
           />
@@ -1255,54 +1560,63 @@ export default function ProductionManageDialog({
 
 
           {/* ==========================================
-              RESUMEN
+              COMENTARIOS
+              ========================================== */}
+
+          <TextField
+            label="Comentarios de planificación"
+            value={
+              comments
+            }
+            onChange={
+              event =>
+                setComments(
+                  event.target.value
+                )
+            }
+            placeholder="Ej.: Palets nuevos 20 bobinas"
+            multiline
+            minRows={2}
+            maxRows={4}
+            fullWidth
+          />
+
+
+          {/* ==========================================
+              ESTADO
               ========================================== */}
 
           <Paper
             variant="outlined"
             sx={{
               p: 2,
-              backgroundColor: "#FAFAFA"
+              textAlign: "center"
             }}
           >
 
-            <Stack
-              spacing={0.8}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
+              Estado
+            </Typography>
+
+
+            <Typography
+              variant="h6"
+              fontWeight="bold"
             >
 
-              <Typography
-                variant="body2"
-              >
-                <strong>
-                  Total:
-                </strong>{" "}
+              {
+                pending ===
+                  0
 
-                {totalRolls}
-              </Typography>
+                  ? "FINALIZADA"
 
+                  : "ABIERTA"
+              }
 
-              <Typography
-                variant="body2"
-              >
-                <strong>
-                  Impresas:
-                </strong>{" "}
-
-                {safePrinted}
-              </Typography>
-
-
-              <Typography
-                variant="body2"
-              >
-                <strong>
-                  Pendientes:
-                </strong>{" "}
-
-                {pending}
-              </Typography>
-
-            </Stack>
+            </Typography>
 
           </Paper>
 
@@ -1357,9 +1671,7 @@ export default function ProductionManageDialog({
                   variant="outlined"
                   sx={{
                     p: 2,
-
                     backgroundColor: "#EEEEEE",
-
                     overflow: "auto"
                   }}
                 >
@@ -1367,9 +1679,7 @@ export default function ProductionManageDialog({
                   <Box
                     sx={{
                       display: "flex",
-
                       justifyContent: "center",
-
                       alignItems: "flex-start",
 
                       minHeight:
@@ -1429,12 +1739,13 @@ export default function ProductionManageDialog({
                     nextLabel
                   }
                   disabled={
-                    safePrinted >=
-                      totalRolls
+                    pending ===
+                      0 ||
+                    rollsError
                   }
                   fullWidth
                 >
-                  SIGUIENTE ETIQUETA
+                  MARCAR ETIQUETA COMO IMPRESA
                 </Button>
 
 

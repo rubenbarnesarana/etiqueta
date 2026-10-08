@@ -90,10 +90,13 @@ const PRODUCTION_LINES = [
 
 
 /*
- * OF ampliada para que el número se vea completo.
+ * ==================================================
+ * COLUMNAS
+ * ==================================================
  */
+
 const PLANNING_COLUMNS =
-  "38px 175px 105px 112px 76px 76px minmax(225px, 1.55fr) minmax(120px, 1fr) 100px 118px 90px 68px";
+  "38px 175px 105px 125px 76px 76px minmax(225px, 1.55fr) minmax(120px, 1fr) 100px 118px 90px 68px";
 
 
 const RIVULIS_GREEN:
@@ -134,6 +137,46 @@ const PENDING_RED:
 
 /*
  * ==================================================
+ * FORMATEAR NÚMERO
+ * ==================================================
+ */
+
+function formatNumber(
+  value: number
+): string {
+
+  const numeric =
+    Number(
+      value ?? 0
+    );
+
+
+  if (
+    !Number.isFinite(
+      numeric
+    )
+  ) {
+
+    return "0";
+
+  }
+
+
+  return new Intl.NumberFormat(
+    "es-ES",
+    {
+      maximumFractionDigits:
+        2
+    }
+  ).format(
+    numeric
+  );
+
+}
+
+
+/*
+ * ==================================================
  * FORMATEAR CANTIDAD
  * ==================================================
  */
@@ -153,29 +196,69 @@ function formatQuantity(
     !Number.isFinite(
       value
     ) ||
-    value <= 0
+    value <=
+      0
   ) {
 
     return "-";
+
   }
-
-
-  const formatted =
-    new Intl.NumberFormat(
-      "es-ES",
-      {
-        maximumFractionDigits:
-          2
-      }
-    ).format(
-      value
-    );
 
 
   return unit ===
     "UN"
-    ? `${formatted} un`
-    : `${formatted} m`;
+
+    ? `${formatNumber(
+        value
+      )} un`
+
+    : `${formatNumber(
+        value
+      )} m`;
+
+}
+
+
+/*
+ * ==================================================
+ * TOTAL METROS / UNIDADES DE LA OF
+ * ==================================================
+ *
+ * quantity = cantidad POR rollo / bobina
+ *
+ * total = rolls × quantity
+ * ==================================================
+ */
+
+function getOrderTotalQuantity(
+  order: ProductionOrder
+): number {
+
+  const rolls =
+    Math.max(
+      0,
+      Number(
+        order.rolls ??
+        0
+      )
+    );
+
+
+  const quantityPerRoll =
+    Math.max(
+      0,
+      Number(
+        order.quantity ??
+        0
+      )
+    );
+
+
+  return (
+    rolls *
+    quantityPerRoll
+  );
+
 }
 
 
@@ -202,12 +285,194 @@ function normalizeText(
       /[^A-Z0-9]/g,
       ""
     );
+
 }
 
 
 /*
  * ==================================================
- * IMAGEN -> DATA URL
+ * OBTENER NOMBRE PLANTILLA DE UNA ORDEN
+ * ==================================================
+ */
+
+function getOrderTemplateName(
+  order: ProductionOrder
+): string {
+
+  const assigned:
+    any =
+    getAssignedTemplate(
+      order.sku
+    );
+
+
+  const assignedId =
+    typeof assigned ===
+      "number"
+
+      ? assigned
+
+      : Number(
+          assigned?.templateId ??
+          assigned?.id ??
+          0
+        );
+
+
+  if (
+    assignedId >
+      0
+  ) {
+
+    const template =
+      findTemplate(
+        assignedId
+      );
+
+
+    if (
+      template
+    ) {
+
+      return (
+        template.name ??
+        ""
+      );
+
+    }
+
+  }
+
+
+  const product =
+    findProduct(
+      order.sku
+    );
+
+
+  if (
+    product?.templateId
+  ) {
+
+    const template =
+      findTemplate(
+        Number(
+          product.templateId
+        )
+      );
+
+
+    if (
+      template
+    ) {
+
+      return (
+        template.name ??
+        ""
+      );
+
+    }
+
+  }
+
+
+  const orderTemplate =
+    findTemplate(
+      Number(
+        order.templateId ??
+        0
+      )
+    );
+
+
+  return (
+    orderTemplate?.name ??
+    ""
+  );
+
+}
+
+
+/*
+ * ==================================================
+ * DESCRIPCIÓN DE PLANIFICACIÓN
+ * ==================================================
+ *
+ * Únicamente añadimos NAAN PC MAX.
+ * El resto se deja exactamente como está en la OF.
+ * ==================================================
+ */
+
+function getPlanningDescription(
+  order: ProductionOrder
+): string {
+
+  const description =
+    String(
+      order.product ??
+      ""
+    ).trim();
+
+
+  if (
+    !description
+  ) {
+
+    return "-";
+
+  }
+
+
+  const templateName =
+    getOrderTemplateName(
+      order
+    );
+
+
+  const normalizedTemplate =
+    normalizeText(
+      templateName
+    );
+
+
+  if (
+    !normalizedTemplate.includes(
+      "NAANPCMAX"
+    )
+  ) {
+
+    return description;
+
+  }
+
+
+  const normalizedDescription =
+    normalizeText(
+      description
+    );
+
+
+  if (
+    normalizedDescription.startsWith(
+      "NAANPCMAX"
+    )
+  ) {
+
+    return description;
+
+  }
+
+
+  return (
+    `NAAN PC MAX ${description}`
+  );
+
+}
+
+
+/*
+ * ==================================================
+ * IMAGEN A DATA URL
  * ==================================================
  */
 
@@ -260,7 +525,9 @@ async function imageUrlToDataUrl(
                 )
               );
 
+
               return;
+
             }
 
 
@@ -285,7 +552,9 @@ async function imageUrlToDataUrl(
             reject(
               error
             );
+
           }
+
         };
 
 
@@ -297,13 +566,87 @@ async function imageUrlToDataUrl(
               "No se pudo cargar el logo Rivulis."
             )
           );
+
         };
 
 
       image.src =
         url;
+
     }
   );
+
+}
+
+
+/*
+ * ==================================================
+ * CELDAS
+ * ==================================================
+ */
+
+function Header({
+  children,
+  center = false
+}: {
+  children: ReactNode;
+  center?: boolean;
+}) {
+
+  return (
+
+    <Typography
+      variant="caption"
+      fontWeight={900}
+      textAlign={
+        center
+          ? "center"
+          : "left"
+      }
+      sx={{
+        textTransform:
+          "uppercase",
+
+        color:
+          "#455A64",
+
+        fontSize:
+          10.5,
+
+        lineHeight:
+          1.15
+      }}
+    >
+      {children}
+    </Typography>
+
+  );
+
+}
+
+
+function CellBox({
+  children
+}: {
+  children: ReactNode;
+}) {
+
+  return (
+
+    <Box
+      sx={{
+        minWidth:
+          0,
+
+        overflow:
+          "visible"
+      }}
+    >
+      {children}
+    </Box>
+
+  );
+
 }
 
 
@@ -345,6 +688,12 @@ export default function Planning() {
       ""
     );
 
+
+  /*
+   * ==================================================
+   * PDF
+   * ==================================================
+   */
 
   const [
     previewOpen,
@@ -420,6 +769,7 @@ export default function Planning() {
     setOrders(
       getOrders()
     );
+
   }
 
 
@@ -443,6 +793,7 @@ export default function Planning() {
       setting.comments ??
       ""
     );
+
   }
 
 
@@ -466,155 +817,9 @@ export default function Planning() {
         "No se pudieron actualizar los comentarios de línea:",
         error
       );
-    }
-  }
 
-
-  /*
-   * ==================================================
-   * PLANTILLA REAL DEL SKU
-   * ==================================================
-   */
-
-  function getOrderTemplate(
-    order: ProductionOrder
-  ) {
-
-    const assignedTemplate =
-      getAssignedTemplate(
-        order.sku
-      );
-
-
-    if (
-      assignedTemplate
-    ) {
-
-      const template =
-        findTemplate(
-          assignedTemplate.id
-        );
-
-
-      if (
-        template
-      ) {
-
-        return template;
-      }
     }
 
-
-    const product =
-      findProduct(
-        order.sku
-      );
-
-
-    if (
-      product
-    ) {
-
-      const template =
-        findTemplate(
-          product.templateId
-        );
-
-
-      if (
-        template
-      ) {
-
-        return template;
-      }
-    }
-
-
-    return findTemplate(
-      order.templateId
-    );
-  }
-
-
-  /*
-   * ==================================================
-   * DESCRIPCIÓN
-   * ==================================================
-   *
-   * Solo añadimos automáticamente:
-   *
-   * NAAN PC MAX
-   *
-   * Para el resto de familias dejamos exactamente
-   * la descripción que tiene la orden.
-   * ==================================================
-   */
-
-  function getPlanningDescription(
-    order: ProductionOrder
-  ): string {
-
-    const description =
-      String(
-        order.product ??
-        ""
-      ).trim();
-
-
-    if (
-      !description
-    ) {
-
-      return "-";
-    }
-
-
-    const template =
-      getOrderTemplate(
-        order
-      );
-
-
-    const templateName =
-      String(
-        template?.name ??
-        ""
-      );
-
-
-    const normalizedTemplate =
-      normalizeText(
-        templateName
-      );
-
-
-    if (
-      !normalizedTemplate.includes(
-        "NAANPCMAX"
-      )
-    ) {
-
-      return description;
-    }
-
-
-    const normalizedDescription =
-      normalizeText(
-        description
-      );
-
-
-    if (
-      normalizedDescription.startsWith(
-        "NAANPCMAX"
-      )
-    ) {
-
-      return description;
-    }
-
-
-    return `NAAN PC MAX ${description}`;
   }
 
 
@@ -644,12 +849,14 @@ export default function Planning() {
 
 
         void refreshLineSettings();
+
       }
 
 
       function handleOrdersUpdated() {
 
         loadOrders();
+
       }
 
 
@@ -658,6 +865,7 @@ export default function Planning() {
         loadLineComments(
           selectedLine
         );
+
       }
 
 
@@ -697,6 +905,7 @@ export default function Planning() {
           "productionLineSettingsUpdated",
           handleLineSettingsUpdated
         );
+
       };
 
     },
@@ -705,12 +914,6 @@ export default function Planning() {
     ]
   );
 
-
-  /*
-   * ==================================================
-   * LIBERAR PDF
-   * ==================================================
-   */
 
   useEffect(
     () => {
@@ -724,7 +927,9 @@ export default function Planning() {
           URL.revokeObjectURL(
             previewUrl
           );
+
         }
+
       };
 
     },
@@ -736,17 +941,19 @@ export default function Planning() {
 
   /*
    * ==================================================
-   * ÓRDENES SIN LÍNEA
+   * ÓRDENES ACTIVAS
    * ==================================================
    */
 
-  const unassignedOrders =
+  const activeOrders =
     useMemo(
       () =>
         orders.filter(
           order =>
-            order.productionLine ===
-              0 &&
+            order.productionLine >=
+              1 &&
+            order.productionLine <=
+              8 &&
             order.status !==
               "FINALIZADA" &&
             getPendingQuantity(
@@ -768,18 +975,13 @@ export default function Planning() {
 
   const lineOrders =
     useMemo(
-      () =>
-        orders
+      () => {
+
+        return activeOrders
           .filter(
             order =>
               order.productionLine ===
-                selectedLine &&
-              order.status !==
-                "FINALIZADA" &&
-              getPendingQuantity(
-                order
-              ) >
-                0
+              selectedLine
           )
           .sort(
             (
@@ -788,27 +990,65 @@ export default function Planning() {
             ) => {
 
               const positionA =
-                a.planningPosition >
+                Number(
+                  a.planningPosition ??
                   0
-                  ? a.planningPosition
-                  : Number.MAX_SAFE_INTEGER;
+                );
 
 
               const positionB =
-                b.planningPosition >
+                Number(
+                  b.planningPosition ??
                   0
-                  ? b.planningPosition
+                );
+
+
+              const safeA =
+                positionA >
+                  0
+
+                  ? positionA
+
                   : Number.MAX_SAFE_INTEGER;
 
 
+              const safeB =
+                positionB >
+                  0
+
+                  ? positionB
+
+                  : Number.MAX_SAFE_INTEGER;
+
+
+              if (
+                safeA !==
+                  safeB
+              ) {
+
+                return (
+                  safeA -
+                  safeB
+                );
+
+              }
+
+
               return (
-                positionA -
-                positionB
+                Number(
+                  a.id
+                ) -
+                Number(
+                  b.id
+                )
               );
+
             }
-          ),
+          );
+
+      },
       [
-        orders,
+        activeOrders,
         selectedLine
       ]
     );
@@ -816,9 +1056,22 @@ export default function Planning() {
 
   /*
    * ==================================================
-   * TOTALES
+   * CONTADORES
    * ==================================================
    */
+
+  function getLineCount(
+    line: number
+  ): number {
+
+    return activeOrders.filter(
+      order =>
+        order.productionLine ===
+        line
+    ).length;
+
+  }
+
 
   const totalRolls =
     lineOrders.reduce(
@@ -864,24 +1117,6 @@ export default function Planning() {
     );
 
 
-  function getLineOrderCount(
-    line: number
-  ) {
-
-    return orders.filter(
-      order =>
-        order.productionLine ===
-          line &&
-        order.status !==
-          "FINALIZADA" &&
-        getPendingQuantity(
-          order
-        ) >
-          0
-    ).length;
-  }
-
-
   /*
    * ==================================================
    * ABRIR ORDEN
@@ -897,20 +1132,21 @@ export default function Planning() {
         order.order
       )}`
     );
+
   }
 
 
   /*
    * ==================================================
-   * MOVER
+   * MOVER ORDEN
    * ==================================================
    */
 
   function moveOrder(
     orderId: number,
     direction:
-      | "UP"
-      | "DOWN"
+      "up" |
+      "down"
   ) {
 
     moveOrderInPlanning(
@@ -920,17 +1156,18 @@ export default function Planning() {
 
 
     loadOrders();
+
   }
 
 
   /*
    * ==================================================
-   * GENERAR PDF
+   * CREAR PDF
    * ==================================================
    */
 
-  async function generatePlanningPdf():
-    Promise<Blob> {
+  async function createPlanningPdf():
+  Promise<Blob> {
 
     const doc =
       new jsPDF({
@@ -947,6 +1184,61 @@ export default function Planning() {
 
     const pageWidth =
       doc.internal.pageSize.getWidth();
+
+
+    const now =
+      new Date();
+
+
+    const dateText =
+      new Intl.DateTimeFormat(
+        "es-ES",
+        {
+          day:
+            "2-digit",
+
+          month:
+            "2-digit",
+
+          year:
+            "numeric",
+
+          hour:
+            "2-digit",
+
+          minute:
+            "2-digit"
+        }
+      ).format(
+        now
+      );
+
+
+    /*
+     * FECHA
+     */
+
+    doc.setTextColor(
+      ...RIVULIS_GREEN
+    );
+
+
+    doc.setFont(
+      "helvetica",
+      "bold"
+    );
+
+
+    doc.setFontSize(
+      15
+    );
+
+
+    doc.text(
+      dateText,
+      10,
+      15
+    );
 
 
     /*
@@ -991,7 +1283,7 @@ export default function Planning() {
 
       if (
         logoHeight >
-        maxLogoHeight
+          maxLogoHeight
       ) {
 
         logoHeight =
@@ -1001,6 +1293,7 @@ export default function Planning() {
         logoWidth =
           logoHeight *
           ratio;
+
       }
 
 
@@ -1021,124 +1314,44 @@ export default function Planning() {
     ) {
 
       console.error(
-        "No se pudo añadir el logo:",
+        "No se pudo incluir el logo en el PDF:",
         error
       );
+
     }
 
 
-    /*
-     * FECHA / HORA
-     */
-
-    const now =
-      new Date();
-
-
-    const dateText =
-      now.toLocaleDateString(
-        "es-ES",
-        {
-          day:
-            "2-digit",
-
-          month:
-            "2-digit",
-
-          year:
-            "numeric"
-        }
-      );
-
-
-    const timeText =
-      now.toLocaleTimeString(
-        "es-ES",
-        {
-          hour:
-            "2-digit",
-
-          minute:
-            "2-digit"
-        }
-      );
-
-
-    doc.setFont(
-      "helvetica",
-      "bold"
-    );
-
-
-    doc.setFontSize(
-      15
-    );
-
-
-    doc.setTextColor(
-      RIVULIS_DARK_GREEN[0],
-      RIVULIS_DARK_GREEN[1],
-      RIVULIS_DARK_GREEN[2]
-    );
-
-
-    doc.text(
-      `${dateText} · ${timeText}`,
-      10,
-      18
-    );
-
-
     let currentY =
-      31;
+      28;
 
 
     /*
-     * COMENTARIOS
+     * COMENTARIO DE LÍNEA
      */
 
     if (
       lineComments.trim()
     ) {
 
-      const commentLines =
-        doc.splitTextToSize(
-          lineComments.trim(),
-          pageWidth - 32
-        );
-
-
-      const commentHeight =
-        Math.max(
-          15,
-          10 +
-          commentLines.length *
-            5
-        );
-
-
       doc.setFillColor(
-        RIVULIS_LIGHT_GREEN[0],
-        RIVULIS_LIGHT_GREEN[1],
-        RIVULIS_LIGHT_GREEN[2]
-      );
-
-
-      doc.setDrawColor(
-        RIVULIS_GREEN[0],
-        RIVULIS_GREEN[1],
-        RIVULIS_GREEN[2]
+        ...RIVULIS_LIGHT_GREEN
       );
 
 
       doc.roundedRect(
         10,
         currentY,
-        pageWidth - 20,
-        commentHeight,
-        1.5,
-        1.5,
-        "FD"
+        pageWidth -
+          20,
+        14,
+        2,
+        2,
+        "F"
+      );
+
+
+      doc.setTextColor(
+        ...RIVULIS_DARK_GREEN
       );
 
 
@@ -1149,75 +1362,48 @@ export default function Planning() {
 
 
       doc.setFontSize(
-        9
+        10
       );
 
 
-      doc.setTextColor(
-        RIVULIS_GREEN[0],
-        RIVULIS_GREEN[1],
-        RIVULIS_GREEN[2]
-      );
-
-
-      doc.text(
-        "COMENTARIOS",
-        14,
-        currentY + 5.5
-      );
-
-
-      doc.setFontSize(
-        10.5
-      );
-
-
-      doc.setTextColor(
-        30,
-        30,
-        30
-      );
+      const commentLines =
+        doc.splitTextToSize(
+          lineComments,
+          pageWidth -
+            28
+        );
 
 
       doc.text(
         commentLines,
         14,
-        currentY + 11
+        currentY +
+          5.5
       );
 
 
       currentY +=
-        commentHeight +
-        4;
+        18;
+
     }
 
 
     /*
-     * TÍTULO
+     * CABECERA DE LÍNEA
      */
 
     doc.setFillColor(
-      RIVULIS_GREEN[0],
-      RIVULIS_GREEN[1],
-      RIVULIS_GREEN[2]
+      ...RIVULIS_GREEN
     );
 
 
-    doc.setDrawColor(
-      RIVULIS_DARK_GREEN[0],
-      RIVULIS_DARK_GREEN[1],
-      RIVULIS_DARK_GREEN[2]
-    );
-
-
-    doc.roundedRect(
+    doc.rect(
       10,
       currentY,
-      pageWidth - 20,
-      13,
-      1,
-      1,
-      "FD"
+      pageWidth -
+        20,
+      12,
+      "F"
     );
 
 
@@ -1235,14 +1421,16 @@ export default function Planning() {
 
 
     doc.setFontSize(
-      16
+      15
     );
 
 
     doc.text(
       `Línea de Producción ${selectedLine}`,
-      pageWidth / 2,
-      currentY + 8.5,
+      pageWidth /
+        2,
+      currentY +
+        8.5,
       {
         align:
           "center"
@@ -1272,14 +1460,19 @@ export default function Planning() {
           order.marking ||
             "-",
 
+          /*
+           * AQUÍ MOSTRAMOS EL TOTAL:
+           * rollos × cantidad por rollo.
+           */
           formatQuantity(
-            Number(
-              order.quantity ??
-              0
+            getOrderTotalQuantity(
+              order
             ),
             order.quantityUnit ===
               "UN"
+
               ? "UN"
+
               : "M"
           ),
 
@@ -1312,7 +1505,6 @@ export default function Planning() {
     autoTable(
       doc,
       {
-
         startY:
           currentY,
 
@@ -1352,7 +1544,6 @@ export default function Planning() {
           "everyPage",
 
         styles: {
-
           font:
             "helvetica",
 
@@ -1362,32 +1553,21 @@ export default function Planning() {
           cellPadding:
             2.1,
 
-          textColor:
-            [
-              25,
-              25,
-              25
-            ],
-
-          lineColor:
-            [
-              185,
-              195,
-              188
-            ],
-
-          lineWidth:
-            0.25,
-
           valign:
             "middle",
 
-          overflow:
-            "linebreak"
+          lineColor:
+            [
+              215,
+              215,
+              215
+            ],
+
+          lineWidth:
+            0.15
         },
 
         headStyles: {
-
           fillColor:
             RIVULIS_GREEN,
 
@@ -1402,125 +1582,90 @@ export default function Planning() {
             "bold",
 
           halign:
-            "center",
-
-          valign:
-            "middle"
-        },
-
-        alternateRowStyles: {
-
-          fillColor:
-            [
-              245,
-              250,
-              246
-            ]
+            "center"
         },
 
         columnStyles: {
-
           0: {
-            cellWidth:
-              9,
-
             halign:
               "center",
-
-            fontStyle:
-              "bold",
-
-            fillColor:
-              [
-                220,
-                239,
-                225
-              ]
+            cellWidth:
+              10
           },
 
           1: {
             cellWidth:
-              28,
-
-            fontStyle:
-              "bold"
+              28
           },
 
           2: {
             cellWidth:
-              23,
-
-            halign:
-              "center"
+              24
           },
 
           3: {
-            cellWidth:
-              25,
-
             halign:
-              "center"
+              "center",
+            cellWidth:
+              27
           },
 
           4: {
-            cellWidth:
-              19,
-
             halign:
               "center",
-
-            fontStyle:
-              "bold"
+            cellWidth:
+              19
           },
 
           5: {
-            cellWidth:
-              19,
-
             halign:
               "center",
-
-            fontStyle:
-              "bold",
-
-            textColor:
-              PENDING_RED
+            cellWidth:
+              19
           },
 
           6: {
             cellWidth:
-              65,
-
-            halign:
-              "center"
+              65
           },
 
           7: {
             cellWidth:
-              40,
-
-            halign:
-              "center"
+              34
           },
 
           8: {
             cellWidth:
-              25,
-
-            halign:
-              "center"
+              27
           },
 
           9: {
             cellWidth:
-              25,
+              28
+          }
+        },
 
-            halign:
-              "center"
+        didParseCell: (
+          data
+        ) => {
+
+          if (
+            data.section ===
+              "body" &&
+            data.column.index ===
+              5
+          ) {
+
+            data.cell.styles.textColor =
+              PENDING_RED;
+
+
+            data.cell.styles.fontStyle =
+              "bold";
+
           }
 
         }
-
       }
     );
 
@@ -1528,16 +1673,17 @@ export default function Planning() {
     return doc.output(
       "blob"
     );
+
   }
 
 
   /*
    * ==================================================
-   * VISTA PREVIA
+   * ABRIR PREVISUALIZACIÓN
    * ==================================================
    */
 
-  async function openPrintPreview() {
+  async function handlePrintPreview() {
 
     if (
       lineOrders.length ===
@@ -1545,17 +1691,8 @@ export default function Planning() {
     ) {
 
       return;
+
     }
-
-
-    setPreviewError(
-      ""
-    );
-
-
-    setDefaultPrinter(
-      ""
-    );
 
 
     setGeneratingPreview(
@@ -1563,8 +1700,8 @@ export default function Planning() {
     );
 
 
-    setPreviewOpen(
-      true
+    setPreviewError(
+      ""
     );
 
 
@@ -1575,7 +1712,7 @@ export default function Planning() {
         printer
       ] =
         await Promise.all([
-          generatePlanningPdf(),
+          createPlanningPdf(),
           getDefaultPrinter()
         ]);
 
@@ -1587,6 +1724,7 @@ export default function Planning() {
         URL.revokeObjectURL(
           previewUrl
         );
+
       }
 
 
@@ -1611,6 +1749,11 @@ export default function Planning() {
         ""
       );
 
+
+      setPreviewOpen(
+        true
+      );
+
     }
     catch (
       error
@@ -1623,19 +1766,36 @@ export default function Planning() {
 
 
       setPreviewError(
-        error instanceof Error
+        error instanceof
+          Error
+
           ? error.message
+
           : "No se pudo generar la planificación."
       );
+
+
+      setPreviewOpen(
+        true
+      );
+
     }
     finally {
 
       setGeneratingPreview(
         false
       );
+
     }
+
   }
 
+
+  /*
+   * ==================================================
+   * CERRAR PDF
+   * ==================================================
+   */
 
   function closePrintPreview() {
 
@@ -1644,6 +1804,7 @@ export default function Planning() {
     ) {
 
       return;
+
     }
 
 
@@ -1655,6 +1816,7 @@ export default function Planning() {
     setPreviewError(
       ""
     );
+
   }
 
 
@@ -1671,6 +1833,7 @@ export default function Planning() {
     ) {
 
       return;
+
     }
 
 
@@ -1699,6 +1862,7 @@ export default function Planning() {
         URL.revokeObjectURL(
           previewUrl
         );
+
       }
 
 
@@ -1738,17 +1902,23 @@ export default function Planning() {
 
 
       setPreviewError(
-        error instanceof Error
+        error instanceof
+          Error
+
           ? error.message
+
           : "No se pudo imprimir la planificación."
       );
+
     }
     finally {
 
       setPrinting(
         false
       );
+
     }
+
   }
 
 
@@ -1813,11 +1983,7 @@ export default function Planning() {
 
             <Typography
               variant="h4"
-              fontWeight={700}
-              sx={{
-                color:
-                  "#087D3E"
-              }}
+              fontWeight={800}
             >
               Planificación
             </Typography>
@@ -1825,94 +1991,13 @@ export default function Planning() {
 
             <Typography
               color="text.secondary"
-              sx={{
-                mt:
-                  0.5
-              }}
             >
-              Orden de fabricación de las líneas de producción
+              Planificación de las líneas de producción
             </Typography>
 
           </Box>
 
         </Box>
-
-
-        {/* SIN LÍNEA */}
-
-        {
-          unassignedOrders.length >
-            0 &&
-          (
-
-            <Paper
-              elevation={0}
-              sx={{
-                mb:
-                  3,
-
-                p:
-                  2,
-
-                border:
-                  "1px solid #FFCC80",
-
-                backgroundColor:
-                  "#FFF8E1",
-
-                borderRadius:
-                  2
-              }}
-            >
-
-              <Typography
-                fontWeight={700}
-              >
-                Órdenes sin línea asignada
-              </Typography>
-
-
-              <Stack
-                direction="row"
-                spacing={1}
-                flexWrap="wrap"
-                useFlexGap
-                sx={{
-                  mt:
-                    1
-                }}
-              >
-
-                {
-                  unassignedOrders.map(
-                    order => (
-
-                      <Chip
-                        key={
-                          order.id
-                        }
-                        label={
-                          `${order.order} · ${order.sku}`
-                        }
-                        size="small"
-                        onClick={
-                          () =>
-                            openOrder(
-                              order
-                            )
-                        }
-                      />
-
-                    )
-                  )
-                }
-
-              </Stack>
-
-            </Paper>
-
-          )
-        }
 
 
         {/* PESTAÑAS */}
@@ -1921,10 +2006,10 @@ export default function Planning() {
           elevation={0}
           sx={{
             mb:
-              2.5,
+              2,
 
             border:
-              "1px solid #D7DDD9",
+              "1px solid #E0E0E0",
 
             borderRadius:
               2,
@@ -1952,10 +2037,7 @@ export default function Planning() {
             variant="fullWidth"
             sx={{
               backgroundColor:
-                "#FAFBFA",
-
-              minHeight:
-                64,
+                "#F8FAF8",
 
               "& .MuiTabs-indicator": {
                 backgroundColor:
@@ -1966,17 +2048,14 @@ export default function Planning() {
               },
 
               "& .MuiTab-root": {
+                fontWeight:
+                  800,
+
                 minHeight:
                   64,
 
                 minWidth:
-                  0,
-
-                px:
-                  0.6,
-
-                fontWeight:
-                  800
+                  0
               },
 
               "& .Mui-selected": {
@@ -1991,7 +2070,7 @@ export default function Planning() {
                 line => {
 
                   const count =
-                    getLineOrderCount(
+                    getLineCount(
                       line
                     );
 
@@ -2013,12 +2092,9 @@ export default function Planning() {
                           alignItems="center"
                         >
 
-                          <Typography
-                            component="span"
-                            fontWeight={800}
-                          >
+                          <span>
                             LÍNEA {line}
-                          </Typography>
+                          </span>
 
 
                           <Box
@@ -2050,19 +2126,27 @@ export default function Planning() {
                               backgroundColor:
                                 selectedLine ===
                                   line
+
                                   ? "#0B7A3B"
+
                                   : count >
                                       0
+
                                     ? "#DCEFE1"
+
                                     : "#EEEEEE",
 
                               color:
                                 selectedLine ===
                                   line
+
                                   ? "#FFFFFF"
+
                                   : count >
                                       0
+
                                     ? "#0B7A3B"
+
                                     : "#757575"
                             }}
                           >
@@ -2075,6 +2159,7 @@ export default function Planning() {
                     />
 
                   );
+
                 }
               )
             }
@@ -2084,27 +2169,20 @@ export default function Planning() {
         </Paper>
 
 
-        {/* TABLA */}
+        {/* CONTENIDO */}
 
         <Paper
-          elevation={0}
+          variant="outlined"
           sx={{
-            width:
-              "100%",
-
-            minWidth:
-              0,
+            borderRadius:
+              2,
 
             overflow:
-              "hidden",
-
-            border:
-              "1px solid #D8DDD9",
-
-            borderRadius:
-              2
+              "hidden"
           }}
         >
+
+          {/* CABECERA LÍNEA */}
 
           <Box
             sx={{
@@ -2114,22 +2192,33 @@ export default function Planning() {
               py:
                 1.5,
 
+              display:
+                "flex",
+
+              alignItems:
+                "center",
+
+              justifyContent:
+                "space-between",
+
+              gap:
+                2,
+
+              flexWrap:
+                "wrap",
+
               backgroundColor:
-                "#E8F3EB"
+                "#E8F3EB",
+
+              borderBottom:
+                "1px solid #E0E0E0"
             }}
           >
 
-            <Box
-              sx={{
-                display:
-                  "flex",
-
-                alignItems:
-                  "center",
-
-                gap:
-                  1.2
-              }}
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
             >
 
               <FactoryIcon
@@ -2143,160 +2232,168 @@ export default function Planning() {
               <Typography
                 variant="h6"
                 fontWeight={900}
-                sx={{
-                  color:
-                    "#0B7A3B"
-                }}
+                color="#0B7A3B"
               >
-                LÍNEA {selectedLine}
+                Línea de Producción {selectedLine}
               </Typography>
 
-
-              {
-                lineComments &&
-                (
-
-                  <Box
-                    sx={{
-                      display:
-                        "flex",
-
-                      alignItems:
-                        "center",
-
-                      gap:
-                        0.5,
-
-                      flex:
-                        1
-                    }}
-                  >
-
-                    <CommentIcon
-                      sx={{
-                        fontSize:
-                          17,
-
-                        color:
-                          "#D84315"
-                      }}
-                    />
+            </Stack>
 
 
-                    <Typography
-                      variant="body2"
-                      fontWeight={800}
-                      sx={{
-                        color:
-                          "#D84315"
-                      }}
-                    >
-                      {lineComments}
-                    </Typography>
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexWrap="wrap"
+            >
 
-                  </Box>
-
-                )
-              }
-
-
-              <Stack
-                direction="row"
-                spacing={0.7}
+              <Chip
+                label={
+                  `${lineOrders.length} OF`
+                }
+                size="small"
                 sx={{
-                  ml:
-                    "auto"
+                  fontWeight:
+                    800
+                }}
+              />
+
+
+              <Chip
+                label={
+                  `R/B: ${totalRolls}`
+                }
+                size="small"
+                variant="outlined"
+              />
+
+
+              <Chip
+                label={
+                  `Imp.: ${totalPrinted}`
+                }
+                size="small"
+                variant="outlined"
+              />
+
+
+              <Chip
+                label={
+                  `Pend.: ${totalPending}`
+                }
+                size="small"
+                color={
+                  totalPending >
+                    0
+
+                    ? "warning"
+
+                    : "success"
+                }
+              />
+
+
+              <Button
+                variant="contained"
+                color="success"
+                size="small"
+                startIcon={
+                  generatingPreview
+
+                    ? (
+                      <CircularProgress
+                        size={17}
+                        color="inherit"
+                      />
+                    )
+
+                    : (
+                      <PrintIcon />
+                    )
+                }
+                disabled={
+                  generatingPreview ||
+                  lineOrders.length ===
+                    0
+                }
+                onClick={
+                  () =>
+                    void handlePrintPreview()
+                }
+                sx={{
+                  fontWeight:
+                    800
                 }}
               >
+                IMPRIMIR
+              </Button>
 
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={
-                    <PrintIcon />
-                  }
-                  disabled={
-                    lineOrders.length ===
-                      0
-                  }
-                  onClick={
-                    () =>
-                      void openPrintPreview()
-                  }
-                  sx={{
-                    fontWeight:
-                      800,
-
-                    borderColor:
-                      "#0B7A3B",
-
-                    color:
-                      "#0B7A3B",
-
-                    backgroundColor:
-                      "#FFFFFF"
-                  }}
-                >
-                  IMPRIMIR PLANIFICACIÓN
-                </Button>
-
-
-                <Chip
-                  label={
-                    lineOrders.length ===
-                      1
-                      ? "1 ORDEN"
-                      : `${lineOrders.length} ÓRDENES`
-                  }
-                  size="small"
-                  sx={{
-                    fontWeight:
-                      900,
-
-                    color:
-                      "#FFFFFF",
-
-                    backgroundColor:
-                      "#0B7A3B"
-                  }}
-                />
-
-
-                <Chip
-                  label={`R/B: ${totalRolls}`}
-                  size="small"
-                  variant="outlined"
-                />
-
-
-                <Chip
-                  label={`Imp.: ${totalPrinted}`}
-                  size="small"
-                  variant="outlined"
-                />
-
-
-                <Chip
-                  label={`Pend.: ${totalPending}`}
-                  size="small"
-                  color={
-                    totalPending >
-                      0
-                      ? "warning"
-                      : "success"
-                  }
-                />
-
-              </Stack>
-
-            </Box>
+            </Stack>
 
           </Box>
 
 
+          {/* COMENTARIO */}
+
+          {
+            lineComments &&
+            (
+
+              <Box
+                sx={{
+                  px:
+                    2,
+
+                  py:
+                    1.2,
+
+                  display:
+                    "flex",
+
+                  alignItems:
+                    "center",
+
+                  gap:
+                    1,
+
+                  backgroundColor:
+                    "#F5FBF7",
+
+                  borderBottom:
+                    "1px solid #E0E0E0"
+                }}
+              >
+
+                <CommentIcon
+                  sx={{
+                    color:
+                      "#D84315",
+
+                    fontSize:
+                      20
+                  }}
+                />
+
+
+                <Typography
+                  fontWeight={800}
+                  color="#D84315"
+                >
+                  {lineComments}
+                </Typography>
+
+              </Box>
+
+            )
+          }
+
+
+          {/* SIN ÓRDENES */}
+
           {
             lineOrders.length ===
               0
+
               ? (
 
                 <Box
@@ -2329,13 +2426,11 @@ export default function Planning() {
                 </Box>
 
               )
+
               : (
 
                 <Box
                   sx={{
-                    width:
-                      "100%",
-
                     overflowX:
                       "auto"
                   }}
@@ -2348,7 +2443,7 @@ export default function Planning() {
                     }}
                   >
 
-                    {/* CABECERA */}
+                    {/* HEAD */}
 
                     <Box
                       sx={{
@@ -2368,18 +2463,21 @@ export default function Planning() {
                           1.1,
 
                         backgroundColor:
-                          "#F5F7FA",
-
-                        borderBottom:
-                          "1px solid #EEEEEE"
+                          "#F5F7FA"
                       }}
                     >
 
-                      <Header center>#</Header>
+                      <Header center>
+                        #
+                      </Header>
 
-                      <Header>OF</Header>
+                      <Header>
+                        OF
+                      </Header>
 
-                      <Header>Marcaje</Header>
+                      <Header>
+                        Marcaje
+                      </Header>
 
                       <Header center>
                         Metros / Unid.
@@ -2438,6 +2536,7 @@ export default function Planning() {
                           const progress =
                             order.rolls >
                               0
+
                               ? Math.min(
                                   100,
                                   (
@@ -2446,7 +2545,26 @@ export default function Planning() {
                                   ) *
                                     100
                                 )
+
                               : 0;
+
+
+                          const totalQuantity =
+                            getOrderTotalQuantity(
+                              order
+                            );
+
+
+                          const unit:
+                            "M" |
+                            "UN" =
+
+                            order.quantityUnit ===
+                              "UN"
+
+                              ? "UN"
+
+                              : "M";
 
 
                           return (
@@ -2483,8 +2601,13 @@ export default function Planning() {
                                 cursor:
                                   "pointer",
 
-                                borderBottom:
-                                  "1px solid #EEEEEE"
+                                borderTop:
+                                  "1px solid #EEEEEE",
+
+                                "&:hover": {
+                                  backgroundColor:
+                                    "#F6FBF7"
+                                }
                               }}
                             >
 
@@ -2534,6 +2657,7 @@ export default function Planning() {
 
                                 <Typography
                                   variant="body2"
+                                  noWrap
                                 >
                                   {
                                     order.marking ||
@@ -2544,22 +2668,26 @@ export default function Planning() {
                               </CellBox>
 
 
+                              {/* TOTAL METROS / UNIDADES */}
+
                               <CellBox>
 
                                 <Typography
-                                  textAlign="center"
                                   variant="body2"
+                                  fontWeight={800}
+                                  textAlign="center"
+                                  sx={{
+                                    color:
+                                      "#0B7A3B",
+
+                                    whiteSpace:
+                                      "nowrap"
+                                  }}
                                 >
                                   {
                                     formatQuantity(
-                                      Number(
-                                        order.quantity ??
-                                        0
-                                      ),
-                                      order.quantityUnit ===
-                                        "UN"
-                                        ? "UN"
-                                        : "M"
+                                      totalQuantity,
+                                      unit
                                     )
                                   }
                                 </Typography>
@@ -2582,9 +2710,16 @@ export default function Planning() {
                               <CellBox>
 
                                 <Typography
-                                  fontWeight={800}
+                                  fontWeight={900}
                                   textAlign="center"
-                                  color="error.main"
+                                  color={
+                                    pending >
+                                      0
+
+                                      ? "error.main"
+
+                                      : "success.main"
+                                  }
                                 >
                                   {pending}
                                 </Typography>
@@ -2596,6 +2731,24 @@ export default function Planning() {
 
                                 <Typography
                                   variant="body2"
+                                  title={
+                                    getPlanningDescription(
+                                      order
+                                    )
+                                  }
+                                  sx={{
+                                    overflow:
+                                      "hidden",
+
+                                    display:
+                                      "-webkit-box",
+
+                                    WebkitLineClamp:
+                                      2,
+
+                                    WebkitBoxOrient:
+                                      "vertical"
+                                  }}
                                 >
                                   {
                                     getPlanningDescription(
@@ -2611,6 +2764,7 @@ export default function Planning() {
 
                                 <Typography
                                   variant="body2"
+                                  noWrap
                                 >
                                   {
                                     order.customer ||
@@ -2625,6 +2779,7 @@ export default function Planning() {
 
                                 <Typography
                                   variant="body2"
+                                  noWrap
                                 >
                                   {order.sku}
                                 </Typography>
@@ -2636,6 +2791,8 @@ export default function Planning() {
 
                                 <Typography
                                   variant="body2"
+                                  fontWeight={700}
+                                  noWrap
                                 >
                                   {
                                     order.salesOrder ||
@@ -2648,44 +2805,54 @@ export default function Planning() {
 
                               <CellBox>
 
-                                <LinearProgress
-                                  variant="determinate"
-                                  value={
-                                    progress
-                                  }
-                                />
-
-
-                                <Typography
-                                  variant="caption"
+                                <Box
                                   sx={{
-                                    display:
-                                      "block",
-
-                                    textAlign:
-                                      "center"
+                                    minWidth:
+                                      0
                                   }}
                                 >
-                                  {Math.round(progress)}%
-                                </Typography>
+
+                                  <LinearProgress
+                                    variant="determinate"
+                                    value={
+                                      progress
+                                    }
+                                    sx={{
+                                      height:
+                                        7,
+
+                                      borderRadius:
+                                        5,
+
+                                      mb:
+                                        0.4
+                                    }}
+                                  />
+
+
+                                  <Typography
+                                    variant="caption"
+                                    display="block"
+                                    textAlign="center"
+                                  >
+                                    {
+                                      Math.round(
+                                        progress
+                                      )
+                                    }%
+                                  </Typography>
+
+                                </Box>
 
                               </CellBox>
 
 
                               <CellBox>
 
-                                <Box
-                                  onClick={
-                                    event =>
-                                      event.stopPropagation()
-                                  }
-                                  sx={{
-                                    display:
-                                      "flex",
-
-                                    justifyContent:
-                                      "center"
-                                  }}
+                                <Stack
+                                  direction="column"
+                                  alignItems="center"
+                                  spacing={0}
                                 >
 
                                   <IconButton
@@ -2702,8 +2869,9 @@ export default function Planning() {
 
                                         moveOrder(
                                           order.id,
-                                          "UP"
+                                          "up"
                                         );
+
                                       }
                                     }
                                   >
@@ -2716,7 +2884,7 @@ export default function Planning() {
                                     disabled={
                                       index ===
                                         lineOrders.length -
-                                          1
+                                        1
                                     }
                                     onClick={
                                       event => {
@@ -2726,21 +2894,23 @@ export default function Planning() {
 
                                         moveOrder(
                                           order.id,
-                                          "DOWN"
+                                          "down"
                                         );
+
                                       }
                                     }
                                   >
                                     <KeyboardArrowDownIcon />
                                   </IconButton>
 
-                                </Box>
+                                </Stack>
 
                               </CellBox>
 
                             </Box>
 
                           );
+
                         }
                       )
                     }
@@ -2758,7 +2928,7 @@ export default function Planning() {
 
 
       {/* ==================================================
-          VISTA PREVIA
+          PDF
           ================================================== */}
 
       <Dialog
@@ -2769,94 +2939,71 @@ export default function Planning() {
           closePrintPreview
         }
         fullWidth
-        maxWidth={false}
+        maxWidth="xl"
         PaperProps={{
           sx: {
-            width:
-              "94vw",
-
             height:
-              "92vh",
-
-            maxWidth:
-              "1500px",
-
-            overflow:
-              "hidden"
+              "92vh"
           }
         }}
       >
 
-        <DialogTitle
-          sx={{
-            backgroundColor:
-              "#0B7A3B",
-
-            color:
-              "#FFFFFF",
-
-            display:
-              "flex",
-
-            justifyContent:
-              "space-between",
-
-            alignItems:
-              "center"
-          }}
-        >
+        <DialogTitle>
 
           <Stack
             direction="row"
-            spacing={1}
             alignItems="center"
+            justifyContent="space-between"
           >
-
-            <PrintIcon />
-
 
             <Box>
 
               <Typography
-                fontWeight={900}
+                variant="h6"
+                fontWeight={800}
               >
-                Vista previa de planificación
+                Planificación Línea {selectedLine}
               </Typography>
 
 
-              <Typography
-                variant="caption"
-              >
-                Línea {selectedLine}
-              </Typography>
+              {
+                defaultPrinter &&
+                (
+
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    Impresora: {defaultPrinter}
+                  </Typography>
+
+                )
+              }
 
             </Box>
 
+
+            <IconButton
+              onClick={
+                closePrintPreview
+              }
+              disabled={
+                printing
+              }
+            >
+              <CloseIcon />
+            </IconButton>
+
           </Stack>
-
-
-          <IconButton
-            onClick={
-              closePrintPreview
-            }
-            disabled={
-              printing
-            }
-            sx={{
-              color:
-                "#FFFFFF"
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
 
         </DialogTitle>
 
 
         <DialogContent
+          dividers
           sx={{
             p:
-              0,
+              1,
 
             display:
               "flex",
@@ -2865,15 +3012,31 @@ export default function Planning() {
               "column",
 
             minHeight:
-              0,
-
-            backgroundColor:
-              "#525659"
+              0
           }}
         >
 
           {
+            previewError &&
+            (
+
+              <Alert
+                severity="error"
+                sx={{
+                  mb:
+                    1
+                }}
+              >
+                {previewError}
+              </Alert>
+
+            )
+          }
+
+
+          {
             generatingPreview
+
               ? (
 
                 <Box
@@ -2888,98 +3051,66 @@ export default function Planning() {
                       "center",
 
                     justifyContent:
-                      "center",
-
-                    backgroundColor:
-                      "#FFFFFF"
+                      "center"
                   }}
                 >
                   <CircularProgress />
                 </Box>
 
               )
-              : previewError
+
+              : previewUrl
+
                 ? (
+
+                  <Box
+                    component="iframe"
+                    src={
+                      previewUrl
+                    }
+                    title={`Planificación Línea ${selectedLine}`}
+                    sx={{
+                      width:
+                        "100%",
+
+                      flex:
+                        1,
+
+                      minHeight:
+                        0,
+
+                      border:
+                        0
+                    }}
+                  />
+
+                )
+
+                : (
 
                   <Box
                     sx={{
                       p:
-                        2,
+                        4,
 
-                      backgroundColor:
-                        "#FFFFFF"
+                      textAlign:
+                        "center"
                     }}
                   >
-
-                    <Alert
-                      severity="error"
+                    <Typography
+                      color="text.secondary"
                     >
-                      {previewError}
-                    </Alert>
-
+                      No hay vista previa disponible.
+                    </Typography>
                   </Box>
 
                 )
-                : previewUrl
-                  ? (
-
-                    <Box
-                      component="iframe"
-                      src={
-                        `${previewUrl}#toolbar=0&navpanes=0`
-                      }
-                      title="Vista previa planificación"
-                      sx={{
-                        width:
-                          "100%",
-
-                        flex:
-                          1,
-
-                        minHeight:
-                          0,
-
-                        border:
-                          0
-                      }}
-                    />
-
-                  )
-                  : null
           }
 
         </DialogContent>
 
 
         <DialogActions>
-
-          <Box
-            sx={{
-              flex:
-                1
-            }}
-          >
-
-            {
-              defaultPrinter &&
-              (
-
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Impresora:{" "}
-
-                  <strong>
-                    {defaultPrinter}
-                  </strong>
-                </Typography>
-
-              )
-            }
-
-          </Box>
-
 
           <Button
             onClick={
@@ -2989,40 +3120,35 @@ export default function Planning() {
               printing
             }
           >
-            CANCELAR
+            CERRAR
           </Button>
 
 
           <Button
             variant="contained"
+            color="success"
             startIcon={
               printing
+
                 ? (
-                    <CircularProgress
-                      size={17}
-                      color="inherit"
-                    />
-                  )
+                  <CircularProgress
+                    size={18}
+                    color="inherit"
+                  />
+                )
+
                 : (
-                    <PrintIcon />
-                  )
+                  <PrintIcon />
+                )
+            }
+            disabled={
+              printing ||
+              !previewBlob
             }
             onClick={
               () =>
                 void handleDirectPrint()
             }
-            disabled={
-              generatingPreview ||
-              printing ||
-              !previewBlob
-            }
-            sx={{
-              backgroundColor:
-                "#0B7A3B",
-
-              fontWeight:
-                800
-            }}
           >
             {
               printing
@@ -3038,59 +3164,5 @@ export default function Planning() {
     </>
 
   );
-}
 
-
-function CellBox({
-  children
-}: {
-  children: ReactNode;
-}) {
-
-  return (
-
-    <Box
-      sx={{
-        minWidth:
-          0
-      }}
-    >
-      {children}
-    </Box>
-
-  );
-}
-
-
-function Header({
-  children,
-  center = false
-}: {
-  children: ReactNode;
-  center?: boolean;
-}) {
-
-  return (
-
-    <Typography
-      variant="caption"
-      fontWeight={800}
-      color="text.secondary"
-      textAlign={
-        center
-          ? "center"
-          : "left"
-      }
-      sx={{
-        whiteSpace:
-          "nowrap",
-
-        textTransform:
-          "uppercase"
-      }}
-    >
-      {children}
-    </Typography>
-
-  );
 }

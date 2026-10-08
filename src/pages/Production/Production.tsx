@@ -5,30 +5,30 @@ import {
 } from "react";
 
 import {
+  Alert,
   Box,
-  Stack,
-  Typography,
   Button,
   Card,
   CardContent,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
   Chip,
-  IconButton,
   Dialog,
-  DialogTitle,
+  DialogActions,
   DialogContent,
   DialogContentText,
-  DialogActions,
-  Tooltip,
-  Tabs,
-  Tab,
+  DialogTitle,
+  IconButton,
   Paper,
+  Stack,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Tabs,
   TextField,
-  Alert
+  Tooltip,
+  Typography
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -55,16 +55,8 @@ import {
 } from "../../services/OrderStorage";
 
 import {
-  findTemplate
+  getTemplates
 } from "../../services/TemplateStorage";
-
-import {
-  findProduct
-} from "../../services/ProductStorage";
-
-import {
-  getAssignedTemplate
-} from "../../services/ProductTemplateStorage";
 
 import {
   getProductionLineSetting,
@@ -72,6 +64,12 @@ import {
   updateProductionLineComments
 } from "../../services/ProductionLineStorage";
 
+
+/*
+ * ==================================================
+ * LÍNEAS
+ * ==================================================
+ */
 
 const PRODUCTION_LINES = [
   1,
@@ -84,6 +82,52 @@ const PRODUCTION_LINES = [
   8
 ];
 
+
+/*
+ * ==================================================
+ * FORMATEAR NÚMERO
+ * ==================================================
+ */
+
+function formatNumber(
+  value: number
+): string {
+
+  const numeric =
+    Number(
+      value ?? 0
+    );
+
+
+  if (
+    !Number.isFinite(
+      numeric
+    )
+  ) {
+
+    return "0";
+
+  }
+
+
+  return new Intl.NumberFormat(
+    "es-ES",
+    {
+      maximumFractionDigits:
+        2
+    }
+  ).format(
+    numeric
+  );
+
+}
+
+
+/*
+ * ==================================================
+ * FORMATEAR CANTIDAD
+ * ==================================================
+ */
 
 function formatQuantity(
   quantity: number,
@@ -100,152 +144,205 @@ function formatQuantity(
     !Number.isFinite(
       value
     ) ||
-    value <= 0
+    value <=
+      0
   ) {
 
     return "-";
+
   }
 
 
   const formatted =
-    new Intl.NumberFormat(
-      "es-ES",
-      {
-        maximumFractionDigits:
-          2
-      }
-    ).format(
+    formatNumber(
       value
     );
 
 
   return unit ===
     "UN"
+
     ? `${formatted} un`
+
     : `${formatted} m`;
+
 }
 
 
-function normalizeText(
-  value: string
-): string {
+/*
+ * ==================================================
+ * TOTAL ORDEN
+ * ==================================================
+ */
 
-  return value
-    .toUpperCase()
-    .normalize(
-      "NFD"
-    )
-    .replace(
-      /[\u0300-\u036f]/g,
-      ""
-    )
-    .replace(
-      /[^A-Z0-9]/g,
-      ""
+function getOrderTotalQuantity(
+  order: ProductionOrder
+): number {
+
+  const rolls =
+    Math.max(
+      0,
+      Number(
+        order.rolls ??
+        0
+      )
     );
+
+
+  const quantityPerRoll =
+    Math.max(
+      0,
+      Number(
+        order.quantity ??
+        0
+      )
+    );
+
+
+  return (
+    rolls *
+    quantityPerRoll
+  );
+
 }
 
+
+/*
+ * ==================================================
+ * COMPONENTE
+ * ==================================================
+ */
 
 export default function Production() {
 
   const [
     orders,
     setOrders
-  ] = useState<
-    ProductionOrder[]
-  >([]);
+  ] =
+    useState<
+      ProductionOrder[]
+    >([]);
 
 
   const [
     selectedLine,
     setSelectedLine
-  ] = useState<number>(
-    1
-  );
+  ] =
+    useState<number>(
+      1
+    );
 
 
   const [
     openDialog,
     setOpenDialog
-  ] = useState(
-    false
-  );
+  ] =
+    useState(
+      false
+    );
 
 
   const [
     editing,
     setEditing
-  ] = useState<
-    ProductionOrder |
-    undefined
-  >();
+  ] =
+    useState<
+      ProductionOrder |
+      undefined
+    >();
 
 
   const [
     managing,
     setManaging
-  ] = useState<
-    ProductionOrder |
-    undefined
-  >();
+  ] =
+    useState<
+      ProductionOrder |
+      undefined
+    >();
 
 
   const [
     orderToDelete,
     setOrderToDelete
-  ] = useState<
-    ProductionOrder |
-    undefined
-  >();
+  ] =
+    useState<
+      ProductionOrder |
+      undefined
+    >();
 
+
+  /*
+   * ==================================================
+   * COMENTARIOS DE LÍNEA
+   * ==================================================
+   */
 
   const [
     lineComments,
     setLineComments
-  ] = useState(
-    ""
-  );
+  ] =
+    useState(
+      ""
+    );
 
 
   const [
     commentsDialogOpen,
     setCommentsDialogOpen
-  ] = useState(
-    false
-  );
+  ] =
+    useState(
+      false
+    );
 
 
   const [
     commentsDraft,
     setCommentsDraft
-  ] = useState(
-    ""
-  );
+  ] =
+    useState(
+      ""
+    );
 
 
   const [
     savingComments,
     setSavingComments
-  ] = useState(
-    false
-  );
+  ] =
+    useState(
+      false
+    );
 
 
   const [
     commentsError,
     setCommentsError
-  ] = useState(
-    ""
-  );
+  ] =
+    useState(
+      ""
+    );
 
+
+  /*
+   * ==================================================
+   * CARGAR ÓRDENES
+   * ==================================================
+   */
 
   function loadOrders() {
 
     setOrders(
       getOrders()
     );
+
   }
 
+
+  /*
+   * ==================================================
+   * CARGAR COMENTARIO
+   * ==================================================
+   */
 
   function loadLineComments(
     line: number
@@ -261,8 +358,15 @@ export default function Production() {
       setting.comments ??
       ""
     );
+
   }
 
+
+  /*
+   * ==================================================
+   * EVENTOS
+   * ==================================================
+   */
 
   useEffect(
     () => {
@@ -290,7 +394,9 @@ export default function Production() {
             "No se pudieron cargar los comentarios de línea:",
             error
           );
+
         }
+
       }
 
 
@@ -300,6 +406,7 @@ export default function Production() {
       function handleOrdersUpdated() {
 
         loadOrders();
+
       }
 
 
@@ -308,6 +415,7 @@ export default function Production() {
         loadLineComments(
           selectedLine
         );
+
       }
 
 
@@ -335,6 +443,7 @@ export default function Production() {
           "productionLineSettingsUpdated",
           handleLineSettingsUpdated
         );
+
       };
 
     },
@@ -357,6 +466,12 @@ export default function Production() {
     ]
   );
 
+
+  /*
+   * ==================================================
+   * GUARDAR ORDEN
+   * ==================================================
+   */
 
   function saveOrder(
     order: ProductionOrder
@@ -388,6 +503,7 @@ export default function Production() {
       addOrder(
         order
       );
+
     }
 
 
@@ -419,9 +535,17 @@ export default function Production() {
       setSelectedLine(
         order.productionLine
       );
+
     }
+
   }
 
+
+  /*
+   * ==================================================
+   * NUEVA ORDEN
+   * ==================================================
+   */
 
   function newOrder() {
 
@@ -433,8 +557,15 @@ export default function Production() {
     setOpenDialog(
       true
     );
+
   }
 
+
+  /*
+   * ==================================================
+   * GESTIONAR ORDEN
+   * ==================================================
+   */
 
   function manageOrder(
     order: ProductionOrder
@@ -443,8 +574,15 @@ export default function Production() {
     setManaging(
       order
     );
+
   }
 
+
+  /*
+   * ==================================================
+   * ELIMINAR
+   * ==================================================
+   */
 
   function askRemoveOrder(
     order: ProductionOrder
@@ -453,6 +591,7 @@ export default function Production() {
     setOrderToDelete(
       order
     );
+
   }
 
 
@@ -461,6 +600,7 @@ export default function Production() {
     setOrderToDelete(
       undefined
     );
+
   }
 
 
@@ -471,6 +611,7 @@ export default function Production() {
     ) {
 
       return;
+
     }
 
 
@@ -485,8 +626,15 @@ export default function Production() {
 
 
     loadOrders();
+
   }
 
+
+  /*
+   * ==================================================
+   * COMENTARIO DE LÍNEA
+   * ==================================================
+   */
 
   function openCommentsDialog() {
 
@@ -503,6 +651,7 @@ export default function Production() {
     setCommentsDialogOpen(
       true
     );
+
   }
 
 
@@ -513,6 +662,7 @@ export default function Production() {
     ) {
 
       return;
+
     }
 
 
@@ -529,6 +679,7 @@ export default function Production() {
     setCommentsError(
       ""
     );
+
   }
 
 
@@ -539,6 +690,7 @@ export default function Production() {
     ) {
 
       return;
+
     }
 
 
@@ -598,173 +750,51 @@ export default function Production() {
       setSavingComments(
         false
       );
+
     }
+
   }
 
 
   /*
    * ==================================================
-   * PLANTILLA REAL DEL SKU
+   * NOMBRE PLANTILLA
    * ==================================================
    */
 
-  function getOrderTemplate(
-    order: ProductionOrder
-  ) {
-
-    const assignedTemplate =
-      getAssignedTemplate(
-        order.sku
-      );
-
-
-    if (
-      assignedTemplate
-    ) {
-
-      const template =
-        findTemplate(
-          assignedTemplate.id
-        );
-
-
-      if (
-        template
-      ) {
-
-        return template;
-      }
-    }
-
-
-    const product =
-      findProduct(
-        order.sku
-      );
-
-
-    if (
-      product
-    ) {
-
-      const template =
-        findTemplate(
-          product.templateId
-        );
-
-
-      if (
-        template
-      ) {
-
-        return template;
-      }
-    }
-
-
-    return findTemplate(
-      order.templateId
-    );
-  }
-
-
-  function getOrderTemplateName(
-    order: ProductionOrder
+  function getTemplateName(
+    templateId: number
   ): string {
+
+    const templates =
+      getTemplates();
+
+
+    const template =
+      templates.find(
+        item =>
+          Number(
+            item.id
+          ) ===
+          Number(
+            templateId
+          )
+      );
+
 
     return (
-      getOrderTemplate(
-        order
-      )?.name ??
+      template?.name ??
       "-"
     );
+
   }
 
 
   /*
    * ==================================================
-   * DESCRIPCIÓN
-   * ==================================================
-   *
-   * IMPORTANTE:
-   *
-   * Solo añadimos automáticamente el nombre
-   * NAAN PC MAX.
-   *
-   * El resto de familias utilizan exactamente
-   * la descripción original de la orden.
+   * ÓRDENES DE LA LÍNEA
    * ==================================================
    */
-
-  function getProductionDescription(
-    order: ProductionOrder
-  ): string {
-
-    const description =
-      String(
-        order.product ??
-        ""
-      ).trim();
-
-
-    if (
-      !description
-    ) {
-
-      return "-";
-    }
-
-
-    const templateName =
-      getOrderTemplateName(
-        order
-      );
-
-
-    const normalizedTemplate =
-      normalizeText(
-        templateName
-      );
-
-
-    /*
-     * Solo NAAN PC MAX.
-     */
-
-    if (
-      !normalizedTemplate.includes(
-        "NAANPCMAX"
-      )
-    ) {
-
-      return description;
-    }
-
-
-    const normalizedDescription =
-      normalizeText(
-        description
-      );
-
-
-    /*
-     * Si ya aparece NAAN PC MAX,
-     * no lo repetimos.
-     */
-
-    if (
-      normalizedDescription.startsWith(
-        "NAANPCMAX"
-      )
-    ) {
-
-      return description;
-    }
-
-
-    return `NAAN PC MAX ${description}`;
-  }
-
 
   const lineOrders =
     useMemo(
@@ -776,8 +806,11 @@ export default function Production() {
               order,
               storageIndex
             ) => ({
+
               order,
+
               storageIndex
+
             })
           )
           .filter(
@@ -798,22 +831,29 @@ export default function Production() {
 
                 return a.order.status ===
                   "ABIERTA"
+
                   ? -1
+
                   : 1;
+
               }
 
 
               const positionA =
                 a.order.planningPosition >
                   0
+
                   ? a.order.planningPosition
+
                   : Number.MAX_SAFE_INTEGER;
 
 
               const positionB =
                 b.order.planningPosition >
                   0
+
                   ? b.order.planningPosition
+
                   : Number.MAX_SAFE_INTEGER;
 
 
@@ -826,6 +866,7 @@ export default function Production() {
                   positionA -
                   positionB
                 );
+
               }
 
 
@@ -833,6 +874,7 @@ export default function Production() {
                 a.storageIndex -
                 b.storageIndex
               );
+
             }
           )
           .map(
@@ -847,6 +889,12 @@ export default function Production() {
       ]
     );
 
+
+  /*
+   * ==================================================
+   * SIN LÍNEA
+   * ==================================================
+   */
 
   const unassignedOrders =
     useMemo(
@@ -867,6 +915,12 @@ export default function Production() {
     );
 
 
+  /*
+   * ==================================================
+   * CONTADOR LÍNEA
+   * ==================================================
+   */
+
   function getLineOrderCount(
     line: number
   ): number {
@@ -876,8 +930,15 @@ export default function Production() {
         order.productionLine ===
         line
     ).length;
+
   }
 
+
+  /*
+   * ==================================================
+   * FILA DE ORDEN
+   * ==================================================
+   */
 
   function renderOrderRow(
     order: ProductionOrder,
@@ -887,8 +948,39 @@ export default function Production() {
     const pending =
       Math.max(
         0,
-        order.rolls -
-        order.printed
+        Number(
+          order.rolls ??
+          0
+        ) -
+        Number(
+          order.printed ??
+          0
+        )
+      );
+
+
+    const quantityUnit:
+      "M" |
+      "UN" =
+
+      order.quantityUnit ===
+        "UN"
+
+        ? "UN"
+
+        : "M";
+
+
+    const quantityPerRoll =
+      Number(
+        order.quantity ??
+        0
+      );
+
+
+    const totalQuantity =
+      getOrderTotalQuantity(
+        order
       );
 
 
@@ -908,10 +1000,14 @@ export default function Production() {
           backgroundColor:
             order.status ===
               "FINALIZADA"
+
               ? "#FAFAFA"
+
               : "#FFFFFF"
         }}
       >
+
+        {/* POSICIÓN */}
 
         <TableCell
           align="center"
@@ -921,7 +1017,9 @@ export default function Production() {
             label={
               order.planningPosition >
                 0
+
                 ? `#${position}`
+
                 : "-"
             }
             size="small"
@@ -938,16 +1036,27 @@ export default function Production() {
         </TableCell>
 
 
+        {/* OF */}
+
         <TableCell>
 
           <Typography
-            fontWeight={700}
+            fontWeight={800}
+            sx={{
+              whiteSpace:
+                "nowrap",
+
+              fontVariantNumeric:
+                "tabular-nums"
+            }}
           >
             {order.order}
           </Typography>
 
         </TableCell>
 
+
+        {/* MARCAJE */}
 
         <TableCell>
 
@@ -964,37 +1073,7 @@ export default function Production() {
         </TableCell>
 
 
-        <TableCell
-          align="center"
-        >
-
-          <Typography
-            fontWeight={600}
-            variant="body2"
-          >
-            {
-              formatQuantity(
-                Number(
-                  order.quantity ??
-                  0
-                ),
-                order.quantityUnit ===
-                  "UN"
-                  ? "UN"
-                  : "M"
-              )
-            }
-          </Typography>
-
-        </TableCell>
-
-
-        <TableCell
-          align="center"
-        >
-          {order.rolls}
-        </TableCell>
-
+        {/* CANTIDAD POR BOBINA */}
 
         <TableCell
           align="center"
@@ -1002,10 +1081,80 @@ export default function Production() {
 
           <Typography
             fontWeight={700}
+            variant="body2"
+            sx={{
+              whiteSpace:
+                "nowrap"
+            }}
+          >
+            {
+              formatQuantity(
+                quantityPerRoll,
+                quantityUnit
+              )
+            }
+          </Typography>
+
+        </TableCell>
+
+
+        {/* TOTAL METROS / UNIDADES */}
+
+        <TableCell
+          align="center"
+        >
+
+          <Typography
+            fontWeight={900}
+            variant="body2"
+            sx={{
+              color:
+                "#0B7A3B",
+
+              whiteSpace:
+                "nowrap"
+            }}
+          >
+            {
+              formatQuantity(
+                totalQuantity,
+                quantityUnit
+              )
+            }
+          </Typography>
+
+        </TableCell>
+
+
+        {/* R/B TOTAL */}
+
+        <TableCell
+          align="center"
+        >
+
+          <Typography
+            fontWeight={800}
+          >
+            {order.rolls}
+          </Typography>
+
+        </TableCell>
+
+
+        {/* R/B PENDIENTE */}
+
+        <TableCell
+          align="center"
+        >
+
+          <Typography
+            fontWeight={800}
             color={
               pending >
                 0
+
                 ? "error.main"
+
                 : "success.main"
             }
           >
@@ -1015,62 +1164,99 @@ export default function Production() {
         </TableCell>
 
 
+        {/* DESCRIPCIÓN */}
+
         <TableCell
           sx={{
             minWidth:
-              260
+              250
           }}
         >
 
           <Typography
             variant="body2"
           >
+            {order.product}
+          </Typography>
+
+        </TableCell>
+
+
+        {/* CLIENTE */}
+
+        <TableCell>
+
+          {
+            order.customer ||
+            "-"
+          }
+
+        </TableCell>
+
+
+        {/* SKU */}
+
+        <TableCell>
+
+          <Typography
+            variant="body2"
+            sx={{
+              whiteSpace:
+                "nowrap"
+            }}
+          >
+            {order.sku}
+          </Typography>
+
+        </TableCell>
+
+
+        {/* PEDIDO VENTA */}
+
+        <TableCell>
+
+          <Typography
+            variant="body2"
+            fontWeight={700}
+            sx={{
+              whiteSpace:
+                "nowrap"
+            }}
+          >
             {
-              getProductionDescription(
-                order
-              )
+              order.salesOrder ||
+              "-"
             }
           </Typography>
 
         </TableCell>
 
 
+        {/* PLANTILLA */}
+
         <TableCell>
+
           {
-            order.customer ||
-            "-"
-          }
-        </TableCell>
-
-
-        <TableCell>
-          {order.sku}
-        </TableCell>
-
-
-        <TableCell>
-          {
-            order.salesOrder ||
-            "-"
-          }
-        </TableCell>
-
-
-        <TableCell>
-          {
-            getOrderTemplateName(
-              order
+            getTemplateName(
+              order.templateId
             )
           }
+
         </TableCell>
 
+
+        {/* IMPRESAS */}
 
         <TableCell
           align="center"
         >
+
           {order.printed}
+
         </TableCell>
 
+
+        {/* ESTADO */}
 
         <TableCell
           align="center"
@@ -1080,7 +1266,9 @@ export default function Production() {
             color={
               order.status ===
                 "ABIERTA"
+
                 ? "success"
+
                 : "default"
             }
             label={
@@ -1091,6 +1279,8 @@ export default function Production() {
 
         </TableCell>
 
+
+        {/* ACCIONES */}
 
         <TableCell
           align="center"
@@ -1146,8 +1336,15 @@ export default function Production() {
       </TableRow>
 
     );
+
   }
 
+
+  /*
+   * ==================================================
+   * CABECERA TABLA
+   * ==================================================
+   */
 
   function renderTableHead() {
 
@@ -1197,10 +1394,13 @@ export default function Production() {
             align="center"
             sx={{
               fontWeight:
-                700
+                700,
+
+              whiteSpace:
+                "nowrap"
             }}
           >
-            Metros / Unid.
+            Cant. / R-B
           </TableCell>
 
 
@@ -1208,7 +1408,24 @@ export default function Production() {
             align="center"
             sx={{
               fontWeight:
-                700
+                700,
+
+              whiteSpace:
+                "nowrap"
+            }}
+          >
+            Total M / UN
+          </TableCell>
+
+
+          <TableCell
+            align="center"
+            sx={{
+              fontWeight:
+                700,
+
+              whiteSpace:
+                "nowrap"
             }}
           >
             Nº R/B Tot
@@ -1219,7 +1436,10 @@ export default function Production() {
             align="center"
             sx={{
               fontWeight:
-                700
+                700,
+
+              whiteSpace:
+                "nowrap"
             }}
           >
             Nº R/B Pen
@@ -1259,7 +1479,10 @@ export default function Production() {
           <TableCell
             sx={{
               fontWeight:
-                700
+                700,
+
+              whiteSpace:
+                "nowrap"
             }}
           >
             Pedido venta
@@ -1313,8 +1536,15 @@ export default function Production() {
       </TableHead>
 
     );
+
   }
 
+
+  /*
+   * ==================================================
+   * RENDER
+   * ==================================================
+   */
 
   return (
 
@@ -1324,6 +1554,8 @@ export default function Production() {
         showBack={false}
       />
 
+
+      {/* CABECERA */}
 
       <Box
         sx={{
@@ -1413,6 +1645,8 @@ export default function Production() {
       </Box>
 
 
+      {/* SIN ÓRDENES */}
+
       {
         orders.length ===
           0 &&
@@ -1469,6 +1703,8 @@ export default function Production() {
         )
       }
 
+
+      {/* LÍNEAS */}
 
       {
         orders.length >
@@ -1601,19 +1837,27 @@ export default function Production() {
                                   backgroundColor:
                                     selectedLine ===
                                       line
+
                                       ? "#0B7A3B"
+
                                       : count >
                                           0
+
                                         ? "#DCEFE1"
+
                                         : "#EEEEEE",
 
                                   color:
                                     selectedLine ===
                                       line
+
                                       ? "#FFFFFF"
+
                                       : count >
                                           0
+
                                         ? "#0B7A3B"
+
                                         : "#757575"
                                 }}
                               >
@@ -1626,6 +1870,7 @@ export default function Production() {
                         />
 
                       );
+
                     }
                   )
                 }
@@ -1634,6 +1879,8 @@ export default function Production() {
 
             </Paper>
 
+
+            {/* TABLA DE LÍNEA */}
 
             <Card
               sx={{
@@ -1704,6 +1951,7 @@ export default function Production() {
 
                 {
                   lineComments
+
                     ? (
 
                       <Stack
@@ -1744,6 +1992,7 @@ export default function Production() {
                       </Stack>
 
                     )
+
                     : (
 
                       <Typography
@@ -1789,7 +2038,9 @@ export default function Production() {
                   label={
                     lineOrders.length ===
                       1
+
                       ? "1 orden"
+
                       : `${lineOrders.length} órdenes`
                   }
                   size="small"
@@ -1808,6 +2059,7 @@ export default function Production() {
               {
                 lineOrders.length ===
                   0
+
                   ? (
 
                     <Box
@@ -1843,6 +2095,7 @@ export default function Production() {
                     </Box>
 
                   )
+
                   : (
 
                     <Box
@@ -1855,7 +2108,7 @@ export default function Production() {
                       <Table
                         sx={{
                           minWidth:
-                            1750
+                            1920
                         }}
                       >
 
@@ -1896,6 +2149,8 @@ export default function Production() {
         )
       }
 
+
+      {/* SIN LÍNEA */}
 
       {
         unassignedOrders.length >
@@ -1965,7 +2220,9 @@ export default function Production() {
                 label={
                   unassignedOrders.length ===
                     1
+
                     ? "1 orden"
+
                     : `${unassignedOrders.length} órdenes`
                 }
                 size="small"
@@ -1990,7 +2247,7 @@ export default function Production() {
               <Table
                 sx={{
                   minWidth:
-                    1750
+                    1920
                 }}
               >
 
@@ -2027,6 +2284,8 @@ export default function Production() {
       }
 
 
+      {/* NUEVA ORDEN */}
+
       <ProductionDialog
         open={
           openDialog
@@ -2045,6 +2304,7 @@ export default function Production() {
             setEditing(
               undefined
             );
+
           }
         }
         onSave={
@@ -2052,6 +2312,8 @@ export default function Production() {
         }
       />
 
+
+      {/* EDITAR / GESTIONAR */}
 
       <ProductionManageDialog
         open={
@@ -2074,6 +2336,8 @@ export default function Production() {
         }
       />
 
+
+      {/* COMENTARIO DE LÍNEA */}
 
       <Dialog
         open={
@@ -2176,17 +2440,21 @@ export default function Production() {
               savingComments
             }
           >
+
             {
               savingComments
                 ? "GUARDANDO..."
                 : "GUARDAR"
             }
+
           </Button>
 
         </DialogActions>
 
       </Dialog>
 
+
+      {/* ELIMINAR */}
 
       <Dialog
         open={
@@ -2295,4 +2563,5 @@ export default function Production() {
     </Box>
 
   );
+
 }
