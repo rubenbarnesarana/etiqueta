@@ -1,17 +1,18 @@
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Stack,
-  Typography,
-  TextField,
-  Divider,
-  Paper,
-  Box,
   Alert,
-  MenuItem
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Grid,
+  MenuItem,
+  Paper,
+  Stack,
+  TextField,
+  Typography
 } from "@mui/material";
 
 import {
@@ -72,9 +73,15 @@ function formatNumber(
   value: number
 ): string {
 
+  const numeric =
+    Number(
+      value ?? 0
+    );
+
+
   if (
     !Number.isFinite(
-      value
+      numeric
     )
   ) {
 
@@ -90,7 +97,7 @@ function formatNumber(
         2
     }
   ).format(
-    value
+    numeric
   );
 
 }
@@ -121,6 +128,12 @@ function formatQuantity(
 }
 
 
+/*
+ * ==================================================
+ * COMPONENTE
+ * ==================================================
+ */
+
 export default function ProductionManageDialog({
 
   open,
@@ -134,63 +147,25 @@ export default function ProductionManageDialog({
 }: Props) {
 
   const {
-
     setElements,
-
     setSelected,
-
     setLabelData
-
   } = useDesigner();
 
 
   /*
    * ==================================================
-   * TOTAL ROLLOS / BOBINAS
+   * CAMPOS
    * ==================================================
    */
 
   const [
-    rolls,
-    setRolls
-  ] = useState(
-    1
-  );
-
-
-  /*
-   * ==================================================
-   * ETIQUETAS IMPRESAS
-   * ==================================================
-   */
-
-  const [
-    printed,
-    setPrinted
-  ] = useState(
-    0
-  );
-
-
-  /*
-   * ==================================================
-   * MARCAJE
-   * ==================================================
-   */
-
-  const [
-    marking,
-    setMarking
+    customer,
+    setCustomer
   ] = useState(
     ""
   );
 
-
-  /*
-   * ==================================================
-   * PEDIDO DE VENTA
-   * ==================================================
-   */
 
   const [
     salesOrder,
@@ -200,11 +175,13 @@ export default function ProductionManageDialog({
   );
 
 
-  /*
-   * ==================================================
-   * CANTIDAD POR ROLLO / BOBINA
-   * ==================================================
-   */
+  const [
+    marking,
+    setMarking
+  ] = useState(
+    ""
+  );
+
 
   const [
     quantity,
@@ -225,11 +202,21 @@ export default function ProductionManageDialog({
   );
 
 
-  /*
-   * ==================================================
-   * COMENTARIOS
-   * ==================================================
-   */
+  const [
+    rolls,
+    setRolls
+  ] = useState(
+    1
+  );
+
+
+  const [
+    printed,
+    setPrinted
+  ] = useState(
+    0
+  );
+
 
   const [
     comments,
@@ -279,7 +266,7 @@ export default function ProductionManageDialog({
 
   /*
    * ==================================================
-   * VALORES SEGUROS
+   * VALORES CALCULADOS
    * ==================================================
    */
 
@@ -301,17 +288,6 @@ export default function ProductionManageDialog({
     );
 
 
-  /*
-   * TOTAL DE LA ORDEN:
-   *
-   * rollos × cantidad por rollo
-   */
-
-  const totalQuantity =
-    totalRolls *
-    safeQuantity;
-
-
   const firstCoil =
     Number(
       order?.firstCoil ??
@@ -326,7 +302,7 @@ export default function ProductionManageDialog({
         0,
         Number(
           printed
-        )
+        ) || 0
       )
     );
 
@@ -345,10 +321,22 @@ export default function ProductionManageDialog({
 
 
   /*
-   * ==================================================
-   * VALIDACIÓN
-   * ==================================================
+   * Total inicial de la OF.
    */
+
+  const totalQuantity =
+    totalRolls *
+    safeQuantity;
+
+
+  /*
+   * Cantidad pendiente.
+   */
+
+  const pendingQuantity =
+    pending *
+    safeQuantity;
+
 
   const rollsError =
     totalRolls <
@@ -359,7 +347,7 @@ export default function ProductionManageDialog({
 
   /*
    * ==================================================
-   * ABRIR ORDEN
+   * CARGAR ORDEN
    * ==================================================
    */
 
@@ -383,11 +371,6 @@ export default function ProductionManageDialog({
         );
 
 
-      /*
-       * Si la OF antigua todavía no tiene Marcaje,
-       * usamos el configurado actualmente en Productos.
-       */
-
       const initialMarking =
         String(
           order.marking ??
@@ -400,8 +383,11 @@ export default function ProductionManageDialog({
         ).trim();
 
 
-      setMarking(
-        initialMarking
+      setCustomer(
+        String(
+          order.customer ??
+          ""
+        )
       );
 
 
@@ -410,6 +396,11 @@ export default function ProductionManageDialog({
           order.salesOrder ??
           ""
         )
+      );
+
+
+      setMarking(
+        initialMarking
       );
 
 
@@ -477,7 +468,7 @@ export default function ProductionManageDialog({
 
   /*
    * ==================================================
-   * ACTUALIZAR COIL EN VISTA PREVIA
+   * ACTUALIZAR COIL EN PREVIEW
    * ==================================================
    */
 
@@ -506,13 +497,6 @@ export default function ProductionManageDialog({
         );
 
 
-      const coil =
-        Number(
-          order.firstCoil
-        ) +
-        currentPrinted;
-
-
       if (
         currentPrinted >=
         totalRolls
@@ -521,6 +505,13 @@ export default function ProductionManageDialog({
         return;
 
       }
+
+
+      const coil =
+        Number(
+          order.firstCoil
+        ) +
+        currentPrinted;
 
 
       if (
@@ -589,10 +580,6 @@ export default function ProductionManageDialog({
     }
 
 
-    /*
-     * PLANTILLA
-     */
-
     const template =
       findTemplate(
         Number(
@@ -614,10 +601,6 @@ export default function ProductionManageDialog({
 
     }
 
-
-    /*
-     * PRODUCTO
-     */
 
     const product =
       findProduct(
@@ -641,10 +624,6 @@ export default function ProductionManageDialog({
     }
 
 
-    /*
-     * FORMATO 1
-     */
-
     let upperText =
       "";
 
@@ -652,10 +631,6 @@ export default function ProductionManageDialog({
     let bottomDescription =
       "";
 
-
-    /*
-     * FORMATO 2
-     */
 
     let coilDescription =
       "";
@@ -672,10 +647,6 @@ export default function ProductionManageDialog({
     let coilOrigin =
       "";
 
-
-    /*
-     * GENERAR DATOS
-     */
 
     if (
       template.labelFormat ===
@@ -721,10 +692,6 @@ export default function ProductionManageDialog({
     }
 
 
-    /*
-     * DISEÑO
-     */
-
     setElements(
       template.elements.map(
         element => ({
@@ -751,10 +718,6 @@ export default function ProductionManageDialog({
       template.backgroundImage
     );
 
-
-    /*
-     * DATOS DE ETIQUETA
-     */
 
     setLabelData(
       prev => ({
@@ -860,24 +823,20 @@ export default function ProductionManageDialog({
       );
 
 
-    /*
-     * No permitimos reducir los rollos por debajo
-     * de las etiquetas ya impresas.
-     */
-
     if (
       finalRolls <
       currentPrinted
     ) {
 
+      alert(
+        `El total no puede ser menor que las ${currentPrinted} etiquetas ya impresas.`
+      );
+
+
       return;
 
     }
 
-
-    /*
-     * La cantidad por rollo / bobina debe ser válida.
-     */
 
     if (
       !Number.isFinite(
@@ -920,15 +879,14 @@ export default function ProductionManageDialog({
 
       ...order,
 
-      marking:
-        marking.trim(),
+      customer:
+        customer.trim(),
 
       salesOrder:
         salesOrder.trim(),
 
-      /*
-       * quantity = cantidad POR rollo / bobina.
-       */
+      marking:
+        marking.trim(),
 
       quantity:
         finalQuantity,
@@ -1120,655 +1078,940 @@ export default function ProductionManageDialog({
       fullWidth
       maxWidth={
         showPreview
-
-          ? "lg"
-
-          : "sm"
+          ? "xl"
+          : "lg"
       }
+      PaperProps={{
+        sx: {
+          width:
+            showPreview
+              ? "96vw"
+              : "1100px",
+
+          maxWidth:
+            showPreview
+              ? "96vw"
+              : "1100px",
+
+          maxHeight:
+            "94vh"
+        }
+      }}
     >
 
-      <DialogTitle>
+      <DialogTitle
+        sx={{
+          py:
+            1.5,
+
+          px:
+            2.5,
+
+          fontWeight:
+            800
+        }}
+      >
         Gestionar producción
       </DialogTitle>
 
 
-      <DialogContent>
+      <DialogContent
+        dividers
+        sx={{
+          px:
+            2.5,
 
-        <Stack
+          py:
+            2,
+
+          overflowY:
+            showPreview
+              ? "auto"
+              : "visible"
+        }}
+      >
+
+        <Grid
+          container
           spacing={2}
         >
 
-          {/* ==========================================
-              DATOS DE LA ORDEN
-              ========================================== */}
+          {/* ==================================================
+              COLUMNA IZQUIERDA
+              ================================================== */}
 
-          <Paper
-            variant="outlined"
-            sx={{
-              p: 2
+          <Grid
+            size={{
+              xs:
+                12,
+              md:
+                6
             }}
           >
 
             <Stack
-              spacing={1.2}
+              spacing={1.5}
+            >
+
+              {/* DATOS ORDEN */}
+
+              <Paper
+                variant="outlined"
+                sx={{
+                  p:
+                    1.7
+                }}
+              >
+
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  fontWeight={700}
+                  sx={{
+                    mb:
+                      1
+                  }}
+                >
+                  Datos de la orden
+                </Typography>
+
+
+                <Grid
+                  container
+                  spacing={1}
+                >
+
+                  <Grid
+                    size={{
+                      xs:
+                        12,
+                      sm:
+                        6
+                    }}
+                  >
+
+                    <Typography
+                      variant="body2"
+                    >
+                      <strong>
+                        Orden de fabricación:
+                      </strong>
+                      {" "}
+                      {order.order}
+                    </Typography>
+
+                  </Grid>
+
+
+                  <Grid
+                    size={{
+                      xs:
+                        12,
+                      sm:
+                        6
+                    }}
+                  >
+
+                    <Typography
+                      variant="body2"
+                    >
+                      <strong>
+                        SKU:
+                      </strong>
+                      {" "}
+                      {order.sku}
+                    </Typography>
+
+                  </Grid>
+
+
+                  <Grid
+                    size={{
+                      xs:
+                        12
+                    }}
+                  >
+
+                    <Typography
+                      variant="body2"
+                    >
+                      <strong>
+                        Producto:
+                      </strong>
+                      {" "}
+                      {order.product}
+                    </Typography>
+
+                  </Grid>
+
+
+                  <Grid
+                    size={{
+                      xs:
+                        12,
+                      sm:
+                        6
+                    }}
+                  >
+
+                    <Typography
+                      variant="body2"
+                    >
+                      <strong>
+                        Impresora:
+                      </strong>
+                      {" "}
+                      {
+                        order.printer ||
+                        "-"
+                      }
+                    </Typography>
+
+                  </Grid>
+
+
+                  <Grid
+                    size={{
+                      xs:
+                        12,
+                      sm:
+                        6
+                    }}
+                  >
+
+                    <Typography
+                      variant="body2"
+                    >
+                      <strong>
+                        Siguiente Coil:
+                      </strong>
+                      {" "}
+                      {
+                        pending >
+                          0
+
+                          ? nextCoil
+
+                          : "-"
+                      }
+                    </Typography>
+
+                  </Grid>
+
+                </Grid>
+
+              </Paper>
+
+
+              {/* CLIENTE */}
+
+              <TextField
+                label="Cliente"
+                value={
+                  customer
+                }
+                onChange={
+                  event =>
+                    setCustomer(
+                      event.target.value
+                    )
+                }
+                size="small"
+                placeholder="Ej.: MPA"
+                fullWidth
+              />
+
+
+              {/* PEDIDO + MARCAJE */}
+
+              <Grid
+                container
+                spacing={1.5}
+              >
+
+                <Grid
+                  size={{
+                    xs:
+                      12,
+                    sm:
+                      6
+                  }}
+                >
+
+                  <TextField
+                    label="Pedido de venta"
+                    value={
+                      salesOrder
+                    }
+                    onChange={
+                      event =>
+                        setSalesOrder(
+                          event.target.value
+                        )
+                    }
+                    size="small"
+                    fullWidth
+                  />
+
+                </Grid>
+
+
+                <Grid
+                  size={{
+                    xs:
+                      12,
+                    sm:
+                      6
+                  }}
+                >
+
+                  <TextField
+                    label="Marcaje"
+                    value={
+                      marking
+                    }
+                    onChange={
+                      event =>
+                        setMarking(
+                          event.target.value
+                        )
+                    }
+                    size="small"
+                    fullWidth
+                  />
+
+                </Grid>
+
+              </Grid>
+
+
+              <Divider />
+
+
+              <Typography
+                variant="subtitle2"
+                fontWeight={800}
+              >
+                Cantidad de fabricación
+              </Typography>
+
+
+              {/* METROS POR ROLLO + UNIDAD */}
+
+              <Grid
+                container
+                spacing={1.5}
+              >
+
+                <Grid
+                  size={{
+                    xs:
+                      12,
+                    sm:
+                      8
+                  }}
+                >
+
+                  <TextField
+                    label={
+                      quantityUnit ===
+                        "UN"
+
+                        ? "Unidades por rollo / bobina"
+
+                        : "Metros por rollo / bobina"
+                    }
+                    type="number"
+                    value={
+                      quantity
+                    }
+                    onChange={
+                      event =>
+                        setQuantity(
+                          Number(
+                            event.target.value
+                          )
+                        )
+                    }
+                    size="small"
+                    slotProps={{
+                      htmlInput: {
+                        min:
+                          0,
+
+                        step:
+                          1
+                      }
+                    }}
+                    fullWidth
+                  />
+
+                </Grid>
+
+
+                <Grid
+                  size={{
+                    xs:
+                      12,
+                    sm:
+                      4
+                  }}
+                >
+
+                  <TextField
+                    select
+                    label="Unidad"
+                    value={
+                      quantityUnit
+                    }
+                    onChange={
+                      event =>
+                        setQuantityUnit(
+                          event.target.value ===
+                            "UN"
+
+                            ? "UN"
+
+                            : "M"
+                        )
+                    }
+                    size="small"
+                    fullWidth
+                  >
+
+                    <MenuItem
+                      value="M"
+                    >
+                      Metros
+                    </MenuItem>
+
+
+                    <MenuItem
+                      value="UN"
+                    >
+                      Unidades
+                    </MenuItem>
+
+                  </TextField>
+
+                </Grid>
+
+              </Grid>
+
+
+              {/* TOTAL ROLLOS */}
+
+              <TextField
+                label="Total de rollos / bobinas"
+                type="number"
+                value={
+                  rolls
+                }
+                onChange={
+                  event =>
+                    setRolls(
+                      Math.max(
+                        1,
+                        Number(
+                          event.target.value
+                        )
+                      )
+                    )
+                }
+                size="small"
+                error={
+                  rollsError
+                }
+                helperText={
+                  rollsError
+                    ? `No puede ser menor que las ${printed} etiquetas ya impresas.`
+                    : ""
+                }
+                slotProps={{
+                  htmlInput: {
+                    min:
+                      1,
+
+                    step:
+                      1
+                  }
+                }}
+                fullWidth
+              />
+
+
+              {/* TOTALES */}
+
+              <Paper
+                variant="outlined"
+                sx={{
+                  p:
+                    1.5,
+
+                  backgroundColor:
+                    "#F1F8F3",
+
+                  borderColor:
+                    "#A5D6A7"
+                }}
+              >
+
+                <Grid
+                  container
+                  spacing={1}
+                >
+
+                  <Grid
+                    size={{
+                      xs:
+                        6
+                    }}
+                  >
+
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      Total inicial
+                    </Typography>
+
+
+                    <Typography
+                      fontWeight={900}
+                      color="#0B7A3B"
+                    >
+                      {
+                        formatQuantity(
+                          totalQuantity,
+                          quantityUnit
+                        )
+                      }
+                    </Typography>
+
+                  </Grid>
+
+
+                  <Grid
+                    size={{
+                      xs:
+                        6
+                    }}
+                  >
+
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      Pendiente
+                    </Typography>
+
+
+                    <Typography
+                      fontWeight={900}
+                      color="#D32F2F"
+                    >
+                      {
+                        formatQuantity(
+                          pendingQuantity,
+                          quantityUnit
+                        )
+                      }
+                    </Typography>
+
+                  </Grid>
+
+                </Grid>
+
+              </Paper>
+
+            </Stack>
+
+          </Grid>
+
+
+          {/* ==================================================
+              COLUMNA DERECHA
+              ================================================== */}
+
+          <Grid
+            size={{
+              xs:
+                12,
+              md:
+                6
+            }}
+          >
+
+            <Stack
+              spacing={1.5}
             >
 
               <Typography
                 variant="subtitle2"
-                color="text.secondary"
+                fontWeight={800}
               >
-                Datos de la orden
+                Estado de producción
               </Typography>
 
 
-              <Typography>
+              {/* IMPRESAS / PENDIENTES */}
 
-                <strong>
-                  Orden de fabricación:
-                </strong>{" "}
-
-                {order.order}
-
-              </Typography>
-
-
-              <Typography
-                variant="body2"
+              <Grid
+                container
+                spacing={1.5}
               >
 
-                <strong>
-                  SKU:
-                </strong>{" "}
-
-                {order.sku}
-
-              </Typography>
-
-
-              <Typography
-                variant="body2"
-              >
-
-                <strong>
-                  Producto:
-                </strong>{" "}
-
-                {order.product}
-
-              </Typography>
-
-
-              <Typography
-                variant="body2"
-              >
-
-                <strong>
-                  Impresora:
-                </strong>{" "}
-
-                {
-                  order.printer ||
-                  "-"
-                }
-
-              </Typography>
-
-            </Stack>
-
-          </Paper>
-
-
-          {/* ==========================================
-              PEDIDO DE VENTA
-              ========================================== */}
-
-          <TextField
-            label="Pedido de venta"
-            value={
-              salesOrder
-            }
-            onChange={
-              event =>
-                setSalesOrder(
-                  event.target.value
-                )
-            }
-            placeholder="Ej.: 405053377"
-            helperText="Pedido de venta asociado a esta orden de fabricación."
-            fullWidth
-          />
-
-
-          {/* ==========================================
-              MARCAJE
-              ========================================== */}
-
-          <TextField
-            label="Marcaje"
-            value={
-              marking
-            }
-            onChange={
-              event =>
-                setMarking(
-                  event.target.value
-                )
-            }
-            placeholder="Ej.: PC_16_115"
-            helperText="Si la orden antigua no tenía Marcaje, se carga automáticamente desde Productos."
-            fullWidth
-          />
-
-
-          <Divider />
-
-
-          <Typography
-            variant="subtitle2"
-            fontWeight={800}
-          >
-            Cantidad de fabricación
-          </Typography>
-
-
-          {/* ==========================================
-              CANTIDAD POR ROLLO
-              ========================================== */}
-
-          <TextField
-            label={
-              quantityUnit ===
-                "UN"
-
-                ? "Unidades por rollo / bobina"
-
-                : "Metros por rollo / bobina"
-            }
-            type="number"
-            value={
-              quantity
-            }
-            onChange={
-              event =>
-                setQuantity(
-                  Number(
-                    event.target.value
-                  )
-                )
-            }
-            slotProps={{
-              htmlInput: {
-                min: 0,
-                step: 1
-              }
-            }}
-            helperText={
-              quantityUnit ===
-                "UN"
-
-                ? "Ej.: 2.500 unidades en MicroTube CUT."
-
-                : "Ej.: 2.500 m, 3.000 m, 500 m o 400 m."
-            }
-            fullWidth
-          />
-
-
-          {/* ==========================================
-              UNIDAD
-              ========================================== */}
-
-          <TextField
-            select
-            label="Unidad"
-            value={
-              quantityUnit
-            }
-            onChange={
-              event =>
-                setQuantityUnit(
-                  event.target.value ===
-                    "UN"
-
-                    ? "UN"
-
-                    : "M"
-                )
-            }
-            fullWidth
-          >
-
-            <MenuItem
-              value="M"
-            >
-              Metros
-            </MenuItem>
-
-
-            <MenuItem
-              value="UN"
-            >
-              Unidades
-            </MenuItem>
-
-          </TextField>
-
-
-          {/* ==========================================
-              ROLLOS / BOBINAS
-              ========================================== */}
-
-          <TextField
-            label="Total de rollos / bobinas"
-            type="number"
-            value={
-              rolls
-            }
-            onChange={
-              event => {
-
-                const value =
-                  Number(
-                    event.target.value
-                  );
-
-
-                setRolls(
-                  Math.max(
-                    1,
-                    value
-                  )
-                );
-
-              }
-            }
-            slotProps={{
-              htmlInput: {
-                min: 1,
-                step: 1
-              }
-            }}
-            error={
-              rollsError
-            }
-            helperText={
-              rollsError
-
-                ? `El total no puede ser menor que las ${printed} etiquetas ya impresas.`
-
-                : "Número total de rollos / bobinas de la orden."
-            }
-            fullWidth
-          />
-
-
-          {/* ==========================================
-              TOTAL CALCULADO
-              ========================================== */}
-
-          <Paper
-            variant="outlined"
-            sx={{
-              p: 2.2,
-
-              backgroundColor:
-                "#F1F8F3",
-
-              borderColor:
-                "#A5D6A7"
-            }}
-          >
-
-            <Typography
-              variant="subtitle2"
-              color="text.secondary"
-              fontWeight={700}
-            >
-              TOTAL DE LA ORDEN
-            </Typography>
-
-
-            <Typography
-              variant="h5"
-              fontWeight={900}
-              sx={{
-                mt: 0.5,
-                color: "#0B7A3B"
-              }}
-            >
-              {
-                formatQuantity(
-                  totalQuantity,
-                  quantityUnit
-                )
-              }
-            </Typography>
-
-
-            <Typography
-              variant="body2"
-              fontWeight={700}
-              sx={{
-                mt: 1
-              }}
-            >
-              {
-                `${formatNumber(
-                  totalRolls
-                )} rollos / bobinas × ${formatQuantity(
-                  safeQuantity,
-                  quantityUnit
-                )} = ${formatQuantity(
-                  totalQuantity,
-                  quantityUnit
-                )}`
-              }
-            </Typography>
-
-          </Paper>
-
-
-          {/* ==========================================
-              PRODUCCIÓN
-              ========================================== */}
-
-          <Divider />
-
-
-          <Typography
-            variant="subtitle2"
-            fontWeight={800}
-          >
-            Producción
-          </Typography>
-
-
-          <TextField
-            label="Etiquetas impresas"
-            type="number"
-            value={
-              printed
-            }
-            onChange={
-              event => {
-
-                const value =
-                  Number(
-                    event.target.value
-                  );
-
-
-                setPrinted(
-                  Math.min(
-                    totalRolls,
-                    Math.max(
-                      0,
-                      value
-                    )
-                  )
-                );
-
-              }
-            }
-            slotProps={{
-              htmlInput: {
-                min: 0,
-                max: totalRolls
-              }
-            }}
-            fullWidth
-          />
-
-
-          {
-            rollsError &&
-            (
-
-              <Alert
-                severity="warning"
-              >
-                El número total de rollos / bobinas debe ser igual o superior al número de etiquetas ya impresas.
-              </Alert>
-
-            )
-          }
-
-
-          <TextField
-            label="Etiquetas pendientes"
-            value={
-              pending
-            }
-            disabled
-            fullWidth
-          />
-
-
-          <TextField
-            label="Siguiente Coil Number"
-            value={
-              pending >
-                0
-
-                ? nextCoil
-
-                : "-"
-            }
-            disabled
-            fullWidth
-          />
-
-
-          {/* ==========================================
-              COMENTARIOS
-              ========================================== */}
-
-          <TextField
-            label="Comentarios de planificación"
-            value={
-              comments
-            }
-            onChange={
-              event =>
-                setComments(
-                  event.target.value
-                )
-            }
-            placeholder="Ej.: Palets nuevos 20 bobinas"
-            multiline
-            minRows={2}
-            maxRows={4}
-            fullWidth
-          />
-
-
-          {/* ==========================================
-              ESTADO
-              ========================================== */}
-
-          <Paper
-            variant="outlined"
-            sx={{
-              p: 2,
-              textAlign: "center"
-            }}
-          >
-
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
-              Estado
-            </Typography>
-
-
-            <Typography
-              variant="h6"
-              fontWeight="bold"
-            >
-
-              {
-                pending ===
-                  0
-
-                  ? "FINALIZADA"
-
-                  : "ABIERTA"
-              }
-
-            </Typography>
-
-          </Paper>
-
-
-          {/* ==========================================
-              CARGAR ETIQUETA
-              ========================================== */}
-
-          {
-            !showPreview &&
-            (
-
-              <Button
-                variant="contained"
-                onClick={
-                  loadLabel
-                }
-                disabled={
-                  rollsError
-                }
-                fullWidth
-              >
-                CARGAR ETIQUETA DE ESTA ORDEN
-              </Button>
-
-            )
-          }
-
-
-          {/* ==========================================
-              VISTA PREVIA
-              ========================================== */}
-
-          {
-            showPreview &&
-            (
-
-              <>
-
-                <Divider />
-
-
-                <Typography
-                  variant="h6"
-                  fontWeight="bold"
-                >
-                  Vista previa de etiqueta
-                </Typography>
-
-
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 2,
-                    backgroundColor: "#EEEEEE",
-                    overflow: "auto"
+                <Grid
+                  size={{
+                    xs:
+                      6
                   }}
                 >
 
-                  <Box
+                  <TextField
+                    label="Etiquetas impresas"
+                    type="number"
+                    value={
+                      printed
+                    }
+                    onChange={
+                      event => {
+
+                        const value =
+                          Number(
+                            event.target.value
+                          );
+
+
+                        setPrinted(
+                          Math.min(
+                            totalRolls,
+                            Math.max(
+                              0,
+                              value
+                            )
+                          )
+                        );
+
+                      }
+                    }
+                    size="small"
+                    slotProps={{
+                      htmlInput: {
+                        min:
+                          0,
+
+                        max:
+                          totalRolls
+                      }
+                    }}
+                    fullWidth
+                  />
+
+                </Grid>
+
+
+                <Grid
+                  size={{
+                    xs:
+                      6
+                  }}
+                >
+
+                  <TextField
+                    label="Etiquetas pendientes"
+                    value={
+                      pending
+                    }
+                    size="small"
+                    disabled
+                    fullWidth
+                  />
+
+                </Grid>
+
+              </Grid>
+
+
+              {/* COIL + ESTADO */}
+
+              <Grid
+                container
+                spacing={1.5}
+              >
+
+                <Grid
+                  size={{
+                    xs:
+                      6
+                  }}
+                >
+
+                  <TextField
+                    label="Siguiente Coil Number"
+                    value={
+                      pending >
+                        0
+
+                        ? nextCoil
+
+                        : "-"
+                    }
+                    size="small"
+                    disabled
+                    fullWidth
+                  />
+
+                </Grid>
+
+
+                <Grid
+                  size={{
+                    xs:
+                      6
+                  }}
+                >
+
+                  <TextField
+                    label="Estado"
+                    value={
+                      pending ===
+                        0
+
+                        ? "FINALIZADA"
+
+                        : "ABIERTA"
+                    }
+                    size="small"
+                    disabled
+                    fullWidth
+                  />
+
+                </Grid>
+
+              </Grid>
+
+
+              {
+                rollsError &&
+                (
+
+                  <Alert
+                    severity="warning"
                     sx={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "flex-start",
-
-                      minHeight:
-                        labelFormat ===
-                          "FORMATO_2"
-
-                          ? "320px"
-
-                          : "400px"
+                      py:
+                        0.5
                     }}
                   >
+                    El número total de rollos / bobinas no puede ser inferior a las etiquetas ya impresas.
+                  </Alert>
 
-                    <Canvas
-                      addText={
-                        false
-                      }
-                      insertField=""
-                      zoom={
-                        labelFormat ===
-                          "FORMATO_2"
-
-                          ? 65
-
-                          : 70
-                      }
-                      backgroundImage={
-                        backgroundImage
-                      }
-                      labelFormat={
-                        labelFormat
-                      }
-                    />
-
-                  </Box>
-
-                </Paper>
+                )
+              }
 
 
-                <Button
-                  variant="outlined"
-                  onClick={
-                    () =>
-                      setShowPreview(
-                        false
-                      )
-                  }
-                  fullWidth
-                >
-                  CERRAR VISTA PREVIA
-                </Button>
+              {/* COMENTARIOS */}
+
+              <TextField
+                label="Comentarios de planificación"
+                value={
+                  comments
+                }
+                onChange={
+                  event =>
+                    setComments(
+                      event.target.value
+                    )
+                }
+                placeholder="Ej.: Palets nuevos 20 bobinas"
+                multiline
+                minRows={2}
+                maxRows={3}
+                size="small"
+                fullWidth
+              />
 
 
-                <Button
-                  variant="contained"
-                  color="success"
-                  onClick={
-                    nextLabel
-                  }
-                  disabled={
-                    pending ===
-                      0 ||
-                    rollsError
-                  }
-                  fullWidth
-                >
-                  MARCAR ETIQUETA COMO IMPRESA
-                </Button>
+              {/* CARGAR ETIQUETA */}
+
+              {
+                !showPreview &&
+                (
+
+                  <Button
+                    variant="contained"
+                    onClick={
+                      loadLabel
+                    }
+                    disabled={
+                      rollsError
+                    }
+                    fullWidth
+                    sx={{
+                      minHeight:
+                        42,
+
+                      fontWeight:
+                        800
+                    }}
+                  >
+                    CARGAR ETIQUETA DE ESTA ORDEN
+                  </Button>
+
+                )
+              }
 
 
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  textAlign="center"
-                >
-                  Cada etiqueta impresa aumenta automáticamente el Coil Number:
-                  1, 2, 3... hasta 9999.
-                </Typography>
+              {/* VISTA PREVIA */}
 
-              </>
+              {
+                showPreview &&
+                (
 
-            )
-          }
+                  <>
 
-        </Stack>
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight={800}
+                    >
+                      Vista previa de etiqueta
+                    </Typography>
+
+
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p:
+                          1,
+
+                        backgroundColor:
+                          "#EEEEEE",
+
+                        overflow:
+                          "auto",
+
+                        maxHeight:
+                          430
+                      }}
+                    >
+
+                      <Box
+                        sx={{
+                          display:
+                            "flex",
+
+                          justifyContent:
+                            "center",
+
+                          alignItems:
+                            "flex-start"
+                        }}
+                      >
+
+                        <Canvas
+                          addText={
+                            false
+                          }
+                          insertField=""
+                          zoom={
+                            labelFormat ===
+                              "FORMATO_2"
+
+                              ? 55
+
+                              : 58
+                          }
+                          backgroundImage={
+                            backgroundImage
+                          }
+                          labelFormat={
+                            labelFormat
+                          }
+                        />
+
+                      </Box>
+
+                    </Paper>
+
+
+                    <Grid
+                      container
+                      spacing={1}
+                    >
+
+                      <Grid
+                        size={{
+                          xs:
+                            6
+                        }}
+                      >
+
+                        <Button
+                          variant="outlined"
+                          onClick={
+                            () =>
+                              setShowPreview(
+                                false
+                              )
+                          }
+                          fullWidth
+                        >
+                          CERRAR VISTA
+                        </Button>
+
+                      </Grid>
+
+
+                      <Grid
+                        size={{
+                          xs:
+                            6
+                        }}
+                      >
+
+                        <Button
+                          variant="contained"
+                          color="success"
+                          onClick={
+                            nextLabel
+                          }
+                          disabled={
+                            pending ===
+                              0 ||
+                            rollsError
+                          }
+                          fullWidth
+                        >
+                          MARCAR IMPRESA
+                        </Button>
+
+                      </Grid>
+
+                    </Grid>
+
+                  </>
+
+                )
+              }
+
+            </Stack>
+
+          </Grid>
+
+        </Grid>
 
       </DialogContent>
 
 
-      <DialogActions>
+      <DialogActions
+        sx={{
+          px:
+            2.5,
+
+          py:
+            1.25
+        }}
+      >
 
         <Button
           onClick={
@@ -1778,6 +2021,14 @@ export default function ProductionManageDialog({
         >
           REINICIAR
         </Button>
+
+
+        <Box
+          sx={{
+            flex:
+              1
+          }}
+        />
 
 
         <Button
