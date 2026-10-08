@@ -15,6 +15,8 @@ import {
   LinearProgress,
   Paper,
   Stack,
+  Tab,
+  Tabs,
   Typography
 } from "@mui/material";
 
@@ -36,24 +38,6 @@ import {
   getPendingQuantity
 } from "../../services/OrderStorage";
 
-import {
-  findTemplate
-} from "../../services/TemplateStorage";
-
-import {
-  findProduct
-} from "../../services/ProductStorage";
-
-import {
-  getAssignedTemplate
-} from "../../services/ProductTemplateStorage";
-
-
-/*
- * ==================================================
- * LÍNEAS
- * ==================================================
- */
 
 const PRODUCTION_LINES = [
   1,
@@ -67,59 +51,13 @@ const PRODUCTION_LINES = [
 ];
 
 
-/*
- * ==================================================
- * COLUMNAS
- * ==================================================
- */
-
 const PLANNING_COLUMNS =
-  "42px 185px 110px 130px 82px 82px minmax(230px, 1.5fr) minmax(145px, 1fr) 110px 125px 100px";
+  "38px 145px 110px 125px 76px 76px minmax(225px, 1.55fr) minmax(120px, 1fr) 100px 118px 90px 72px";
 
 
 /*
  * ==================================================
- * FORMATEAR NÚMERO
- * ==================================================
- */
-
-function formatNumber(
-  value: number
-): string {
-
-  const numeric =
-    Number(
-      value ?? 0
-    );
-
-
-  if (
-    !Number.isFinite(
-      numeric
-    )
-  ) {
-
-    return "0";
-
-  }
-
-
-  return new Intl.NumberFormat(
-    "es-ES",
-    {
-      maximumFractionDigits:
-        2
-    }
-  ).format(
-    numeric
-  );
-
-}
-
-
-/*
- * ==================================================
- * FORMATEAR CANTIDAD
+ * CANTIDAD
  * ==================================================
  */
 
@@ -138,8 +76,7 @@ function formatQuantity(
     !Number.isFinite(
       value
     ) ||
-    value <=
-      0
+    value <= 0
   ) {
 
     return "-";
@@ -147,16 +84,23 @@ function formatQuantity(
   }
 
 
+  const formatted =
+    new Intl.NumberFormat(
+      "es-ES",
+      {
+        maximumFractionDigits: 2
+      }
+    ).format(
+      value
+    );
+
+
   return unit ===
     "UN"
 
-    ? `${formatNumber(
-        value
-      )} un`
+    ? `${formatted} un`
 
-    : `${formatNumber(
-        value
-      )} m`;
+    : `${formatted} m`;
 
 }
 
@@ -165,23 +109,13 @@ function formatQuantity(
  * ==================================================
  * CANTIDAD PENDIENTE
  * ==================================================
- *
- * quantity = cantidad por rollo / bobina
- *
- * cantidad pendiente =
- * rollos pendientes × cantidad por rollo
- *
- * Ejemplo:
- *
- * 649 × 500 m = 324.500 m
- * ==================================================
  */
 
-function getOrderPendingQuantity(
+function getPendingAmount(
   order: ProductionOrder
 ): number {
 
-  const pendingRolls =
+  const pending =
     Math.max(
       0,
       Number(
@@ -192,7 +126,7 @@ function getOrderPendingQuantity(
     );
 
 
-  const quantityPerRoll =
+  const quantity =
     Math.max(
       0,
       Number(
@@ -203,8 +137,8 @@ function getOrderPendingQuantity(
 
 
   return (
-    pendingRolls *
-    quantityPerRoll
+    pending *
+    quantity
   );
 
 }
@@ -212,224 +146,22 @@ function getOrderPendingQuantity(
 
 /*
  * ==================================================
- * NORMALIZAR TEXTO
- * ==================================================
- */
-
-function normalizeText(
-  value: string
-): string {
-
-  return value
-    .toUpperCase()
-    .normalize(
-      "NFD"
-    )
-    .replace(
-      /[\u0300-\u036f]/g,
-      ""
-    )
-    .replace(
-      /[^A-Z0-9]/g,
-      ""
-    );
-
-}
-
-
-/*
- * ==================================================
- * PLANTILLA DE LA ORDEN
- * ==================================================
- */
-
-function getOrderTemplateName(
-  order: ProductionOrder
-): string {
-
-  const assigned:
-    any =
-    getAssignedTemplate(
-      order.sku
-    );
-
-
-  const assignedId =
-    typeof assigned ===
-      "number"
-
-      ? assigned
-
-      : Number(
-          assigned?.templateId ??
-          assigned?.id ??
-          0
-        );
-
-
-  if (
-    assignedId >
-      0
-  ) {
-
-    const template =
-      findTemplate(
-        assignedId
-      );
-
-
-    if (
-      template
-    ) {
-
-      return (
-        template.name ??
-        ""
-      );
-
-    }
-
-  }
-
-
-  const product =
-    findProduct(
-      order.sku
-    );
-
-
-  if (
-    product?.templateId
-  ) {
-
-    const template =
-      findTemplate(
-        Number(
-          product.templateId
-        )
-      );
-
-
-    if (
-      template
-    ) {
-
-      return (
-        template.name ??
-        ""
-      );
-
-    }
-
-  }
-
-
-  const orderTemplate =
-    findTemplate(
-      Number(
-        order.templateId ??
-        0
-      )
-    );
-
-
-  return (
-    orderTemplate?.name ??
-    ""
-  );
-
-}
-
-
-/*
- * ==================================================
- * DESCRIPCIÓN
- * ==================================================
- *
- * SOLO NAAN PC MAX añade prefijo.
- * Ninguna otra familia se modifica.
- * ==================================================
- */
-
-function getPlanningDescription(
-  order: ProductionOrder
-): string {
-
-  const description =
-    String(
-      order.product ??
-      ""
-    ).trim();
-
-
-  if (
-    !description
-  ) {
-
-    return "-";
-
-  }
-
-
-  const templateName =
-    getOrderTemplateName(
-      order
-    );
-
-
-  const normalizedTemplate =
-    normalizeText(
-      templateName
-    );
-
-
-  if (
-    !normalizedTemplate.includes(
-      "NAANPCMAX"
-    )
-  ) {
-
-    return description;
-
-  }
-
-
-  const normalizedDescription =
-    normalizeText(
-      description
-    );
-
-
-  if (
-    normalizedDescription.startsWith(
-      "NAANPCMAX"
-    )
-  ) {
-
-    return description;
-
-  }
-
-
-  return (
-    `NAAN PC MAX ${description}`
-  );
-
-}
-
-
-/*
- * ==================================================
- * CABECERA
+ * HEADER
  * ==================================================
  */
 
 function Header({
+
   children,
+
   center = false
+
 }: {
+
   children: ReactNode;
+
   center?: boolean;
+
 }) {
 
   return (
@@ -437,58 +169,19 @@ function Header({
     <Typography
       variant="caption"
       fontWeight={900}
-      textAlign={
-        center
-          ? "center"
-          : "left"
-      }
       sx={{
-        textTransform:
-          "uppercase",
-
-        color:
-          "#455A64",
-
-        fontSize:
-          10.5,
-
-        lineHeight:
-          1.15
+        fontSize: 11.5,
+        lineHeight: 1.15,
+        textTransform: "uppercase",
+        textAlign:
+          center
+            ? "center"
+            : "left",
+        whiteSpace: "normal"
       }}
     >
       {children}
     </Typography>
-
-  );
-
-}
-
-
-/*
- * ==================================================
- * CELDA
- * ==================================================
- */
-
-function CellBox({
-  children
-}: {
-  children: ReactNode;
-}) {
-
-  return (
-
-    <Box
-      sx={{
-        minWidth:
-          0,
-
-        overflow:
-          "visible"
-      }}
-    >
-      {children}
-    </Box>
 
   );
 
@@ -516,6 +209,15 @@ export default function OperatorPlanning() {
     >([]);
 
 
+  const [
+    selectedLine,
+    setSelectedLine
+  ] =
+    useState<number>(
+      1
+    );
+
+
   /*
    * ==================================================
    * CARGAR ÓRDENES
@@ -530,12 +232,6 @@ export default function OperatorPlanning() {
 
   }
 
-
-  /*
-   * ==================================================
-   * EVENTOS
-   * ==================================================
-   */
 
   useEffect(
     () => {
@@ -598,23 +294,139 @@ export default function OperatorPlanning() {
   const activeOrders =
     useMemo(
       () =>
+
         orders.filter(
           order =>
-            order.productionLine >=
-              1 &&
-            order.productionLine <=
-              8 &&
+
+            order.productionLine >= 1 &&
+
+            order.productionLine <= 8 &&
+
             order.status !==
               "FINALIZADA" &&
+
             getPendingQuantity(
               order
             ) >
               0
         ),
+
       [
         orders
       ]
     );
+
+
+  /*
+   * ==================================================
+   * ÓRDENES DE LÍNEA
+   * ==================================================
+   */
+
+  const lineOrders =
+    useMemo(
+      () => {
+
+        return activeOrders
+          .filter(
+            order =>
+              order.productionLine ===
+              selectedLine
+          )
+          .sort(
+            (
+              a,
+              b
+            ) => {
+
+              const positionA =
+                Number(
+                  a.planningPosition ??
+                  0
+                );
+
+
+              const positionB =
+                Number(
+                  b.planningPosition ??
+                  0
+                );
+
+
+              if (
+                positionA <=
+                  0 &&
+                positionB >
+                  0
+              ) {
+
+                return 1;
+
+              }
+
+
+              if (
+                positionB <=
+                  0 &&
+                positionA >
+                  0
+              ) {
+
+                return -1;
+
+              }
+
+
+              if (
+                positionA !==
+                positionB
+              ) {
+
+                return (
+                  positionA -
+                  positionB
+                );
+
+              }
+
+
+              return (
+                Number(
+                  a.id
+                ) -
+                Number(
+                  b.id
+                )
+              );
+
+            }
+          );
+
+      },
+      [
+        activeOrders,
+        selectedLine
+      ]
+    );
+
+
+  /*
+   * ==================================================
+   * CONTADOR POR LÍNEA
+   * ==================================================
+   */
+
+  function getLineCount(
+    line: number
+  ): number {
+
+    return activeOrders.filter(
+      order =>
+        order.productionLine ===
+        line
+    ).length;
+
+  }
 
 
   /*
@@ -638,6 +450,56 @@ export default function OperatorPlanning() {
 
   /*
    * ==================================================
+   * TOTALES LÍNEA
+   * ==================================================
+   */
+
+  const totalRolls =
+    lineOrders.reduce(
+      (
+        sum,
+        order
+      ) =>
+        sum +
+        Number(
+          order.rolls ??
+          0
+        ),
+      0
+    );
+
+
+  const totalPrinted =
+    lineOrders.reduce(
+      (
+        sum,
+        order
+      ) =>
+        sum +
+        Number(
+          order.printed ??
+          0
+        ),
+      0
+    );
+
+
+  const totalPending =
+    lineOrders.reduce(
+      (
+        sum,
+        order
+      ) =>
+        sum +
+        getPendingQuantity(
+          order
+        ),
+      0
+    );
+
+
+  /*
+   * ==================================================
    * RENDER
    * ==================================================
    */
@@ -646,25 +508,19 @@ export default function OperatorPlanning() {
 
     <Box
       sx={{
-        width:
-          "100%",
-
-        minWidth:
-          0
+        width: "100%",
+        minWidth: 0
       }}
     >
 
-      {/* =============================================
+      {/* ==================================================
           INICIO
-          ============================================= */}
+          ================================================== */}
 
       <Box
         sx={{
-          mt:
-            3,
-
-          mb:
-            4
+          mt: 3,
+          mb: 4
         }}
       >
 
@@ -676,26 +532,14 @@ export default function OperatorPlanning() {
               )
           }
           sx={{
-            minWidth:
-              205,
+            minWidth: 205,
+            height: 68,
+            px: 2.5,
 
-            height:
-              68,
-
-            px:
-              2.5,
-
-            display:
-              "flex",
-
-            justifyContent:
-              "flex-start",
-
-            alignItems:
-              "center",
-
-            gap:
-              1.8,
+            display: "flex",
+            justifyContent: "flex-start",
+            alignItems: "center",
+            gap: 1.8,
 
             border:
               "2px solid #0B7A3B",
@@ -709,11 +553,8 @@ export default function OperatorPlanning() {
             color:
               "#0B7A3B",
 
-            fontSize:
-              19,
-
-            fontWeight:
-              800,
+            fontSize: 19,
+            fontWeight: 800,
 
             letterSpacing:
               "0.4px",
@@ -724,11 +565,7 @@ export default function OperatorPlanning() {
             boxShadow:
               "0 5px 14px rgba(11, 122, 59, 0.16)",
 
-            transition:
-              "all 0.18s ease",
-
             "&:hover": {
-
               backgroundColor:
                 "#EAF6EE",
 
@@ -736,159 +573,101 @@ export default function OperatorPlanning() {
                 "#086530",
 
               color:
-                "#086530",
-
-              boxShadow:
-                "0 7px 18px rgba(11, 122, 59, 0.24)",
-
-              transform:
-                "translateY(-2px)"
-
-            },
-
-            "&:active": {
-
-              transform:
-                "translateY(0)",
-
-              boxShadow:
-                "0 3px 9px rgba(11, 122, 59, 0.18)"
-
-            },
-
-            "&:hover .homeIcon": {
-
-              backgroundColor:
-                "#086530",
-
-              transform:
-                "scale(1.08)"
-
+                "#086530"
             }
           }}
         >
 
           <Box
-            className="homeIcon"
             sx={{
-              width:
-                46,
-
-              height:
-                46,
-
-              flexShrink:
-                0,
-
-              borderRadius:
-                "50%",
-
-              display:
-                "flex",
-
-              alignItems:
-                "center",
-
-              justifyContent:
-                "center",
-
+              width: 46,
+              height: 46,
+              borderRadius: "50%",
               backgroundColor:
                 "#0B7A3B",
 
               color:
                 "#FFFFFF",
 
-              boxShadow:
-                "0 3px 8px rgba(11, 122, 59, 0.25)",
-
-              transition:
-                "all 0.18s ease"
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
             }}
           >
 
-            <HomeRoundedIcon
-              sx={{
-                fontSize:
-                  29
-              }}
-            />
+            <HomeRoundedIcon />
 
           </Box>
 
 
-          <Box
-            component="span"
-            sx={{
-              flexGrow:
-                1,
-
-              textAlign:
-                "center",
-
-              pr:
-                2
-            }}
-          >
-            INICIO
-          </Box>
+          INICIO
 
         </Button>
 
       </Box>
 
 
-      {/* =============================================
+      {/* ==================================================
           CABECERA
-          ============================================= */}
+          ================================================== */}
 
       <Box
         sx={{
-          mb:
-            4,
-
-          display:
-            "flex",
-
-          alignItems:
-            "center",
-
-          justifyContent:
-            "center",
-
-          gap:
-            2,
-
-          flexWrap:
-            "wrap"
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 2,
+          mb: 3
         }}
       >
 
         <CalendarMonthIcon
           sx={{
-            fontSize:
-              46,
-
-            color:
-              "#0B7A3B"
+            color: "#0B7A3B",
+            fontSize: 44
           }}
         />
 
 
         <Box>
 
-          <Typography
-            variant="h4"
-            fontWeight={700}
+          <Stack
+            direction="row"
+            spacing={2}
+            alignItems="center"
           >
-            Planificación
-          </Typography>
+
+            <Typography
+              variant="h3"
+              fontWeight={800}
+              color="#0B7A3B"
+            >
+              Planificación
+            </Typography>
+
+
+            <Chip
+              label={
+                `${activeOrders.length} órdenes pendientes`
+              }
+              color={
+                activeOrders.length >
+                  0
+
+                  ? "success"
+
+                  : "default"
+              }
+              variant="outlined"
+            />
+
+          </Stack>
 
 
           <Typography
             color="text.secondary"
             sx={{
-              mt:
-                0.5
+              textAlign: "center"
             }}
           >
             Selecciona la orden de producción que deseas imprimir
@@ -896,798 +675,765 @@ export default function OperatorPlanning() {
 
         </Box>
 
-
-        <Chip
-          label={
-            `${activeOrders.length} órdenes pendientes`
-          }
-          color={
-            activeOrders.length >
-              0
-
-              ? "success"
-
-              : "default"
-          }
-          variant="outlined"
-          sx={{
-            ml:
-              2
-          }}
-        />
-
       </Box>
 
 
-      {/* =============================================
-          LÍNEAS
-          ============================================= */}
+      {/* ==================================================
+          PESTAÑAS
+          ================================================== */}
 
-      <Stack
-        spacing={3}
+      <Paper
+        elevation={0}
+        sx={{
+          mb: 2.5,
+          border:
+            "1px solid #E0E0E0",
+          borderRadius: 2,
+          overflow: "hidden"
+        }}
       >
 
-        {
-          PRODUCTION_LINES.map(
-            line => {
+        <Tabs
+          value={
+            selectedLine
+          }
+          onChange={
+            (
+              _event,
+              value
+            ) =>
+              setSelectedLine(
+                Number(
+                  value
+                )
+              )
+          }
+          variant="fullWidth"
+          sx={{
+            backgroundColor:
+              "#F8FAF8",
 
-              const lineOrders =
-                activeOrders
-                  .filter(
-                    order =>
-                      order.productionLine ===
-                      line
-                  )
-                  .sort(
-                    (
-                      a,
-                      b
-                    ) => {
+            "& .MuiTabs-indicator": {
+              backgroundColor:
+                "#0B7A3B",
+              height: 4
+            },
 
-                      const positionA =
-                        Number(
-                          a.planningPosition ??
-                          0
-                        );
+            "& .MuiTab-root": {
+              fontWeight: 800,
+              minHeight: 64,
+              minWidth: 0,
+              color: "#6D5844"
+            },
 
+            "& .Mui-selected": {
+              color:
+                "#0B7A3B !important"
+            }
+          }}
+        >
 
-                      const positionB =
-                        Number(
-                          b.planningPosition ??
-                          0
-                        );
+          {
+            PRODUCTION_LINES.map(
+              line => {
 
-
-                      const safeA =
-                        positionA >
-                          0
-
-                          ? positionA
-
-                          : Number.MAX_SAFE_INTEGER;
-
-
-                      const safeB =
-                        positionB >
-                          0
-
-                          ? positionB
-
-                          : Number.MAX_SAFE_INTEGER;
-
-
-                      if (
-                        safeA !==
-                          safeB
-                      ) {
-
-                        return (
-                          safeA -
-                          safeB
-                        );
-
-                      }
-
-
-                      return (
-                        Number(
-                          a.id
-                        ) -
-                        Number(
-                          b.id
-                        )
-                      );
-
-                    }
+                const count =
+                  getLineCount(
+                    line
                   );
 
 
-              const total =
-                lineOrders.reduce(
-                  (
-                    sum,
-                    order
-                  ) =>
-                    sum +
-                    Number(
-                      order.rolls ??
-                      0
-                    ),
-                  0
+                return (
+
+                  <Tab
+                    key={
+                      line
+                    }
+                    value={
+                      line
+                    }
+                    label={
+
+                      <Stack
+                        direction="row"
+                        spacing={0.7}
+                        alignItems="center"
+                      >
+
+                        <span>
+                          LÍNEA {line}
+                        </span>
+
+
+                        <Box
+                          sx={{
+                            minWidth: 27,
+                            height: 27,
+                            px: 0.5,
+
+                            borderRadius:
+                              "14px",
+
+                            display:
+                              "flex",
+
+                            alignItems:
+                              "center",
+
+                            justifyContent:
+                              "center",
+
+                            fontWeight:
+                              900,
+
+                            backgroundColor:
+                              selectedLine ===
+                                line
+
+                                ? "#0B7A3B"
+
+                                : count >
+                                    0
+
+                                  ? "#DCEFE1"
+
+                                  : "#EEEEEE",
+
+                            color:
+                              selectedLine ===
+                                line
+
+                                ? "#FFFFFF"
+
+                                : count >
+                                    0
+
+                                  ? "#0B7A3B"
+
+                                  : "#757575"
+                          }}
+                        >
+                          {count}
+                        </Box>
+
+                      </Stack>
+
+                    }
+                  />
+
                 );
 
+              }
+            )
+          }
 
-              const printed =
-                lineOrders.reduce(
-                  (
-                    sum,
-                    order
-                  ) =>
-                    sum +
-                    Number(
-                      order.printed ??
-                      0
-                    ),
-                  0
-                );
+        </Tabs>
+
+      </Paper>
 
 
-              const pending =
-                lineOrders.reduce(
-                  (
-                    sum,
-                    order
-                  ) =>
-                    sum +
-                    getPendingQuantity(
-                      order
-                    ),
-                  0
-                );
+      {/* ==================================================
+          LÍNEA SELECCIONADA
+          ================================================== */}
+
+      <Paper
+        elevation={0}
+        sx={{
+          border:
+            "1px solid #E0E0E0",
+
+          borderRadius: 2,
+
+          overflow: "hidden"
+        }}
+      >
+
+        {/* CABECERA LÍNEA */}
+
+        <Box
+          sx={{
+            px: 2,
+            py: 1.5,
+
+            backgroundColor:
+              "#E8F3EB",
+
+            borderBottom:
+              "1px solid #E0E0E0",
+
+            display:
+              "flex",
+
+            alignItems:
+              "center",
+
+            gap: 1.2,
+
+            flexWrap:
+              "wrap"
+          }}
+        >
+
+          <FactoryIcon
+            sx={{
+              color:
+                "#0B7A3B",
+
+              fontSize:
+                27
+            }}
+          />
 
 
-              return (
+          <Typography
+            variant="h6"
+            fontWeight={900}
+            sx={{
+              color:
+                "#0B7A3B",
 
-                <Paper
-                  key={
-                    line
-                  }
-                  elevation={0}
+              mr:
+                "auto"
+            }}
+          >
+            LÍNEA {selectedLine}
+          </Typography>
+
+
+          <Chip
+            label={
+              `${lineOrders.length} OF`
+            }
+            size="small"
+            sx={{
+              fontWeight: 800,
+              backgroundColor:
+                "#FFFFFF"
+            }}
+          />
+
+
+          <Chip
+            label={
+              `R/B: ${totalRolls}`
+            }
+            size="small"
+            variant="outlined"
+            sx={{
+              backgroundColor:
+                "#FFFFFF"
+            }}
+          />
+
+
+          <Chip
+            label={
+              `Imp.: ${totalPrinted}`
+            }
+            size="small"
+            variant="outlined"
+            sx={{
+              backgroundColor:
+                "#FFFFFF"
+            }}
+          />
+
+
+          <Chip
+            label={
+              `Pend.: ${totalPending}`
+            }
+            size="small"
+            color={
+              totalPending >
+                0
+
+                ? "warning"
+
+                : "success"
+            }
+            sx={{
+              fontWeight: 700
+            }}
+          />
+
+        </Box>
+
+
+        {/* ==================================================
+            SIN ÓRDENES
+            ================================================== */}
+
+        {
+          lineOrders.length ===
+            0
+
+            ? (
+
+              <Box
+                sx={{
+                  py: 5,
+                  textAlign:
+                    "center",
+                  backgroundColor:
+                    "#FFFFFF"
+                }}
+              >
+
+                <Typography
+                  color="text.secondary"
+                >
+                  Sin órdenes planificadas en la Línea {selectedLine}
+                </Typography>
+
+              </Box>
+
+            )
+
+            : (
+
+              <Box
+                sx={{
+                  width:
+                    "100%",
+
+                  overflowX:
+                    "auto"
+                }}
+              >
+
+                <Box
                   sx={{
-                    overflow:
-                      "hidden",
-
-                    border:
-                      "1px solid #E0E0E0",
-
-                    borderRadius:
-                      2
+                    minWidth:
+                      1320
                   }}
                 >
 
-                  {/* CABECERA LÍNEA */}
+                  {/* CABECERA TABLA */}
 
                   <Box
                     sx={{
+                      display:
+                        "grid",
+
+                      gridTemplateColumns:
+                        PLANNING_COLUMNS,
+
+                      columnGap:
+                        0.7,
+
                       px:
-                        2.5,
+                        1,
 
                       py:
-                        1.7,
+                        1.1,
 
                       backgroundColor:
-                        "#E8F3EB",
+                        "#F5F7FA",
 
                       borderBottom:
-                        "1px solid #E0E0E0",
-
-                      display:
-                        "flex",
-
-                      alignItems:
-                        "center",
-
-                      gap:
-                        1.5,
-
-                      flexWrap:
-                        "wrap"
+                        "1px solid #E0E0E0"
                     }}
                   >
 
-                    <FactoryIcon
-                      sx={{
-                        color:
-                          "#0B7A3B"
-                      }}
-                    />
+                    <Header center>
+                      #
+                    </Header>
 
+                    <Header>
+                      OF
+                    </Header>
 
-                    <Typography
-                      variant="h6"
-                      fontWeight={800}
-                      sx={{
-                        color:
-                          "#0B7A3B",
+                    <Header>
+                      Marcaje
+                    </Header>
 
-                        minWidth:
-                          110
-                      }}
-                    >
-                      LÍNEA {line}
-                    </Typography>
+                    <Header center>
+                      Metros / Unid.
+                    </Header>
 
+                    <Header center>
+                      R/B Tot
+                    </Header>
 
-                    <Chip
-                      label={
-                        `${lineOrders.length} OF`
-                      }
-                      size="small"
-                      sx={{
-                        fontWeight:
-                          800,
+                    <Header center>
+                      R/B Pen
+                    </Header>
 
-                        backgroundColor:
-                          "#FFFFFF"
-                      }}
-                    />
+                    <Header>
+                      Descripción
+                    </Header>
 
+                    <Header>
+                      Cliente
+                    </Header>
 
-                    <Chip
-                      label={
-                        `R/B: ${total}`
-                      }
-                      size="small"
-                      variant="outlined"
-                    />
+                    <Header>
+                      SKU
+                    </Header>
 
+                    <Header>
+                      Pedido Venta
+                    </Header>
 
-                    <Chip
-                      label={
-                        `Imp.: ${printed}`
-                      }
-                      size="small"
-                      variant="outlined"
-                    />
+                    <Header center>
+                      Progreso
+                    </Header>
 
-
-                    <Chip
-                      label={
-                        `Pend.: ${pending}`
-                      }
-                      size="small"
-                      color={
-                        pending >
-                          0
-
-                          ? "warning"
-
-                          : "success"
-                      }
-                    />
+                    <Header center>
+                      Imprimir
+                    </Header>
 
                   </Box>
 
 
-                  {/* SIN ÓRDENES */}
+                  {/* FILAS */}
 
                   {
-                    lineOrders.length ===
-                      0
+                    lineOrders.map(
+                      (
+                        order,
+                        index
+                      ) => {
 
-                      ? (
+                        const pending =
+                          getPendingQuantity(
+                            order
+                          );
 
-                        <Box
-                          sx={{
-                            py:
-                              3,
 
-                            textAlign:
-                              "center"
-                          }}
-                        >
+                        const progress =
+                          order.rolls >
+                            0
 
-                          <Typography
-                            color="text.secondary"
-                          >
-                            Sin órdenes planificadas
-                          </Typography>
+                            ? Math.min(
+                                100,
+                                (
+                                  order.printed /
+                                  order.rolls
+                                ) *
+                                  100
+                              )
 
-                        </Box>
+                            : 0;
 
-                      )
 
-                      : (
+                        const unit:
+                          "M" |
+                          "UN" =
 
-                        <Box
-                          sx={{
-                            overflowX:
-                              "auto"
-                          }}
-                        >
+                          order.quantityUnit ===
+                            "UN"
+
+                            ? "UN"
+
+                            : "M";
+
+
+                        const pendingAmount =
+                          getPendingAmount(
+                            order
+                          );
+
+
+                        return (
 
                           <Box
+                            key={
+                              order.id
+                            }
+                            onClick={
+                              () =>
+                                openOrder(
+                                  order
+                                )
+                            }
                             sx={{
-                              minWidth:
-                                1430
+                              display:
+                                "grid",
+
+                              gridTemplateColumns:
+                                PLANNING_COLUMNS,
+
+                              columnGap:
+                                0.7,
+
+                              minHeight:
+                                64,
+
+                              px:
+                                1,
+
+                              alignItems:
+                                "center",
+
+                              borderBottom:
+                                "1px solid #EAEAEA",
+
+                              cursor:
+                                "pointer",
+
+                              backgroundColor:
+                                "#FFFFFF",
+
+                              "&:hover": {
+                                backgroundColor:
+                                  "#F3FAF5"
+                              }
                             }}
                           >
 
-                            {/* CABECERA */}
+                            {/* # */}
+
+                            <Typography
+                              fontWeight={800}
+                              textAlign="center"
+                            >
+                              {
+                                order.planningPosition >
+                                  0
+
+                                  ? order.planningPosition
+
+                                  : index +
+                                    1
+                              }
+                            </Typography>
+
+
+                            {/* OF */}
+
+                            <Typography
+                              fontWeight={900}
+                              color="#1976D2"
+                              sx={{
+                                whiteSpace:
+                                  "nowrap"
+                              }}
+                            >
+                              {order.order}
+                            </Typography>
+
+
+                            {/* MARCAJE */}
+
+                            <Typography
+                              fontWeight={800}
+                              sx={{
+                                whiteSpace:
+                                  "nowrap"
+                              }}
+                            >
+                              {
+                                order.marking ||
+                                "-"
+                              }
+                            </Typography>
+
+
+                            {/* METROS / UNIDADES */}
+
+                            <Typography
+                              fontWeight={900}
+                              color="#0B7A3B"
+                              textAlign="center"
+                              sx={{
+                                whiteSpace:
+                                  "nowrap"
+                              }}
+                            >
+                              {
+                                formatQuantity(
+                                  pendingAmount,
+                                  unit
+                                )
+                              }
+                            </Typography>
+
+
+                            {/* R/B TOTAL */}
+
+                            <Typography
+                              fontWeight={800}
+                              textAlign="center"
+                            >
+                              {order.rolls}
+                            </Typography>
+
+
+                            {/* R/B PENDIENTE */}
+
+                            <Typography
+                              fontWeight={900}
+                              color="error.main"
+                              textAlign="center"
+                            >
+                              {pending}
+                            </Typography>
+
+
+                            {/* DESCRIPCIÓN */}
+
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                lineHeight:
+                                  1.25,
+
+                                overflow:
+                                  "hidden",
+
+                                display:
+                                  "-webkit-box",
+
+                                WebkitLineClamp:
+                                  2,
+
+                                WebkitBoxOrient:
+                                  "vertical"
+                              }}
+                            >
+                              {order.product}
+                            </Typography>
+
+
+                            {/* CLIENTE */}
+
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                overflow:
+                                  "hidden",
+
+                                textOverflow:
+                                  "ellipsis",
+
+                                whiteSpace:
+                                  "nowrap"
+                              }}
+                            >
+                              {
+                                order.customer ||
+                                "-"
+                              }
+                            </Typography>
+
+
+                            {/* SKU */}
+
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                whiteSpace:
+                                  "nowrap"
+                              }}
+                            >
+                              {order.sku}
+                            </Typography>
+
+
+                            {/* PEDIDO VENTA */}
+
+                            <Typography
+                              variant="body2"
+                              fontWeight={700}
+                              sx={{
+                                whiteSpace:
+                                  "nowrap"
+                              }}
+                            >
+                              {
+                                order.salesOrder ||
+                                "-"
+                              }
+                            </Typography>
+
+
+                            {/* PROGRESO */}
 
                             <Box
                               sx={{
-                                display:
-                                  "grid",
-
-                                gridTemplateColumns:
-                                  PLANNING_COLUMNS,
-
-                                columnGap:
-                                  0.7,
-
                                 px:
-                                  1,
-
-                                py:
-                                  1.1,
-
-                                backgroundColor:
-                                  "#F5F7FA"
+                                  0.5
                               }}
                             >
 
-                              <Header center>
-                                #
-                              </Header>
+                              <LinearProgress
+                                variant="determinate"
+                                value={
+                                  progress
+                                }
+                                sx={{
+                                  height:
+                                    7,
 
-                              <Header>
-                                OF
-                              </Header>
+                                  borderRadius:
+                                    5
+                                }}
+                              />
 
-                              <Header>
-                                Marcaje
-                              </Header>
 
-                              <Header center>
-                                Metros / Unid.
-                              </Header>
+                              <Typography
+                                variant="caption"
+                                fontWeight={800}
+                                sx={{
+                                  display:
+                                    "block",
 
-                              <Header center>
-                                R/B Tot
-                              </Header>
+                                  mt:
+                                    0.4,
 
-                              <Header center>
-                                R/B Pen
-                              </Header>
-
-                              <Header>
-                                Descripción
-                              </Header>
-
-                              <Header>
-                                Cliente
-                              </Header>
-
-                              <Header>
-                                SKU
-                              </Header>
-
-                              <Header>
-                                Pedido Venta
-                              </Header>
-
-                              <Header center>
-                                Progreso
-                              </Header>
+                                  textAlign:
+                                    "center"
+                                }}
+                              >
+                                {
+                                  Math.round(
+                                    progress
+                                  )
+                                }%
+                              </Typography>
 
                             </Box>
 
 
-                            {/* ÓRDENES */}
-
-                            {
-                              lineOrders.map(
-                                (
-                                  order,
-                                  index
-                                ) => {
-
-                                  const orderPending =
-                                    getPendingQuantity(
-                                      order
-                                    );
-
-
-                                  const progress =
-                                    order.rolls >
-                                      0
-
-                                      ? Math.min(
-                                          100,
-                                          (
-                                            order.printed /
-                                            order.rolls
-                                          ) *
-                                            100
-                                        )
-
-                                      : 0;
-
-
-                                  const unit:
-                                    "M" |
-                                    "UN" =
-
-                                    order.quantityUnit ===
-                                      "UN"
-
-                                      ? "UN"
-
-                                      : "M";
-
-
-                                  const pendingQuantity =
-                                    getOrderPendingQuantity(
-                                      order
-                                    );
-
-
-                                  return (
-
-                                    <Box
-                                      key={
-                                        order.id
-                                      }
-                                      onClick={
-                                        () =>
-                                          openOrder(
-                                            order
-                                          )
-                                      }
-                                      sx={{
-                                        display:
-                                          "grid",
-
-                                        gridTemplateColumns:
-                                          PLANNING_COLUMNS,
-
-                                        columnGap:
-                                          0.7,
-
-                                        minHeight:
-                                          68,
-
-                                        px:
-                                          1,
-
-                                        alignItems:
-                                          "center",
-
-                                        cursor:
-                                          "pointer",
-
-                                        borderTop:
-                                          "1px solid #EEEEEE",
-
-                                        backgroundColor:
-                                          "#FFFFFF",
-
-                                        transition:
-                                          "background-color 0.15s ease",
-
-                                        "&:hover": {
-                                          backgroundColor:
-                                            "#F1F8E9"
-                                        }
-                                      }}
-                                    >
-
-                                      {/* POSICIÓN */}
-
-                                      <CellBox>
-
-                                        <Typography
-                                          fontWeight={900}
-                                          textAlign="center"
-                                        >
-                                          {index + 1}
-                                        </Typography>
-
-                                      </CellBox>
-
-
-                                      {/* OF */}
-
-                                      <CellBox>
-
-                                        <Stack
-                                          direction="row"
-                                          alignItems="center"
-                                          spacing={0.6}
-                                        >
-
-                                          <Typography
-                                            fontWeight={900}
-                                            color="primary.main"
-                                            title={
-                                              order.order
-                                            }
-                                            sx={{
-                                              whiteSpace:
-                                                "nowrap",
-
-                                              overflow:
-                                                "visible",
-
-                                              textOverflow:
-                                                "clip",
-
-                                              fontVariantNumeric:
-                                                "tabular-nums"
-                                            }}
-                                          >
-                                            {order.order}
-                                          </Typography>
-
-
-                                          <PrintIcon
-                                            sx={{
-                                              fontSize:
-                                                17,
-
-                                              color:
-                                                "#0B7A3B",
-
-                                              flexShrink:
-                                                0
-                                            }}
-                                          />
-
-                                        </Stack>
-
-                                      </CellBox>
-
-
-                                      {/* MARCAJE */}
-
-                                      <CellBox>
-
-                                        <Typography
-                                          variant="body2"
-                                          fontWeight={700}
-                                          noWrap
-                                        >
-                                          {
-                                            order.marking ||
-                                            "-"
-                                          }
-                                        </Typography>
-
-                                      </CellBox>
-
-
-                                      {/*
-                                       * METROS / UNIDADES
-                                       * PENDIENTES
-                                       */}
-
-                                      <CellBox>
-
-                                        <Typography
-                                          variant="body2"
-                                          textAlign="center"
-                                          fontWeight={900}
-                                          sx={{
-                                            color:
-                                              "#0B7A3B",
-
-                                            whiteSpace:
-                                              "nowrap"
-                                          }}
-                                        >
-                                          {
-                                            formatQuantity(
-                                              pendingQuantity,
-                                              unit
-                                            )
-                                          }
-                                        </Typography>
-
-                                      </CellBox>
-
-
-                                      {/* TOTAL R/B */}
-
-                                      <CellBox>
-
-                                        <Typography
-                                          textAlign="center"
-                                          fontWeight={800}
-                                        >
-                                          {order.rolls}
-                                        </Typography>
-
-                                      </CellBox>
-
-
-                                      {/* R/B PENDIENTES */}
-
-                                      <CellBox>
-
-                                        <Typography
-                                          textAlign="center"
-                                          fontWeight={900}
-                                          color={
-                                            orderPending >
-                                              0
-
-                                              ? "error.main"
-
-                                              : "success.main"
-                                          }
-                                        >
-                                          {orderPending}
-                                        </Typography>
-
-                                      </CellBox>
-
-
-                                      {/* DESCRIPCIÓN */}
-
-                                      <CellBox>
-
-                                        <Typography
-                                          variant="body2"
-                                          fontWeight={500}
-                                          title={
-                                            getPlanningDescription(
-                                              order
-                                            )
-                                          }
-                                          sx={{
-                                            overflow:
-                                              "hidden",
-
-                                            display:
-                                              "-webkit-box",
-
-                                            WebkitLineClamp:
-                                              2,
-
-                                            WebkitBoxOrient:
-                                              "vertical"
-                                          }}
-                                        >
-                                          {
-                                            getPlanningDescription(
-                                              order
-                                            )
-                                          }
-                                        </Typography>
-
-                                      </CellBox>
-
-
-                                      {/* CLIENTE */}
-
-                                      <CellBox>
-
-                                        <Typography
-                                          variant="body2"
-                                          noWrap
-                                        >
-                                          {
-                                            order.customer ||
-                                            "-"
-                                          }
-                                        </Typography>
-
-                                      </CellBox>
-
-
-                                      {/* SKU */}
-
-                                      <CellBox>
-
-                                        <Typography
-                                          variant="body2"
-                                          noWrap
-                                        >
-                                          {order.sku}
-                                        </Typography>
-
-                                      </CellBox>
-
-
-                                      {/* PEDIDO VENTA */}
-
-                                      <CellBox>
-
-                                        <Typography
-                                          variant="body2"
-                                          fontWeight={700}
-                                          noWrap
-                                        >
-                                          {
-                                            order.salesOrder ||
-                                            "-"
-                                          }
-                                        </Typography>
-
-                                      </CellBox>
-
-
-                                      {/* PROGRESO */}
-
-                                      <CellBox>
-
-                                        <Box
-                                          sx={{
-                                            px:
-                                              0.5
-                                          }}
-                                        >
-
-                                          <LinearProgress
-                                            variant="determinate"
-                                            value={
-                                              progress
-                                            }
-                                            sx={{
-                                              height:
-                                                8,
-
-                                              borderRadius:
-                                                5,
-
-                                              mb:
-                                                0.5
-                                            }}
-                                          />
-
-
-                                          <Typography
-                                            variant="caption"
-                                            display="block"
-                                            textAlign="center"
-                                            fontWeight={700}
-                                          >
-                                            {
-                                              Math.round(
-                                                progress
-                                              )
-                                            }%
-                                          </Typography>
-
-                                        </Box>
-
-                                      </CellBox>
-
-                                    </Box>
-
-                                  );
-
-                                }
-                              )
-                            }
+                            {/* IMPRIMIR */}
+
+                            <Box
+                              sx={{
+                                display:
+                                  "flex",
+
+                                justifyContent:
+                                  "center"
+                              }}
+                            >
+
+                              <PrintIcon
+                                sx={{
+                                  color:
+                                    "#0B7A3B"
+                                }}
+                              />
+
+                            </Box>
 
                           </Box>
 
-                        </Box>
+                        );
 
-                      )
+                      }
+                    )
                   }
 
-                </Paper>
+                </Box>
 
-              );
+              </Box>
 
-            }
-          )
+            )
         }
 
-      </Stack>
+      </Paper>
 
     </Box>
 
