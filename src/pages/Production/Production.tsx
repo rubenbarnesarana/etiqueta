@@ -151,11 +151,9 @@ function formatQuantity(
 
 
 /*
- * quantity = cantidad por bobina
- *
- * Lo que mostramos en Producción es lo pendiente:
- *
- * R/B pendientes × cantidad por bobina
+ * ==================================================
+ * CANTIDAD PENDIENTE
+ * ==================================================
  */
 
 function getOrderPendingAmount(
@@ -190,6 +188,12 @@ function getOrderPendingAmount(
 
 }
 
+
+/*
+ * ==================================================
+ * COMPONENTE
+ * ==================================================
+ */
 
 export default function Production() {
 
@@ -295,6 +299,12 @@ export default function Production() {
     );
 
 
+  /*
+   * ==================================================
+   * CARGAR ÓRDENES
+   * ==================================================
+   */
+
   function loadOrders() {
 
     setOrders(
@@ -303,6 +313,12 @@ export default function Production() {
 
   }
 
+
+  /*
+   * ==================================================
+   * COMENTARIO LÍNEA
+   * ==================================================
+   */
 
   function loadLineComments(
     line: number
@@ -321,6 +337,12 @@ export default function Production() {
 
   }
 
+
+  /*
+   * ==================================================
+   * EVENTOS
+   * ==================================================
+   */
 
   useEffect(
     () => {
@@ -421,6 +443,12 @@ export default function Production() {
   );
 
 
+  /*
+   * ==================================================
+   * GUARDAR ORDEN
+   * ==================================================
+   */
+
   function saveOrder(
     order: ProductionOrder
   ) {
@@ -489,6 +517,12 @@ export default function Production() {
   }
 
 
+  /*
+   * ==================================================
+   * NUEVA ORDEN
+   * ==================================================
+   */
+
   function newOrder() {
 
     setEditing(
@@ -503,6 +537,12 @@ export default function Production() {
   }
 
 
+  /*
+   * ==================================================
+   * GESTIONAR
+   * ==================================================
+   */
+
   function manageOrder(
     order: ProductionOrder
   ) {
@@ -513,6 +553,12 @@ export default function Production() {
 
   }
 
+
+  /*
+   * ==================================================
+   * ELIMINAR
+   * ==================================================
+   */
 
   function askRemoveOrder(
     order: ProductionOrder
@@ -559,6 +605,12 @@ export default function Production() {
 
   }
 
+
+  /*
+   * ==================================================
+   * COMENTARIOS
+   * ==================================================
+   */
 
   function openCommentsDialog() {
 
@@ -680,6 +732,12 @@ export default function Production() {
   }
 
 
+  /*
+   * ==================================================
+   * PLANTILLA
+   * ==================================================
+   */
+
   function getTemplateName(
     templateId: number
   ): string {
@@ -704,6 +762,12 @@ export default function Production() {
   }
 
 
+  /*
+   * ==================================================
+   * ÓRDENES DE LÍNEA
+   * ==================================================
+   */
+
   const lineOrders =
     useMemo(
       () => {
@@ -714,11 +778,8 @@ export default function Production() {
               order,
               storageIndex
             ) => ({
-
               order,
-
               storageIndex
-
             })
           )
           .filter(
@@ -798,6 +859,12 @@ export default function Production() {
     );
 
 
+  /*
+   * ==================================================
+   * SIN LÍNEA
+   * ==================================================
+   */
+
   const unassignedOrders =
     useMemo(
       () =>
@@ -814,6 +881,12 @@ export default function Production() {
     );
 
 
+  /*
+   * ==================================================
+   * CONTADOR LÍNEA
+   * ==================================================
+   */
+
   function getLineOrderCount(
     line: number
   ): number {
@@ -827,8 +900,14 @@ export default function Production() {
   }
 
 
+  /*
+   * ==================================================
+   * ESTILOS TABLA
+   * ==================================================
+   */
+
   const commonCellSx = {
-    px: 0.7,
+    px: 0.65,
     py: 1.2,
     overflow: "hidden",
     verticalAlign: "middle"
@@ -843,6 +922,12 @@ export default function Production() {
     whiteSpace: "normal"
   };
 
+
+  /*
+   * ==================================================
+   * FILA
+   * ==================================================
+   */
 
   function renderOrderRow(
     order: ProductionOrder,
@@ -889,6 +974,8 @@ export default function Production() {
         hover
       >
 
+        {/* POSICIÓN */}
+
         <TableCell
           align="center"
           sx={commonCellSx}
@@ -914,6 +1001,8 @@ export default function Production() {
         </TableCell>
 
 
+        {/* OF */}
+
         <TableCell
           sx={commonCellSx}
         >
@@ -934,21 +1023,27 @@ export default function Production() {
         </TableCell>
 
 
+        {/* MARCAJE */}
+
         <TableCell
-          sx={commonCellSx}
+          sx={{
+            ...commonCellSx,
+            overflow: "visible"
+          }}
         >
 
           <Typography
             variant="body2"
-            fontWeight={700}
+            fontWeight={800}
             title={
               order.marking ||
               "-"
             }
             sx={{
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap"
+              fontSize: 12.5,
+              whiteSpace: "nowrap",
+              overflow: "visible",
+              textOverflow: "clip"
             }}
           >
             {
@@ -959,6 +1054,8 @@ export default function Production() {
 
         </TableCell>
 
+
+        {/* CANTIDAD POR R/B */}
 
         <TableCell
           align="center"
@@ -983,9 +1080,7 @@ export default function Production() {
         </TableCell>
 
 
-        {/*
-         * METROS / UNIDADES PENDIENTES
-         */}
+        {/* METROS / UNIDADES PENDIENTES */}
 
         <TableCell
           align="center"
@@ -1011,6 +1106,8 @@ export default function Production() {
         </TableCell>
 
 
+        {/* R/B TOTAL */}
+
         <TableCell
           align="center"
           sx={commonCellSx}
@@ -1025,6 +1122,8 @@ export default function Production() {
 
         </TableCell>
 
+
+        {/* R/B PENDIENTE */}
 
         <TableCell
           align="center"
@@ -1049,6 +1148,8 @@ export default function Production() {
         </TableCell>
 
 
+        {/* DESCRIPCIÓN */}
+
         <TableCell
           sx={commonCellSx}
         >
@@ -1072,6 +1173,8 @@ export default function Production() {
 
         </TableCell>
 
+
+        {/* CLIENTE */}
 
         <TableCell
           sx={commonCellSx}
@@ -1098,6 +1201,8 @@ export default function Production() {
         </TableCell>
 
 
+        {/* SKU */}
+
         <TableCell
           sx={commonCellSx}
         >
@@ -1117,6 +1222,8 @@ export default function Production() {
 
         </TableCell>
 
+
+        {/* PEDIDO VENTA */}
 
         <TableCell
           sx={commonCellSx}
@@ -1143,6 +1250,8 @@ export default function Production() {
         </TableCell>
 
 
+        {/* PLANTILLA */}
+
         <TableCell
           sx={commonCellSx}
         >
@@ -1170,6 +1279,8 @@ export default function Production() {
         </TableCell>
 
 
+        {/* IMPRESAS */}
+
         <TableCell
           align="center"
           sx={commonCellSx}
@@ -1177,6 +1288,8 @@ export default function Production() {
           {order.printed}
         </TableCell>
 
+
+        {/* ESTADO */}
 
         <TableCell
           align="center"
@@ -1203,6 +1316,8 @@ export default function Production() {
 
         </TableCell>
 
+
+        {/* ACCIONES */}
 
         <TableCell
           align="center"
@@ -1269,6 +1384,12 @@ export default function Production() {
   }
 
 
+  /*
+   * ==================================================
+   * CABECERA
+   * ==================================================
+   */
+
   function renderTableHead() {
 
     return (
@@ -1288,17 +1409,20 @@ export default function Production() {
             #
           </TableCell>
 
+
           <TableCell
             sx={headCellSx}
           >
             OF
           </TableCell>
 
+
           <TableCell
             sx={headCellSx}
           >
             Marcaje
           </TableCell>
+
 
           <TableCell
             align="center"
@@ -1307,12 +1431,14 @@ export default function Production() {
             Cant. / R-B
           </TableCell>
 
+
           <TableCell
             align="center"
             sx={headCellSx}
           >
             Metros / Unid.
           </TableCell>
+
 
           <TableCell
             align="center"
@@ -1321,6 +1447,7 @@ export default function Production() {
             Nº R/B Tot
           </TableCell>
 
+
           <TableCell
             align="center"
             sx={headCellSx}
@@ -1328,11 +1455,13 @@ export default function Production() {
             Nº R/B Pen
           </TableCell>
 
+
           <TableCell
             sx={headCellSx}
           >
             Descripción
           </TableCell>
+
 
           <TableCell
             sx={headCellSx}
@@ -1340,11 +1469,13 @@ export default function Production() {
             Cliente
           </TableCell>
 
+
           <TableCell
             sx={headCellSx}
           >
             SKU
           </TableCell>
+
 
           <TableCell
             sx={headCellSx}
@@ -1352,11 +1483,13 @@ export default function Production() {
             Pedido venta
           </TableCell>
 
+
           <TableCell
             sx={headCellSx}
           >
             Plantilla
           </TableCell>
+
 
           <TableCell
             align="center"
@@ -1365,12 +1498,14 @@ export default function Production() {
             Impresas
           </TableCell>
 
+
           <TableCell
             align="center"
             sx={headCellSx}
           >
             Estado
           </TableCell>
+
 
           <TableCell
             align="center"
@@ -1387,6 +1522,12 @@ export default function Production() {
 
   }
 
+
+  /*
+   * ==================================================
+   * TABLA
+   * ==================================================
+   */
 
   function renderProductionTable(
     tableOrders: ProductionOrder[]
@@ -1411,21 +1552,50 @@ export default function Production() {
 
           <colgroup>
 
+            {/* # */}
             <col style={{ width: "2.5%" }} />
+
+            {/* OF */}
             <col style={{ width: "8.5%" }} />
-            <col style={{ width: "6.5%" }} />
+
+            {/* MARCAJE - MÁS ANCHO */}
+            <col style={{ width: "9%" }} />
+
+            {/* CANT / R-B */}
             <col style={{ width: "6%" }} />
+
+            {/* METROS */}
             <col style={{ width: "7.5%" }} />
+
+            {/* R/B TOT */}
             <col style={{ width: "4.5%" }} />
+
+            {/* R/B PEN */}
             <col style={{ width: "4.5%" }} />
-            <col style={{ width: "17.5%" }} />
-            <col style={{ width: "6%" }} />
-            <col style={{ width: "6.5%" }} />
-            <col style={{ width: "7.5%" }} />
+
+            {/* DESCRIPCIÓN */}
+            <col style={{ width: "15%" }} />
+
+            {/* CLIENTE */}
             <col style={{ width: "5.5%" }} />
-            <col style={{ width: "4.5%" }} />
+
+            {/* SKU */}
             <col style={{ width: "6.5%" }} />
-            <col style={{ width: "6%" }} />
+
+            {/* PEDIDO VENTA */}
+            <col style={{ width: "7.5%" }} />
+
+            {/* PLANTILLA */}
+            <col style={{ width: "5.5%" }} />
+
+            {/* IMPRESAS */}
+            <col style={{ width: "4.5%" }} />
+
+            {/* ESTADO */}
+            <col style={{ width: "6.5%" }} />
+
+            {/* ACCIONES */}
+            <col style={{ width: "6.5%" }} />
 
           </colgroup>
 
@@ -1462,6 +1632,12 @@ export default function Production() {
   }
 
 
+  /*
+   * ==================================================
+   * RENDER
+   * ==================================================
+   */
+
   return (
 
     <Box
@@ -1475,6 +1651,8 @@ export default function Production() {
         showBack={false}
       />
 
+
+      {/* CABECERA */}
 
       <Box
         sx={{
@@ -1540,6 +1718,8 @@ export default function Production() {
       </Box>
 
 
+      {/* SIN ÓRDENES */}
+
       {
         orders.length ===
           0 &&
@@ -1588,6 +1768,8 @@ export default function Production() {
         )
       }
 
+
+      {/* LÍNEAS */}
 
       {
         orders.length >
@@ -1894,6 +2076,8 @@ export default function Production() {
       }
 
 
+      {/* SIN LÍNEA */}
+
       {
         unassignedOrders.length >
           0 &&
@@ -1955,6 +2139,8 @@ export default function Production() {
       }
 
 
+      {/* NUEVA ORDEN */}
+
       <ProductionDialog
         open={
           openDialog
@@ -1982,6 +2168,8 @@ export default function Production() {
       />
 
 
+      {/* GESTIONAR */}
+
       <ProductionManageDialog
         open={
           Boolean(
@@ -2003,6 +2191,8 @@ export default function Production() {
         }
       />
 
+
+      {/* COMENTARIOS */}
 
       <Dialog
         open={
@@ -2092,6 +2282,8 @@ export default function Production() {
 
       </Dialog>
 
+
+      {/* ELIMINAR */}
 
       <Dialog
         open={
