@@ -1,7 +1,12 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState
+} from "react";
+
+import type {
+  ChangeEvent
 } from "react";
 
 import {
@@ -37,9 +42,11 @@ import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturi
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import FactoryIcon from "@mui/icons-material/Factory";
 import CommentIcon from "@mui/icons-material/Comment";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 
 import ProductionDialog from "../../components/production/ProductionDialog";
 import ProductionManageDialog from "../../components/production/ProductionManageDialog";
+import ProductionSapImportDialog from "../../components/production/ProductionSapImportDialog";
 
 import BackButton from "../../components/common/BackButton";
 
@@ -65,6 +72,15 @@ import {
   updateProductionLineComments
 } from "../../services/ProductionLineStorage";
 
+import {
+  previewSapProductionOrders
+} from "../../services/SapProductionImport";
+
+import type {
+  SapProductionPreviewResult,
+  SapProductionPreviewRow
+} from "../../services/SapProductionImport";
+
 
 const PRODUCTION_LINES = [
   1,
@@ -77,6 +93,12 @@ const PRODUCTION_LINES = [
   8
 ];
 
+
+/*
+ * ==================================================
+ * FORMATEAR NÚMERO
+ * ==================================================
+ */
 
 function formatNumber(
   value: number
@@ -111,6 +133,12 @@ function formatNumber(
 
 }
 
+
+/*
+ * ==================================================
+ * FORMATEAR CANTIDAD
+ * ==================================================
+ */
 
 function formatQuantity(
   quantity: number,
@@ -254,6 +282,63 @@ export default function Production() {
     >();
 
 
+  /*
+   * ==================================================
+   * IMPORTACIÓN SAP
+   * ==================================================
+   */
+
+  const sapFileInputRef =
+    useRef<HTMLInputElement | null>(
+      null
+    );
+
+
+  const [
+    sapPreview,
+    setSapPreview
+  ] =
+    useState<
+      SapProductionPreviewResult |
+      null
+    >(
+      null
+    );
+
+
+  const [
+    sapPreviewOpen,
+    setSapPreviewOpen
+  ] =
+    useState(
+      false
+    );
+
+
+  const [
+    readingSapFile,
+    setReadingSapFile
+  ] =
+    useState(
+      false
+    );
+
+
+  const [
+    sapImportError,
+    setSapImportError
+  ] =
+    useState(
+      ""
+    );
+
+
+  /*
+   * ==================================================
+   * COMENTARIOS
+   * ==================================================
+   */
+
   const [
     lineComments,
     setLineComments
@@ -316,7 +401,7 @@ export default function Production() {
 
   /*
    * ==================================================
-   * COMENTARIO LÍNEA
+   * CARGAR COMENTARIO DE LÍNEA
    * ==================================================
    */
 
@@ -532,6 +617,179 @@ export default function Production() {
 
     setOpenDialog(
       true
+    );
+
+  }
+
+
+  /*
+   * ==================================================
+   * IMPORTAR EXCEL SAP
+   * ==================================================
+   */
+
+  function openSapFilePicker() {
+
+    setSapImportError(
+      ""
+    );
+
+
+    sapFileInputRef.current?.click();
+
+  }
+
+
+  async function handleSapFileSelected(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+
+    const file =
+      event.target.files?.[0];
+
+
+    event.target.value =
+      "";
+
+
+    if (
+      !file
+    ) {
+
+      return;
+
+    }
+
+
+    setReadingSapFile(
+      true
+    );
+
+
+    setSapImportError(
+      ""
+    );
+
+
+    try {
+
+      const result =
+        await previewSapProductionOrders(
+          file
+        );
+
+
+      setSapPreview(
+        result
+      );
+
+
+      setSapPreviewOpen(
+        true
+      );
+
+    }
+    catch (
+      error
+    ) {
+
+      console.error(
+        "Error leyendo Excel SAP:",
+        error
+      );
+
+
+      setSapImportError(
+        error instanceof
+          Error
+
+          ? error.message
+
+          : "No se ha podido leer el Excel SAP."
+      );
+
+    }
+    finally {
+
+      setReadingSapFile(
+        false
+      );
+
+    }
+
+  }
+
+
+  /*
+   * ==================================================
+   * ACTUALIZAR PREVIEW SAP
+   * ==================================================
+   */
+
+  function updateSapPreviewRows(
+    rows: SapProductionPreviewRow[]
+  ) {
+
+    setSapPreview(
+      current => {
+
+        if (
+          !current
+        ) {
+
+          return null;
+
+        }
+
+
+        return {
+
+          ...current,
+
+          rows,
+
+          readyRows:
+            rows.filter(
+              row =>
+                row.status ===
+                "READY"
+            ).length,
+
+          duplicateRows:
+            rows.filter(
+              row =>
+                row.status ===
+                "DUPLICATE"
+            ).length,
+
+          missingProductRows:
+            rows.filter(
+              row =>
+                row.status ===
+                "SKU_MISSING"
+            ).length,
+
+          incompleteRows:
+            rows.filter(
+              row =>
+                row.status ===
+                  "QUANTITY_UNKNOWN" ||
+                row.status ===
+                  "ROLLS_NOT_INTEGER"
+            ).length
+
+        };
+
+      }
+    );
+
+  }
+
+
+  function closeSapPreview() {
+
+    setSapPreviewOpen(
+      false
     );
 
   }
@@ -764,7 +1022,7 @@ export default function Production() {
 
   /*
    * ==================================================
-   * ÓRDENES DE LÍNEA
+   * ÓRDENES DE LA LÍNEA
    * ==================================================
    */
 
@@ -861,7 +1119,7 @@ export default function Production() {
 
   /*
    * ==================================================
-   * SIN LÍNEA
+   * ÓRDENES SIN LÍNEA
    * ==================================================
    */
 
@@ -883,7 +1141,7 @@ export default function Production() {
 
   /*
    * ==================================================
-   * CONTADOR LÍNEA
+   * CONTADOR DE LÍNEA
    * ==================================================
    */
 
@@ -1386,7 +1644,7 @@ export default function Production() {
 
   /*
    * ==================================================
-   * CABECERA
+   * CABECERA TABLA
    * ==================================================
    */
 
@@ -1552,49 +1810,20 @@ export default function Production() {
 
           <colgroup>
 
-            {/* # */}
             <col style={{ width: "2.5%" }} />
-
-            {/* OF */}
             <col style={{ width: "8.5%" }} />
-
-            {/* MARCAJE - MÁS ANCHO */}
             <col style={{ width: "9%" }} />
-
-            {/* CANT / R-B */}
             <col style={{ width: "6%" }} />
-
-            {/* METROS */}
             <col style={{ width: "7.5%" }} />
-
-            {/* R/B TOT */}
             <col style={{ width: "4.5%" }} />
-
-            {/* R/B PEN */}
             <col style={{ width: "4.5%" }} />
-
-            {/* DESCRIPCIÓN */}
             <col style={{ width: "15%" }} />
-
-            {/* CLIENTE */}
             <col style={{ width: "5.5%" }} />
-
-            {/* SKU */}
             <col style={{ width: "6.5%" }} />
-
-            {/* PEDIDO VENTA */}
             <col style={{ width: "7.5%" }} />
-
-            {/* PLANTILLA */}
             <col style={{ width: "5.5%" }} />
-
-            {/* IMPRESAS */}
             <col style={{ width: "4.5%" }} />
-
-            {/* ESTADO */}
             <col style={{ width: "6.5%" }} />
-
-            {/* ACCIONES */}
             <col style={{ width: "6.5%" }} />
 
           </colgroup>
@@ -1652,7 +1881,29 @@ export default function Production() {
       />
 
 
-      {/* CABECERA */}
+      {/* INPUT OCULTO PARA EXCEL SAP */}
+
+      <input
+        ref={
+          sapFileInputRef
+        }
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={
+          event =>
+            void handleSapFileSelected(
+              event
+            )
+        }
+        style={{
+          display: "none"
+        }}
+      />
+
+
+      {/* ==================================================
+          CABECERA
+          ================================================== */}
 
       <Box
         sx={{
@@ -1702,23 +1953,85 @@ export default function Production() {
         </Box>
 
 
-        <Button
-          variant="contained"
-          color="success"
-          onClick={
-            newOrder
-          }
-          sx={{
-            fontWeight: 700
-          }}
+        <Stack
+          direction="row"
+          spacing={1.5}
+          alignItems="center"
         >
-          + NUEVA ORDEN
-        </Button>
+
+          {/* ÚNICO BOTÓN NUEVO */}
+
+          <Button
+            variant="outlined"
+            color="success"
+            startIcon={
+              <UploadFileIcon />
+            }
+            onClick={
+              openSapFilePicker
+            }
+            disabled={
+              readingSapFile
+            }
+            sx={{
+              fontWeight: 800,
+              whiteSpace: "nowrap"
+            }}
+          >
+            {
+              readingSapFile
+                ? "LEYENDO EXCEL..."
+                : "IMPORTAR EXCEL SAP"
+            }
+          </Button>
+
+
+          <Button
+            variant="contained"
+            color="success"
+            onClick={
+              newOrder
+            }
+            sx={{
+              fontWeight: 700
+            }}
+          >
+            + NUEVA ORDEN
+          </Button>
+
+        </Stack>
 
       </Box>
 
 
-      {/* SIN ÓRDENES */}
+      {/* ERROR IMPORTACIÓN */}
+
+      {
+        sapImportError &&
+        (
+
+          <Alert
+            severity="error"
+            sx={{
+              mb: 2
+            }}
+            onClose={
+              () =>
+                setSapImportError(
+                  ""
+                )
+            }
+          >
+            {sapImportError}
+          </Alert>
+
+        )
+      }
+
+
+      {/* ==================================================
+          SIN ÓRDENES
+          ================================================== */}
 
       {
         orders.length ===
@@ -1769,7 +2082,9 @@ export default function Production() {
       }
 
 
-      {/* LÍNEAS */}
+      {/* ==================================================
+          LÍNEAS
+          ================================================== */}
 
       {
         orders.length >
@@ -1777,6 +2092,8 @@ export default function Production() {
         (
 
           <>
+
+            {/* PESTAÑAS CON EL FORMATO ORIGINAL */}
 
             <Paper
               elevation={0}
@@ -1912,6 +2229,8 @@ export default function Production() {
 
             </Paper>
 
+
+            {/* TARJETA DE LÍNEA CON FORMATO ORIGINAL */}
 
             <Card
               sx={{
@@ -2076,7 +2395,9 @@ export default function Production() {
       }
 
 
-      {/* SIN LÍNEA */}
+      {/* ==================================================
+          SIN LÍNEA ASIGNADA
+          ================================================== */}
 
       {
         unassignedOrders.length >
@@ -2139,7 +2460,9 @@ export default function Production() {
       }
 
 
-      {/* NUEVA ORDEN */}
+      {/* ==================================================
+          NUEVA ORDEN
+          ================================================== */}
 
       <ProductionDialog
         open={
@@ -2168,7 +2491,9 @@ export default function Production() {
       />
 
 
-      {/* GESTIONAR */}
+      {/* ==================================================
+          GESTIONAR
+          ================================================== */}
 
       <ProductionManageDialog
         open={
@@ -2192,7 +2517,29 @@ export default function Production() {
       />
 
 
-      {/* COMENTARIOS */}
+      {/* ==================================================
+          PREVISUALIZACIÓN SAP
+          ================================================== */}
+
+      <ProductionSapImportDialog
+        open={
+          sapPreviewOpen
+        }
+        preview={
+          sapPreview
+        }
+        onClose={
+          closeSapPreview
+        }
+        onRowsChange={
+          updateSapPreviewRows
+        }
+      />
+
+
+      {/* ==================================================
+          COMENTARIOS
+          ================================================== */}
 
       <Dialog
         open={
@@ -2283,7 +2630,9 @@ export default function Production() {
       </Dialog>
 
 
-      {/* ELIMINAR */}
+      {/* ==================================================
+          ELIMINAR
+          ================================================== */}
 
       <Dialog
         open={
