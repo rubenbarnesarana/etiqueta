@@ -264,13 +264,6 @@ export default function Products() {
    * ==================================================
    * ACTUALIZACIÓN EN TIEMPO REAL DE LA PANTALLA
    * ==================================================
-   *
-   * App.tsx mantiene la caché local sincronizada con
-   * Supabase y lanza los eventos globales.
-   *
-   * Aquí actualizamos el estado visual de esta
-   * pantalla usando esa caché.
-   * ==================================================
    */
 
   useEffect(
@@ -905,11 +898,6 @@ export default function Products() {
       );
 
 
-      /*
-       * Copia local temporal para mantener
-       * compatibles las demás pantallas.
-       */
-
       saveProducts(
         result.products
       );
@@ -1046,6 +1034,17 @@ export default function Products() {
             .includes(
               normalizedSearch
             )
+
+          ||
+
+          String(
+            product.marking ??
+            ""
+          )
+            .toLowerCase()
+            .includes(
+              normalizedSearch
+            )
         );
 
       }
@@ -1177,6 +1176,31 @@ export default function Products() {
 
       {
 
+        field: "marking",
+
+        headerName: "Marcaje",
+
+        width: 150,
+
+        renderCell:
+          params => (
+
+            <Typography
+              variant="body2"
+              fontWeight={600}
+            >
+              {
+                params.row.marking ||
+                "-"
+              }
+            </Typography>
+
+          )
+
+      },
+
+      {
+
         field: "diameter",
 
         headerName: "Ø",
@@ -1274,9 +1298,7 @@ export default function Products() {
               <MenuItem
                 value={0}
               >
-
                 Sin plantilla
-
               </MenuItem>
 
 
@@ -1284,19 +1306,14 @@ export default function Products() {
                 template => (
 
                   <MenuItem
-
                     key={
                       template.id
                     }
-
                     value={
                       template.id
                     }
-
                   >
-
                     {template.name}
-
                   </MenuItem>
 
                 )
@@ -1328,19 +1345,12 @@ export default function Products() {
           params => (
 
             <Stack
-
               direction="row"
-
               spacing={0.5}
-
               justifyContent="center"
-
               sx={{
-
                 width: "100%"
-
               }}
-
             >
 
               <Tooltip
@@ -1348,9 +1358,7 @@ export default function Products() {
               >
 
                 <IconButton
-
                   size="small"
-
                   onClick={
                     event => {
 
@@ -1363,7 +1371,6 @@ export default function Products() {
 
                     }
                   }
-
                 >
 
                   <EditIcon
@@ -1380,11 +1387,8 @@ export default function Products() {
               >
 
                 <IconButton
-
                   size="small"
-
                   color="error"
-
                   onClick={
                     event => {
 
@@ -1397,7 +1401,6 @@ export default function Products() {
 
                     }
                   }
-
                 >
 
                   <DeleteIcon
@@ -1520,9 +1523,7 @@ export default function Products() {
           params => (
 
             <Chip
-
               size="small"
-
               label={
                 params.row.status ===
                 "NEW"
@@ -1531,7 +1532,6 @@ export default function Products() {
 
                   : "ACTUALIZAR"
               }
-
               color={
                 params.row.status ===
                 "NEW"
@@ -1540,15 +1540,10 @@ export default function Products() {
 
                   : "info"
               }
-
               variant="outlined"
-
               sx={{
-
                 fontWeight: 700
-
               }}
-
             />
 
           )
@@ -1573,25 +1568,16 @@ export default function Products() {
               ? (
 
                 <Chip
-
                   size="small"
-
                   icon={
                     <CheckCircleIcon />
                   }
-
                   label="OK"
-
                   color="success"
-
                   variant="outlined"
-
                   sx={{
-
                     fontWeight: 700
-
                   }}
-
                 />
 
               )
@@ -1599,25 +1585,16 @@ export default function Products() {
               : (
 
                 <Chip
-
                   size="small"
-
                   icon={
                     <WarningAmberIcon />
                   }
-
                   label="REVISAR"
-
                   color="warning"
-
                   variant="outlined"
-
                   sx={{
-
                     fontWeight: 700
-
                   }}
-
                 />
 
               )
@@ -1632,116 +1609,66 @@ export default function Products() {
   return (
 
     <Box
-
       sx={{
-
         width: "100%",
-
         maxWidth: "none",
-
         minWidth: 0,
-
         boxSizing: "border-box"
-
       }}
-
     >
-
-      {/* =============================================
-          INICIO
-          ============================================= */}
 
       <BackButton
         showBack={false}
       />
 
 
-      {/* =============================================
-          CABECERA
-          ============================================= */}
-
       <Stack
-
         direction={{
-
           xs: "column",
-
           sm: "row"
-
         }}
-
         justifyContent="space-between"
-
         alignItems={{
-
           xs: "stretch",
-
           sm: "center"
-
         }}
-
         spacing={2}
-
         sx={{
-
           mb: 2.5
-
         }}
-
       >
 
         <Stack
-
           direction="row"
-
           spacing={1.5}
-
           alignItems="center"
-
         >
 
           <Inventory2Icon
-
             sx={{
-
               fontSize: 46,
-
               color: "#0B7A3B"
-
             }}
-
           />
 
 
           <Box>
 
             <Typography
-
               variant="h4"
-
               sx={{
-
                 fontWeight: 700
-
               }}
-
             >
-
               Productos
-
             </Typography>
 
 
             <Typography
-
               variant="body2"
-
               color="text.secondary"
-
             >
-
               Gestión de productos y asignación de plantillas
-
             </Typography>
 
           </Box>
@@ -1750,55 +1677,36 @@ export default function Products() {
 
 
         <Stack
-
           direction="row"
-
           spacing={1.5}
-
         >
 
           <Button
-
             variant="outlined"
-
             startIcon={
               <UploadFileIcon />
             }
-
             onClick={
               handleImportButton
             }
-
             disabled={
               readingFile
             }
-
             sx={{
-
               whiteSpace: "nowrap",
-
               fontWeight: 700,
-
               borderColor: "#0B7A3B",
-
               color: "#0B7A3B",
 
               "&:hover": {
-
                 borderColor: "#086832",
-
                 backgroundColor: "#E8F5E9"
-
               }
-
             }}
-
           >
 
             {readingFile
-
               ? "ANALIZANDO..."
-
               : "IMPORTAR SAP"
             }
 
@@ -1806,37 +1714,24 @@ export default function Products() {
 
 
           <Button
-
             variant="contained"
-
             startIcon={
               <AddIcon />
             }
-
             onClick={
               handleNewProduct
             }
-
             sx={{
-
               whiteSpace: "nowrap",
-
               backgroundColor: "#0B7A3B",
-
               fontWeight: 700,
 
               "&:hover": {
-
                 backgroundColor: "#086832"
-
               }
-
             }}
-
           >
-
             NUEVO PRODUCTO
-
           </Button>
 
         </Stack>
@@ -1845,103 +1740,64 @@ export default function Products() {
 
 
       <input
-
         ref={
           fileInputRef
         }
-
         type="file"
-
         accept=".xls,.xlsx,.xlsm,.csv,.txt"
-
         onChange={
           handleFileSelected
         }
-
         style={{
-
           display: "none"
-
         }}
-
       />
 
 
-      {/* =============================================
-          BUSCADOR
-          ============================================= */}
-
       <Card
-
         elevation={0}
-
         sx={{
-
           mb: 2,
-
           border: "1px solid #E0E0E0",
-
           borderRadius: 2
-
         }}
-
       >
 
         <CardContent
-
           sx={{
-
             p: 2,
 
             "&:last-child": {
-
               pb: 2
-
             }
-
           }}
-
         >
 
           <TextField
-
             fullWidth
-
             size="small"
-
-            placeholder="Buscar por SKU o descripción..."
-
+            placeholder="Buscar por SKU, descripción o marcaje..."
             value={
               search
             }
-
             onChange={
               event =>
                 setSearch(
                   event.target.value
                 )
             }
-
             InputProps={{
-
               startAdornment: (
 
                 <SearchIcon
-
                   sx={{
-
                     mr: 1,
-
                     color: "text.secondary"
-
                   }}
-
                 />
 
               )
-
             }}
-
           />
 
         </CardContent>
@@ -1950,138 +1806,77 @@ export default function Products() {
 
 
       <Typography
-
         variant="body2"
-
         color="text.secondary"
-
         sx={{
-
           mb: 1
-
         }}
-
       >
-
-        {filteredProducts.length}
-
-        {" "}
-
-        productos
-
+        {filteredProducts.length} productos
       </Typography>
 
 
-      {/* =============================================
-          TABLA PRODUCTOS
-          ============================================= */}
-
       <Card
-
         elevation={0}
-
         sx={{
-
           width: "100%",
-
           border: "1px solid #E0E0E0",
-
           borderRadius: 2,
-
           overflow: "hidden"
-
         }}
-
       >
 
         <Box
-
           sx={{
-
             width: "100%",
-
             height: "calc(100vh - 315px)",
-
             minHeight: 480
-
           }}
-
         >
 
           <DataGrid
-
             rows={
               filteredProducts
             }
-
             columns={
               columns
             }
-
             disableRowSelectionOnClick
-
             pageSizeOptions={[
-
               25,
-
               50,
-
               100
-
             ]}
-
             initialState={{
-
               pagination: {
-
                 paginationModel: {
-
                   pageSize: 25,
-
                   page: 0
-
                 }
-
               }
-
             }}
-
             sx={{
-
               border: 0,
-
               width: "100%",
 
               "& .MuiDataGrid-columnHeaders": {
-
                 backgroundColor: "#F7F9FA",
-
                 fontWeight: 700
-
               },
 
               "& .MuiDataGrid-columnHeaderTitle": {
-
                 fontWeight: 700
-
               },
 
               "& .MuiDataGrid-cell": {
-
                 display: "flex",
-
                 alignItems: "center"
-
               },
 
               "& .MuiDataGrid-row:hover": {
-
                 backgroundColor: "#F5FBF7"
-
               }
-
             }}
-
           />
 
         </Box>
@@ -2089,20 +1884,13 @@ export default function Products() {
       </Card>
 
 
-      {/* =============================================
-          PRODUCT DIALOG
-          ============================================= */}
-
       <ProductDialog
-
         open={
           dialogOpen
         }
-
         product={
           selectedProduct
         }
-
         onClose={
           () => {
 
@@ -2117,7 +1905,6 @@ export default function Products() {
 
           }
         }
-
         onSave={
           product => {
 
@@ -2127,128 +1914,76 @@ export default function Products() {
 
           }
         }
-
       />
 
 
-      {/* =============================================
-          VISTA PREVIA IMPORTACIÓN SAP
-          ============================================= */}
-
       <Dialog
-
         open={
           previewOpen
         }
-
         onClose={
           importing
-
             ? undefined
-
             : handleClosePreview
         }
-
         maxWidth={false}
-
         fullWidth
-
         PaperProps={{
-
           sx: {
-
             width: "95vw",
-
             maxWidth: "1500px",
-
             height: "90vh",
-
             maxHeight: "90vh"
-
           }
-
         }}
-
       >
 
         <DialogTitle
-
           sx={{
-
             pb: 1
-
           }}
-
         >
 
           <Stack
-
             direction={{
-
               xs: "column",
-
               md: "row"
-
             }}
-
             justifyContent="space-between"
-
             alignItems={{
-
               xs: "flex-start",
-
               md: "center"
-
             }}
-
             spacing={1}
-
           >
 
             <Box>
 
               <Typography
-
                 variant="h5"
-
                 sx={{
-
                   fontWeight: 700
-
                 }}
-
               >
-
                 Vista previa de importación SAP
-
               </Typography>
 
 
               <Typography
-
                 variant="body2"
-
                 color="text.secondary"
-
               >
-
                 {importFile?.name}
-
               </Typography>
 
             </Box>
 
 
             <Typography
-
               variant="body2"
-
               color="text.secondary"
-
             >
-
               Revisa los productos antes de confirmar
-
             </Typography>
 
           </Stack>
@@ -2257,143 +1992,88 @@ export default function Products() {
 
 
         <DialogContent
-
           sx={{
-
             display: "flex",
-
             flexDirection: "column",
-
             minHeight: 0,
-
             pt: "12px !important"
-
           }}
-
         >
 
           {preview && (
 
             <>
 
-              {/* =====================================
-                  RESUMEN
-                  ===================================== */}
-
               <Stack
-
                 direction={{
-
                   xs: "column",
-
                   lg: "row"
-
                 }}
-
                 spacing={1}
-
                 sx={{
-
                   mb: 2
-
                 }}
-
               >
 
                 <Chip
-
                   label={
                     `TOTAL ${preview.totalRows}`
                   }
-
                   sx={{
-
                     fontWeight: 700
-
                   }}
-
                 />
 
 
                 <Chip
-
                   label={
                     `NUEVOS ${preview.newProducts}`
                   }
-
                   color="success"
-
                   variant="outlined"
-
                   sx={{
-
                     fontWeight: 700
-
                   }}
-
                 />
 
 
                 <Chip
-
                   label={
                     `ACTUALIZAR ${preview.existingProducts}`
                   }
-
                   color="info"
-
                   variant="outlined"
-
                   sx={{
-
                     fontWeight: 700
-
                   }}
-
                 />
 
 
                 <Chip
-
                   label={
                     `DATOS OK ${preview.completeProducts}`
                   }
-
                   color="success"
-
                   variant="outlined"
-
                   sx={{
-
                     fontWeight: 700
-
                   }}
-
                 />
 
 
                 <Chip
-
                   label={
                     `REVISAR ${preview.incompleteProducts}`
                   }
-
                   color={
                     preview.incompleteProducts > 0
-
                       ? "warning"
-
                       : "default"
                   }
-
                   variant="outlined"
-
                   sx={{
-
                     fontWeight: 700
-
                   }}
-
                 />
 
               </Stack>
@@ -2402,160 +2082,92 @@ export default function Products() {
               {preview.incompleteProducts > 0 && (
 
                 <Alert
-
                   severity="warning"
-
                   sx={{
-
                     mb: 2
-
                   }}
-
                 >
-
                   Hay productos en los que no se han podido identificar automáticamente todos los datos técnicos. Puedes importarlos igualmente: los campos no detectados quedarán vacíos y podrás completarlos posteriormente.
-
                 </Alert>
 
               )}
 
 
-              {/* =====================================
-                  BUSCADOR + FILTRO
-                  ===================================== */}
-
               <Stack
-
                 direction={{
-
                   xs: "column",
-
                   md: "row"
-
                 }}
-
                 spacing={1.5}
-
                 sx={{
-
                   mb: 2
-
                 }}
-
               >
 
                 <TextField
-
                   fullWidth
-
                   size="small"
-
                   placeholder="Buscar SKU o descripción en la importación..."
-
                   value={
                     previewSearch
                   }
-
                   onChange={
                     event =>
                       setPreviewSearch(
                         event.target.value
                       )
                   }
-
                   InputProps={{
-
                     startAdornment: (
 
                       <SearchIcon
-
                         sx={{
-
                           mr: 1,
-
                           color: "text.secondary"
-
                         }}
-
                       />
 
                     )
-
                   }}
-
                 />
 
 
                 <TextField
-
                   select
-
                   size="small"
-
                   label="Mostrar"
-
                   value={
                     previewFilter
                   }
-
                   onChange={
                     event =>
                       setPreviewFilter(
-
                         event.target.value as
-
                           | "ALL"
-
                           | "NEW"
-
                           | "UPDATE"
-
                           | "INCOMPLETE"
-
                       )
                   }
-
                   sx={{
-
                     minWidth: 210
-
                   }}
-
                 >
 
-                  <MenuItem
-                    value="ALL"
-                  >
-
+                  <MenuItem value="ALL">
                     Todos
-
                   </MenuItem>
 
-
-                  <MenuItem
-                    value="NEW"
-                  >
-
+                  <MenuItem value="NEW">
                     Solo nuevos
-
                   </MenuItem>
 
-
-                  <MenuItem
-                    value="UPDATE"
-                  >
-
+                  <MenuItem value="UPDATE">
                     Solo actualizar
-
                   </MenuItem>
 
-
-                  <MenuItem
-                    value="INCOMPLETE"
-                  >
-
+                  <MenuItem value="INCOMPLETE">
                     Solo revisar
-
                   </MenuItem>
 
                 </TextField>
@@ -2564,129 +2176,70 @@ export default function Products() {
 
 
               <Typography
-
                 variant="body2"
-
                 color="text.secondary"
-
                 sx={{
-
                   mb: 1
-
                 }}
-
               >
-
-                Mostrando
-
-                {" "}
-
-                {filteredPreviewRows.length}
-
-                {" "}
-
-                de
-
-                {" "}
-
-                {preview.totalRows}
-
-                {" "}
-
+                Mostrando{" "}
+                {filteredPreviewRows.length}{" "}
+                de{" "}
+                {preview.totalRows}{" "}
                 productos
-
               </Typography>
 
 
-              {/* =====================================
-                  TABLA PREVISUALIZACIÓN
-                  ===================================== */}
-
               <Box
-
                 sx={{
-
                   flex: 1,
-
                   minHeight: 350,
-
                   border: "1px solid #E0E0E0",
-
                   borderRadius: 1,
-
                   overflow: "hidden"
-
                 }}
-
               >
 
                 <DataGrid
-
                   getRowId={
                     row =>
                       row.sku
                   }
-
                   rows={
                     filteredPreviewRows
                   }
-
                   columns={
                     previewColumns
                   }
-
                   disableRowSelectionOnClick
-
                   pageSizeOptions={[
-
                     25,
-
                     50,
-
                     100
-
                   ]}
-
                   initialState={{
-
                     pagination: {
-
                       paginationModel: {
-
                         pageSize: 50,
-
                         page: 0
-
                       }
-
                     }
-
                   }}
-
                   sx={{
-
                     border: 0,
 
                     "& .MuiDataGrid-columnHeaders": {
-
                       backgroundColor: "#F7F9FA"
-
                     },
 
                     "& .MuiDataGrid-columnHeaderTitle": {
-
                       fontWeight: 700
-
                     },
 
                     "& .MuiDataGrid-row:hover": {
-
                       backgroundColor: "#F5FBF7"
-
                     }
-
                   }}
-
                 />
 
               </Box>
@@ -2699,40 +2252,27 @@ export default function Products() {
 
 
         <DialogActions
-
           sx={{
-
             px: 3,
-
             py: 2,
-
             borderTop: "1px solid #E0E0E0"
-
           }}
-
         >
 
           <Button
-
             disabled={
               importing
             }
-
             onClick={
               handleClosePreview
             }
-
           >
-
             CANCELAR
-
           </Button>
 
 
           <Button
-
             variant="contained"
-
             disabled={
               importing
               ||
@@ -2740,7 +2280,6 @@ export default function Products() {
               ||
               preview.totalRows === 0
             }
-
             onClick={
               () => {
 
@@ -2748,29 +2287,19 @@ export default function Products() {
 
               }
             }
-
             sx={{
-
               backgroundColor: "#0B7A3B",
-
               fontWeight: 700,
-
               px: 3,
 
               "&:hover": {
-
                 backgroundColor: "#086832"
-
               }
-
             }}
-
           >
 
             {importing
-
               ? "IMPORTANDO..."
-
               : `CONFIRMAR IMPORTACIÓN (${preview?.totalRows ?? 0})`
             }
 
@@ -2781,56 +2310,35 @@ export default function Products() {
       </Dialog>
 
 
-      {/* =============================================
-          MENSAJES
-          ============================================= */}
-
       <Snackbar
-
         open={
           message !== ""
         }
-
         autoHideDuration={9000}
-
         onClose={
           () =>
             setMessage("")
         }
-
         anchorOrigin={{
-
           vertical: "bottom",
-
           horizontal: "center"
-
         }}
-
       >
 
         <Alert
-
           severity={
             messageType
           }
-
           variant="filled"
-
           onClose={
             () =>
               setMessage("")
           }
-
           sx={{
-
             width: "100%"
-
           }}
-
         >
-
           {message}
-
         </Alert>
 
       </Snackbar>

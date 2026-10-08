@@ -24,6 +24,8 @@ interface ProductRow {
 
   upper_text: string;
 
+  marking: string;
+
   diameter: string;
 
   thickness: string;
@@ -81,6 +83,10 @@ function mapRowToProduct(
       row.upper_text ??
       "",
 
+    marking:
+      row.marking ??
+      "",
+
     diameter:
       row.diameter ??
       "",
@@ -135,6 +141,10 @@ function mapProductToRow(
 
     upper_text:
       product.upperText ??
+      "",
+
+    marking:
+      product.marking ??
       "",
 
     diameter:
@@ -395,6 +405,7 @@ Promise<Product[]> {
             sap_code,
             description,
             upper_text,
+            marking,
             diameter,
             thickness,
             flow,
