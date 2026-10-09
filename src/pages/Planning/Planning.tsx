@@ -64,7 +64,7 @@ const PRODUCTION_LINES = [
   8
 ];
 const PLANNING_COLUMNS =
-  "38px 132px 105px 112px 76px 76px minmax(225px, 1.55fr) minmax(120px, 1fr) 100px 118px 90px 68px";
+  "38px 145px 145px 140px 76px 76px minmax(240px, 1.55fr) minmax(170px, 1fr) 105px 125px 90px 72px";
 const RIVULIS_GREEN:
   [number, number, number] =
   [
@@ -1670,7 +1670,20 @@ export default function Planning() {
                 </Box>
               )
               : (
-                <Box>
+                <Box
+                  sx={{
+                    width:
+                      "100%",
+                    overflowX:
+                      "auto"
+                  }}
+                >
+                  <Box
+                    sx={{
+                      minWidth:
+                        1500
+                    }}
+                  >
                   <Box
                     sx={{
                       display:
@@ -1678,9 +1691,9 @@ export default function Planning() {
                       gridTemplateColumns:
                         PLANNING_COLUMNS,
                       columnGap:
-                        0.7,
+                        1.2,
                       px:
-                        1,
+                        1.2,
                       py:
                         1.1,
                       backgroundColor:
@@ -1739,11 +1752,11 @@ export default function Planning() {
                               gridTemplateColumns:
                                 PLANNING_COLUMNS,
                               columnGap:
-                                0.7,
+                                1.2,
                               minHeight:
                                 64,
                               px:
-                                1,
+                                1.2,
                               alignItems:
                                 "center",
                               cursor:
@@ -1772,7 +1785,23 @@ export default function Planning() {
                             <CellBox>
                               <Typography
                                 variant="body2"
-                                noWrap
+                                fontWeight={800}
+                                title={
+                                  order.marking ||
+                                  "-"
+                                }
+                                sx={{
+                                  fontSize:
+                                    13,
+                                  whiteSpace:
+                                    "nowrap",
+                                  overflow:
+                                    "hidden",
+                                  textOverflow:
+                                    "clip",
+                                  pr:
+                                    1.5
+                                }}
                               >
                                 {order.marking || "-"}
                               </Typography>
@@ -1780,7 +1809,17 @@ export default function Planning() {
                             <CellBox>
                               <Typography
                                 variant="body2"
+                                fontWeight={900}
+                                color="#0B7A3B"
                                 textAlign="center"
+                                sx={{
+                                  whiteSpace:
+                                    "nowrap",
+                                  pl:
+                                    1,
+                                  pr:
+                                    1
+                                }}
                               >
                                 {
                                   formatQuantity(
@@ -1922,6 +1961,7 @@ export default function Planning() {
                       }
                     )
                   }
+                  </Box>
                 </Box>
               )
           }

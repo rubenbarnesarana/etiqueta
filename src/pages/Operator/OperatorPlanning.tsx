@@ -57,9 +57,25 @@ const PRODUCTION_LINES = [
 ];
 
 
-const PLANNING_COLUMNS =
-  "38px 145px 110px 125px 76px 76px minmax(225px, 1.55fr) minmax(120px, 1fr) 100px 118px 90px 72px";
+/*
+ * ==================================================
+ * COLUMNAS
+ * ==================================================
+ *
+ * Aumentamos MARCAJE y METROS para evitar
+ * que los textos se junten.
+ * ==================================================
+ */
 
+const PLANNING_COLUMNS =
+  "38px 145px 145px 140px 76px 76px minmax(240px, 1.55fr) minmax(170px, 1fr) 105px 125px 90px 72px";
+
+
+/*
+ * ==================================================
+ * FORMATEAR CANTIDAD
+ * ==================================================
+ */
 
 function formatQuantity(
   quantity: number,
@@ -105,6 +121,12 @@ function formatQuantity(
 }
 
 
+/*
+ * ==================================================
+ * CANTIDAD PENDIENTE
+ * ==================================================
+ */
+
 function getPendingAmount(
   order: ProductionOrder
 ): number {
@@ -137,6 +159,12 @@ function getPendingAmount(
 
 }
 
+
+/*
+ * ==================================================
+ * CABECERA COLUMNA
+ * ==================================================
+ */
 
 function Header({
 
@@ -176,6 +204,12 @@ function Header({
 }
 
 
+/*
+ * ==================================================
+ * COMPONENTE
+ * ==================================================
+ */
+
 export default function OperatorPlanning() {
 
   const navigate =
@@ -209,6 +243,12 @@ export default function OperatorPlanning() {
     );
 
 
+  /*
+   * ==================================================
+   * ÓRDENES
+   * ==================================================
+   */
+
   function loadOrders() {
 
     setOrders(
@@ -217,6 +257,12 @@ export default function OperatorPlanning() {
 
   }
 
+
+  /*
+   * ==================================================
+   * COMENTARIOS
+   * ==================================================
+   */
 
   function loadLineComments(
     line: number
@@ -261,6 +307,12 @@ export default function OperatorPlanning() {
 
   }
 
+
+  /*
+   * ==================================================
+   * EVENTOS
+   * ==================================================
+   */
 
   useEffect(
     () => {
@@ -345,19 +397,11 @@ export default function OperatorPlanning() {
   );
 
 
-  useEffect(
-    () => {
-
-      loadLineComments(
-        selectedLine
-      );
-
-    },
-    [
-      selectedLine
-    ]
-  );
-
+  /*
+   * ==================================================
+   * ÓRDENES ACTIVAS
+   * ==================================================
+   */
 
   const activeOrders =
     useMemo(
@@ -375,8 +419,7 @@ export default function OperatorPlanning() {
 
             getPendingQuantity(
               order
-            ) >
-              0
+            ) > 0
         ),
 
       [
@@ -384,6 +427,12 @@ export default function OperatorPlanning() {
       ]
     );
 
+
+  /*
+   * ==================================================
+   * ÓRDENES DE LÍNEA
+   * ==================================================
+   */
 
   const lineOrders =
     useMemo(
@@ -468,6 +517,12 @@ export default function OperatorPlanning() {
     );
 
 
+  /*
+   * ==================================================
+   * CONTADOR LÍNEA
+   * ==================================================
+   */
+
   function getLineCount(
     line: number
   ): number {
@@ -481,6 +536,12 @@ export default function OperatorPlanning() {
   }
 
 
+  /*
+   * ==================================================
+   * ABRIR OF
+   * ==================================================
+   */
+
   function openOrder(
     order: ProductionOrder
   ) {
@@ -493,6 +554,12 @@ export default function OperatorPlanning() {
 
   }
 
+
+  /*
+   * ==================================================
+   * TOTALES
+   * ==================================================
+   */
 
   const totalRolls =
     lineOrders.reduce(
@@ -538,6 +605,12 @@ export default function OperatorPlanning() {
     );
 
 
+  /*
+   * ==================================================
+   * RENDER
+   * ==================================================
+   */
+
   return (
 
     <Box
@@ -567,25 +640,45 @@ export default function OperatorPlanning() {
             minWidth: 205,
             height: 68,
             px: 2.5,
+
             display: "flex",
             justifyContent: "flex-start",
             alignItems: "center",
             gap: 1.8,
-            border: "2px solid #0B7A3B",
-            borderRadius: "16px",
-            backgroundColor: "#FFFFFF",
-            color: "#0B7A3B",
+
+            border:
+              "2px solid #0B7A3B",
+
+            borderRadius:
+              "16px",
+
+            backgroundColor:
+              "#FFFFFF",
+
+            color:
+              "#0B7A3B",
+
             fontSize: 19,
             fontWeight: 800,
-            letterSpacing: "0.4px",
-            textTransform: "uppercase",
+
+            letterSpacing:
+              "0.4px",
+
+            textTransform:
+              "uppercase",
+
             boxShadow:
               "0 5px 14px rgba(11, 122, 59, 0.16)",
 
             "&:hover": {
-              backgroundColor: "#EAF6EE",
-              borderColor: "#086530",
-              color: "#086530"
+              backgroundColor:
+                "#EAF6EE",
+
+              borderColor:
+                "#086530",
+
+              color:
+                "#086530"
             }
           }}
         >
@@ -594,12 +687,24 @@ export default function OperatorPlanning() {
             sx={{
               width: 46,
               height: 46,
-              borderRadius: "50%",
-              backgroundColor: "#0B7A3B",
-              color: "#FFFFFF",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
+
+              borderRadius:
+                "50%",
+
+              backgroundColor:
+                "#0B7A3B",
+
+              color:
+                "#FFFFFF",
+
+              display:
+                "flex",
+
+              alignItems:
+                "center",
+
+              justifyContent:
+                "center"
             }}
           >
 
@@ -670,7 +775,8 @@ export default function OperatorPlanning() {
           <Typography
             color="text.secondary"
             sx={{
-              textAlign: "center"
+              textAlign:
+                "center"
             }}
           >
             Selecciona la orden de producción que deseas imprimir
@@ -687,9 +793,14 @@ export default function OperatorPlanning() {
         elevation={0}
         sx={{
           mb: 2.5,
-          border: "1px solid #E0E0E0",
+
+          border:
+            "1px solid #E0E0E0",
+
           borderRadius: 2,
-          overflow: "hidden"
+
+          overflow:
+            "hidden"
         }}
       >
 
@@ -710,10 +821,13 @@ export default function OperatorPlanning() {
           }
           variant="fullWidth"
           sx={{
-            backgroundColor: "#F8FAF8",
+            backgroundColor:
+              "#F8FAF8",
 
             "& .MuiTabs-indicator": {
-              backgroundColor: "#0B7A3B",
+              backgroundColor:
+                "#0B7A3B",
+
               height: 4
             },
 
@@ -725,7 +839,8 @@ export default function OperatorPlanning() {
             },
 
             "& .Mui-selected": {
-              color: "#0B7A3B !important"
+              color:
+                "#0B7A3B !important"
             }
           }}
         >
@@ -764,27 +879,54 @@ export default function OperatorPlanning() {
 
                         <Box
                           sx={{
-                            minWidth: 27,
-                            height: 27,
-                            px: 0.5,
-                            borderRadius: "14px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: 900,
+                            minWidth:
+                              27,
+
+                            height:
+                              27,
+
+                            px:
+                              0.5,
+
+                            borderRadius:
+                              "14px",
+
+                            display:
+                              "flex",
+
+                            alignItems:
+                              "center",
+
+                            justifyContent:
+                              "center",
+
+                            fontWeight:
+                              900,
 
                             backgroundColor:
-                              selectedLine === line
+                              selectedLine ===
+                                line
+
                                 ? "#0B7A3B"
-                                : count > 0
+
+                                : count >
+                                    0
+
                                   ? "#DCEFE1"
+
                                   : "#EEEEEE",
 
                             color:
-                              selectedLine === line
+                              selectedLine ===
+                                line
+
                                 ? "#FFFFFF"
-                                : count > 0
+
+                                : count >
+                                    0
+
                                   ? "#0B7A3B"
+
                                   : "#757575"
                           }}
                         >
@@ -807,34 +949,56 @@ export default function OperatorPlanning() {
       </Paper>
 
 
-      {/* LÍNEA SELECCIONADA */}
+      {/* LÍNEA */}
 
       <Paper
         elevation={0}
         sx={{
-          border: "1px solid #E0E0E0",
-          borderRadius: 2,
-          overflow: "hidden"
+          border:
+            "1px solid #E0E0E0",
+
+          borderRadius:
+            2,
+
+          overflow:
+            "hidden"
         }}
       >
+
+        {/* CABECERA LÍNEA */}
 
         <Box
           sx={{
             px: 2,
             py: 1.5,
-            backgroundColor: "#E8F3EB",
-            borderBottom: "1px solid #E0E0E0",
-            display: "flex",
-            alignItems: "center",
-            gap: 1.2,
-            flexWrap: "wrap"
+
+            backgroundColor:
+              "#E8F3EB",
+
+            borderBottom:
+              "1px solid #E0E0E0",
+
+            display:
+              "flex",
+
+            alignItems:
+              "center",
+
+            gap:
+              1.2,
+
+            flexWrap:
+              "wrap"
           }}
         >
 
           <FactoryIcon
             sx={{
-              color: "#0B7A3B",
-              fontSize: 27
+              color:
+                "#0B7A3B",
+
+              fontSize:
+                27
             }}
           />
 
@@ -843,17 +1007,19 @@ export default function OperatorPlanning() {
             variant="h6"
             fontWeight={900}
             sx={{
-              color: "#0B7A3B"
+              color:
+                "#0B7A3B"
             }}
           >
             LÍNEA {selectedLine}
           </Typography>
 
 
-          {/* COMENTARIO DE LA LÍNEA */}
+          {/* COMENTARIO */}
 
           {
             lineComments
+
               ? (
 
                 <Stack
@@ -869,8 +1035,11 @@ export default function OperatorPlanning() {
 
                   <CommentIcon
                     sx={{
-                      fontSize: 18,
-                      color: "#D84315"
+                      fontSize:
+                        18,
+
+                      color:
+                        "#D84315"
                     }}
                   />
 
@@ -880,9 +1049,14 @@ export default function OperatorPlanning() {
                     fontWeight={800}
                     color="#D84315"
                     sx={{
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap"
+                      overflow:
+                        "hidden",
+
+                      textOverflow:
+                        "ellipsis",
+
+                      whiteSpace:
+                        "nowrap"
                     }}
                     title={
                       lineComments
@@ -918,8 +1092,11 @@ export default function OperatorPlanning() {
             }
             size="small"
             sx={{
-              fontWeight: 800,
-              backgroundColor: "#FFFFFF"
+              fontWeight:
+                800,
+
+              backgroundColor:
+                "#FFFFFF"
             }}
           />
 
@@ -931,7 +1108,8 @@ export default function OperatorPlanning() {
             size="small"
             variant="outlined"
             sx={{
-              backgroundColor: "#FFFFFF"
+              backgroundColor:
+                "#FFFFFF"
             }}
           />
 
@@ -943,7 +1121,8 @@ export default function OperatorPlanning() {
             size="small"
             variant="outlined"
             sx={{
-              backgroundColor: "#FFFFFF"
+              backgroundColor:
+                "#FFFFFF"
             }}
           />
 
@@ -955,27 +1134,37 @@ export default function OperatorPlanning() {
             size="small"
             color={
               totalPending > 0
+
                 ? "warning"
+
                 : "success"
             }
             sx={{
-              fontWeight: 700
+              fontWeight:
+                700
             }}
           />
 
         </Box>
 
 
+        {/* SIN ÓRDENES */}
+
         {
-          lineOrders.length === 0
+          lineOrders.length ===
+            0
 
             ? (
 
               <Box
                 sx={{
                   py: 5,
-                  textAlign: "center",
-                  backgroundColor: "#FFFFFF"
+
+                  textAlign:
+                    "center",
+
+                  backgroundColor:
+                    "#FFFFFF"
                 }}
               >
 
@@ -993,45 +1182,104 @@ export default function OperatorPlanning() {
 
               <Box
                 sx={{
-                  width: "100%",
-                  overflowX: "auto"
+                  width:
+                    "100%",
+
+                  overflowX:
+                    "auto"
                 }}
               >
 
                 <Box
                   sx={{
-                    minWidth: 1320
+                    /*
+                     * Un poco más ancho para que Marcaje
+                     * y Metros no se monten.
+                     */
+                    minWidth:
+                      1500
                   }}
                 >
 
+                  {/* CABECERA */}
+
                   <Box
                     sx={{
-                      display: "grid",
+                      display:
+                        "grid",
+
                       gridTemplateColumns:
                         PLANNING_COLUMNS,
-                      columnGap: 0.7,
-                      px: 1,
-                      py: 1.1,
-                      backgroundColor: "#F5F7FA",
-                      borderBottom: "1px solid #E0E0E0"
+
+                      columnGap:
+                        1.2,
+
+                      px:
+                        1.2,
+
+                      py:
+                        1.1,
+
+                      backgroundColor:
+                        "#F5F7FA",
+
+                      borderBottom:
+                        "1px solid #E0E0E0"
                     }}
                   >
 
-                    <Header center>#</Header>
-                    <Header>OF</Header>
-                    <Header>Marcaje</Header>
-                    <Header center>Metros / Unid.</Header>
-                    <Header center>R/B Tot</Header>
-                    <Header center>R/B Pen</Header>
-                    <Header>Descripción</Header>
-                    <Header>Cliente</Header>
-                    <Header>SKU</Header>
-                    <Header>Pedido Venta</Header>
-                    <Header center>Progreso</Header>
-                    <Header center>Imprimir</Header>
+                    <Header center>
+                      #
+                    </Header>
+
+                    <Header>
+                      OF
+                    </Header>
+
+                    <Header>
+                      Marcaje
+                    </Header>
+
+                    <Header center>
+                      Metros / Unid.
+                    </Header>
+
+                    <Header center>
+                      R/B Tot
+                    </Header>
+
+                    <Header center>
+                      R/B Pen
+                    </Header>
+
+                    <Header>
+                      Descripción
+                    </Header>
+
+                    <Header>
+                      Cliente
+                    </Header>
+
+                    <Header>
+                      SKU
+                    </Header>
+
+                    <Header>
+                      Pedido Venta
+                    </Header>
+
+                    <Header center>
+                      Progreso
+                    </Header>
+
+                    <Header center>
+                      Imprimir
+                    </Header>
 
                   </Box>
 
+
+                  {/* FILAS */}
 
                   {
                     lineOrders.map(
@@ -1048,6 +1296,7 @@ export default function OperatorPlanning() {
 
                         const progress =
                           order.rolls > 0
+
                             ? Math.min(
                                 100,
                                 (
@@ -1056,6 +1305,7 @@ export default function OperatorPlanning() {
                                 ) *
                                   100
                               )
+
                             : 0;
 
 
@@ -1090,51 +1340,95 @@ export default function OperatorPlanning() {
                                 )
                             }
                             sx={{
-                              display: "grid",
+                              display:
+                                "grid",
+
                               gridTemplateColumns:
                                 PLANNING_COLUMNS,
-                              columnGap: 0.7,
-                              minHeight: 64,
-                              px: 1,
-                              alignItems: "center",
+
+                              columnGap:
+                                1.2,
+
+                              minHeight:
+                                64,
+
+                              px:
+                                1.2,
+
+                              alignItems:
+                                "center",
+
                               borderBottom:
                                 "1px solid #EAEAEA",
-                              cursor: "pointer",
-                              backgroundColor: "#FFFFFF",
+
+                              cursor:
+                                "pointer",
+
+                              backgroundColor:
+                                "#FFFFFF",
 
                               "&:hover": {
-                                backgroundColor: "#F3FAF5"
+                                backgroundColor:
+                                  "#F3FAF5"
                               }
                             }}
                           >
+
+                            {/* POSICIÓN */}
 
                             <Typography
                               fontWeight={800}
                               textAlign="center"
                             >
                               {
-                                order.planningPosition > 0
+                                order.planningPosition >
+                                  0
+
                                   ? order.planningPosition
-                                  : index + 1
+
+                                  : index +
+                                    1
                               }
                             </Typography>
 
+
+                            {/* OF */}
 
                             <Typography
                               fontWeight={900}
                               color="#1976D2"
                               sx={{
-                                whiteSpace: "nowrap"
+                                whiteSpace:
+                                  "nowrap"
                               }}
                             >
                               {order.order}
                             </Typography>
 
 
+                            {/* MARCAJE */}
+
                             <Typography
                               fontWeight={800}
+                              title={
+                                order.marking ||
+                                "-"
+                              }
                               sx={{
-                                whiteSpace: "nowrap"
+                                fontSize:
+                                  13,
+
+                                whiteSpace:
+                                  "nowrap",
+
+                                overflow:
+                                  "hidden",
+
+                                textOverflow:
+                                  "clip",
+
+                                pr:
+                                  1.5
                               }}
                             >
                               {
@@ -1144,12 +1438,21 @@ export default function OperatorPlanning() {
                             </Typography>
 
 
+                            {/* METROS */}
+
                             <Typography
                               fontWeight={900}
                               color="#0B7A3B"
                               textAlign="center"
                               sx={{
-                                whiteSpace: "nowrap"
+                                whiteSpace:
+                                  "nowrap",
+
+                                pl:
+                                  1,
+
+                                pr:
+                                  1
                               }}
                             >
                               {
@@ -1161,6 +1464,8 @@ export default function OperatorPlanning() {
                             </Typography>
 
 
+                            {/* R/B TOTAL */}
+
                             <Typography
                               fontWeight={800}
                               textAlign="center"
@@ -1168,6 +1473,8 @@ export default function OperatorPlanning() {
                               {order.rolls}
                             </Typography>
 
+
+                            {/* R/B PENDIENTES */}
 
                             <Typography
                               fontWeight={900}
@@ -1178,26 +1485,54 @@ export default function OperatorPlanning() {
                             </Typography>
 
 
+                            {/* DESCRIPCIÓN */}
+
                             <Typography
                               variant="body2"
                               sx={{
-                                lineHeight: 1.25,
-                                overflow: "hidden",
-                                display: "-webkit-box",
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: "vertical"
+                                lineHeight:
+                                  1.25,
+
+                                overflow:
+                                  "hidden",
+
+                                display:
+                                  "-webkit-box",
+
+                                WebkitLineClamp:
+                                  2,
+
+                                WebkitBoxOrient:
+                                  "vertical",
+
+                                px:
+                                  1
                               }}
                             >
                               {order.product}
                             </Typography>
 
 
+                            {/* CLIENTE */}
+
                             <Typography
                               variant="body2"
+                              title={
+                                order.customer ||
+                                "-"
+                              }
                               sx={{
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap"
+                                overflow:
+                                  "hidden",
+
+                                textOverflow:
+                                  "ellipsis",
+
+                                whiteSpace:
+                                  "nowrap",
+
+                                px:
+                                  1
                               }}
                             >
                               {
@@ -1207,21 +1542,27 @@ export default function OperatorPlanning() {
                             </Typography>
 
 
+                            {/* SKU */}
+
                             <Typography
                               variant="body2"
                               sx={{
-                                whiteSpace: "nowrap"
+                                whiteSpace:
+                                  "nowrap"
                               }}
                             >
                               {order.sku}
                             </Typography>
 
 
+                            {/* PEDIDO VENTA */}
+
                             <Typography
                               variant="body2"
                               fontWeight={700}
                               sx={{
-                                whiteSpace: "nowrap"
+                                whiteSpace:
+                                  "nowrap"
                               }}
                             >
                               {
@@ -1231,9 +1572,12 @@ export default function OperatorPlanning() {
                             </Typography>
 
 
+                            {/* PROGRESO */}
+
                             <Box
                               sx={{
-                                px: 0.5
+                                px:
+                                  0.5
                               }}
                             >
 
@@ -1243,8 +1587,11 @@ export default function OperatorPlanning() {
                                   progress
                                 }
                                 sx={{
-                                  height: 7,
-                                  borderRadius: 5
+                                  height:
+                                    7,
+
+                                  borderRadius:
+                                    5
                                 }}
                               />
 
@@ -1253,9 +1600,14 @@ export default function OperatorPlanning() {
                                 variant="caption"
                                 fontWeight={800}
                                 sx={{
-                                  display: "block",
-                                  mt: 0.4,
-                                  textAlign: "center"
+                                  display:
+                                    "block",
+
+                                  mt:
+                                    0.4,
+
+                                  textAlign:
+                                    "center"
                                 }}
                               >
                                 {
@@ -1268,16 +1620,22 @@ export default function OperatorPlanning() {
                             </Box>
 
 
+                            {/* IMPRIMIR */}
+
                             <Box
                               sx={{
-                                display: "flex",
-                                justifyContent: "center"
+                                display:
+                                  "flex",
+
+                                justifyContent:
+                                  "center"
                               }}
                             >
 
                               <PrintIcon
                                 sx={{
-                                  color: "#0B7A3B"
+                                  color:
+                                    "#0B7A3B"
                                 }}
                               />
 
