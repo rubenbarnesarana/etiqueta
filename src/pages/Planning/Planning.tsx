@@ -798,10 +798,13 @@ export default function Planning() {
           order.marking ||
             "-",
           formatQuantity(
-            Number(
-              order.quantity ??
-              0
-            ),
+            getPendingQuantity(
+              order
+            ) *
+              Number(
+                order.quantity ??
+                0
+              ),
             order.quantityUnit ===
               "UN"
               ? "UN"
@@ -1781,10 +1784,13 @@ export default function Planning() {
                               >
                                 {
                                   formatQuantity(
-                                    Number(
-                                      order.quantity ??
-                                      0
-                                    ),
+                                    getPendingQuantity(
+                                      order
+                                    ) *
+                                      Number(
+                                        order.quantity ??
+                                        0
+                                      ),
                                     order.quantityUnit ===
                                       "UN"
                                       ? "UN"
